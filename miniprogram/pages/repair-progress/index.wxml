@@ -1,0 +1,91 @@
+<view class="repair-page">
+  <!-- 头部卡片 -->
+  <view class="header">
+    <text class="title">我的报修</text>
+    <text class="subtitle">共提交 {{repairList.length}} 次报修</text>
+  </view>
+
+  <!-- 标签页 -->
+  <view class="tabs">
+    <view class="tab {{currentTab === 'all' ? 'active' : ''}}" data-tab="all" bindtap="switchTab">
+      <text class="tab-text">全部</text>
+    </view>
+    <view class="tab {{currentTab === 'pending' ? 'active' : ''}}" data-tab="pending" bindtap="switchTab">
+      <text class="tab-text">待处理</text>
+    </view>
+    <view class="tab {{currentTab === 'processing' ? 'active' : ''}}" data-tab="processing" bindtap="switchTab">
+      <text class="tab-text">处理中</text>
+    </view>
+    <view class="tab {{currentTab === 'completed' ? 'active' : ''}}" data-tab="completed" bindtap="switchTab">
+      <text class="tab-text">已完成</text>
+    </view>
+  </view>
+
+  <!-- 内容区域 -->
+  <view class="content">
+    <!-- 报修列表 -->
+    <view class="repair-list" wx:if="{{filteredList.length > 0}}">
+      <view class="repair-card" wx:for="{{filteredList}}" wx:key="_id" bindtap="viewDetail" data-id="{{item._id}}">
+        <view class="card-header">
+          <view class="repair-title-row">
+            <text class="repair-type">{{item.type === 'report' ? '报事' : '报修'}}</text>
+            <text class="status-tag {{item.statusClass}}">{{item.statusText}}</text>
+          </view>
+          <view class="repair-time">{{item.submitTimeFormatted}}</view>
+        </view>
+
+        <view class="card-body">
+          <view class="repair-description">
+            <text class="description-text">{{item.description || '无描述'}}</text>
+          </view>
+
+          <view class="repair-info">
+            <view class="info-item" wx:if="{{item.equipment}}">
+              <text class="info-label">设施：</text>
+              <text class="info-value">{{item.equipment}}</text>
+            </view>
+            <view class="info-item" wx:if="{{item.title}}">
+              <text class="info-label">事项：</text>
+              <text class="info-value">{{item.title}}</text>
+            </view>
+            <view class="info-item" wx:if="{{item.location}}">
+              <text class="info-label">位置：</text>
+              <text class="info-value">{{item.location}}</text>
+            </view>
+            <view class="info-item">
+              <text class="info-label">紧急程度：</text>
+              <text class="info-value {{item.isUrgent ? 'urgent' : ''}}">{{item.isUrgent ? '紧急' : '不紧急'}}</text>
+            </view>
+          </view>
+
+          <!-- 图片 -->
+          <view class="repair-images" wx:if="{{item.images && item.images.length > 0}}">
+            <image 
+              wx:for="{{item.images}}" 
+              wx:for-item="imgUrl" 
+              wx:key="index"
+              src="{{imgUrl}}" 
+              mode="aspectFill" 
+              class="repair-image"
+            />
+          </view>
+        </view>
+
+        <view class="card-footer">
+          <text class="view-detail-text">查看详情 ></text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty-state" wx:if="{{filteredList.length === 0 && !loading}}">
+      <image src="/images/icon-empty.png" mode="aspectFit" class="empty-icon"/>
+      <text class="empty-text">暂无报修记录</text>
+    </view>
+
+    <!-- 加载状态 -->
+    <view class="loading-state" wx:if="{{loading}}">
+      <text>加载中...</text>
+    </view>
+  </view>
+</view>

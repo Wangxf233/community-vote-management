@@ -1,0 +1,31 @@
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial;
+}
+#app {
+  height: 100%;
+  overflow: hidden;
+}
+.login-container {
+  background: #f5f7fa;
+}
+.ant-layout {
+  min-height: 100vh;
+}
+.ant-layout-sider {
+  background: #001529;
+}
+
+/* Element Plus 图片预览组件全局样式 */
+.el-image-viewer__wrapper {
+  z-index: 2100 !important;
+}
+
+.el-image-viewer__mask {
+  z-index: 2099 !important;
+}

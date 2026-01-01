@@ -1,0 +1,173 @@
+<view class="repair-container">
+  <!-- 顶部选项卡 -->
+  <view class="tab-container">
+    <view class="tab-item {{currentTab === 0 ? 'active' : ''}}" bindtap="switchTab" data-tab="0">
+      新的报修
+    </view>
+    <view class="tab-item {{currentTab === 1 ? 'active' : ''}}" bindtap="switchTab" data-tab="1">
+      新的报事
+    </view>
+  </view>
+
+  <!-- 新的报修页面 -->
+  <view class="content-section" wx:if="{{currentTab === 0}}">
+    <view class="page-header">
+      <text class="page-title">新的报修</text>
+      <view class="urgency-switch">
+        <text class="urgency-label">紧急</text>
+        <switch class="urgency-toggle" checked="{{isUrgent}}" bindchange="onUrgencyChange" color="#1AAD19" />
+      </view>
+  </view>
+
+    <form bindsubmit="submitRepair">
+      <!-- 设备输入 -->
+      <view class="form-item">
+        <text class="form-label required">设备</text>
+        <input class="form-input" placeholder="请输入设备名称（如：电梯、门禁系统、监控摄像头等）" value="{{equipment}}" bindinput="onEquipmentInput" />
+      </view>
+
+      <!-- 地点输入 -->
+      <view class="form-item">
+        <text class="form-label required">地点</text>
+        <input class="form-input" placeholder="请输入设备地点" value="{{location}}" bindinput="onLocationInput" />
+      </view>
+
+      <!-- 描述输入 -->
+      <view class="form-item">
+        <text class="form-label required">描述</text>
+        <textarea class="form-textarea" placeholder="请描述设备故障" value="{{description}}" bindinput="onDescriptionInput" />
+      </view>
+
+      <view class="divider"></view>
+
+      <!-- 图片上传 -->
+      <view class="upload-section">
+        <text class="section-title">图片</text>
+        <view class="image-uploader">
+          <view wx:for="{{images}}" wx:key="index" class="image-item">
+            <image src="{{item}}" class="uploaded-image" mode="aspectFill"></image>
+            <text class="delete-btn" bindtap="deleteImage" data-index="{{index}}">×</text>
+          </view>
+          <view class="upload-btn" bindtap="chooseImage" wx:if="{{images.length < 9}}">
+            <text class="upload-icon">+</text>
+            <text class="upload-text">添加图片</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="divider"></view>
+
+      <!-- 视频上传 -->
+      <view class="upload-section">
+        <text class="section-title">视频</text>
+        <view class="video-uploader">
+          <view wx:if="{{video}}" class="video-item">
+            <video src="{{video}}" class="uploaded-video" controls></video>
+            <text class="delete-btn" bindtap="deleteVideo">×</text>
+          </view>
+          <view class="upload-btn" bindtap="chooseVideo" wx:if="{{!video}}">
+            <text class="upload-icon">+</text>
+            <text class="upload-text">上传视频</text>
+          </view>
+        </view>
+      </view>
+
+      <button class="submit-btn" form-type="submit" disabled="{{!canSubmit}}">立即上报</button>
+    </form>
+
+    <!-- 报修进度 -->
+    <view class="progress-section">
+      <text class="section-title">报修进度</text>
+      <view class="progress-list">
+        <view class="progress-item" wx:for="{{repairProgress}}" wx:key="_id">
+          <view class="progress-left">
+            <text class="progress-title">{{item.equipment}} - {{item.location}}</text>
+            <text class="progress-time">{{item.submitTime}}</text>
+          </view>
+          <text class="progress-status {{item.status}}">{{item.statusText}}</text>
+        </view>
+        
+        <view class="no-progress" wx:if="{{repairProgress.length === 0}}">
+          <text>暂无报修记录</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 新的报事页面 -->
+  <view class="content-section" wx:if="{{currentTab === 1}}">
+    <view class="page-header" wx:if="{{currentTab === 1}}">
+      <text class="page-title">新的报事</text>
+      <view class="urgency-switch">
+        <text class="urgency-label">紧急</text>
+        <switch class="urgency-toggle" checked="{{isReportUrgent}}" bindchange="onReportUrgencyChange" color="#1AAD19" />
+      </view>
+  </view>
+
+    <form bindsubmit="submitReport">
+      <!-- 事项输入 -->
+      <view class="form-item">
+        <text class="form-label required">事项</text>
+        <input class="form-input" placeholder="请简要说明报事事项" value="{{reportTitle}}" bindinput="onReportTitleInput" />
+      </view>
+
+      <!-- 描述输入 -->
+      <view class="form-item">
+        <text class="form-label required">描述</text>
+        <textarea class="form-textarea" placeholder="请详细描述要报事的内容" value="{{reportDescription}}" bindinput="onReportDescriptionInput" />
+      </view>
+
+      <view class="divider"></view>
+
+      <!-- 图片上传 -->
+      <view class="upload-section">
+        <text class="section-title">图片</text>
+        <view class="image-uploader">
+          <view wx:for="{{reportImages}}" wx:key="index" class="image-item">
+            <image src="{{item}}" class="uploaded-image" mode="aspectFill"></image>
+            <text class="delete-btn" bindtap="deleteReportImage" data-index="{{index}}">×</text>
+          </view>
+          <view class="upload-btn" bindtap="chooseReportImage" wx:if="{{reportImages.length < 9}}">
+            <text class="upload-icon">+</text>
+            <text class="upload-text">添加图片</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 视频上传 -->
+      <view class="upload-section">
+        <text class="section-title">视频</text>
+        <view class="video-uploader">
+          <view wx:if="{{reportVideo}}" class="video-item">
+            <video src="{{reportVideo}}" class="uploaded-video" controls></video>
+            <text class="delete-btn" bindtap="deleteReportVideo">×</text>
+          </view>
+          <view class="upload-btn" bindtap="chooseReportVideo" wx:if="{{!reportVideo}}">
+            <text class="upload-icon">+</text>
+            <text class="upload-text">上传视频</text>
+          </view>
+        </view>
+      </view>
+
+      <button class="submit-btn" form-type="submit" disabled="{{!canSubmitReport}}">立即上报</button>
+    </form>
+
+    <!-- 报事进度 -->
+    <view class="progress-section">
+      <text class="section-title">报事进度</text>
+      <view class="progress-list">
+        <view class="progress-item" wx:for="{{reportProgress}}" wx:key="_id">
+          <view class="progress-left">
+            <text class="progress-title">{{item.title}}</text>
+            <text class="progress-time">{{item.submitTime}}</text>
+          </view>
+          <text class="progress-status {{item.status}}">{{item.statusText}}</text>
+        </view>
+        
+        <view class="no-progress" wx:if="{{reportProgress.length === 0}}">
+          <text>暂无报事记录</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

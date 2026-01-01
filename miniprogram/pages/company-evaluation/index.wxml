@@ -1,0 +1,122 @@
+<view class="evaluation-container">
+  <view class="page-title">物业公司评价</view>
+
+  <!-- 评价周期列表 -->
+  <view wx:if="{{!currentCycle}}">
+    <view class="cycles-list">
+      <view 
+        class="cycle-item" 
+        wx:for="{{cycles}}" 
+        wx:key="_id"
+        bindtap="selectCycle"
+        data-index="{{index}}"
+      >
+        <view class="cycle-header">
+          <text class="cycle-title">{{item.title}}</text>
+          <view class="cycle-tag {{item.hasEvaluated ? 'completed' : 'ongoing'}}">
+            {{item.hasEvaluated ? '已完成' : '进行中'}}
+          </view>
+        </view>
+        <view class="cycle-info">
+          <text class="cycle-time">评价周期：{{item.startDate}} 至 {{item.endDate}}</text>
+          <text class="cycle-time">截止时间：{{item.deadline}}</text>
+        </view>
+      </view>
+      
+      <view class="empty-tip" wx:if="{{cycles.length === 0}}">
+        <text>暂无进行中的评价活动</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 评价详情页 -->
+  <view wx:else>
+    <view class="page-header">
+      <text class="back-btn" bindtap="backToCyclesList">← 返回</text>
+      <text class="page-title-small">{{isViewMode ? '评价历史' : '物业公司评价'}}</text>
+    </view>
+
+    <view class="evaluation-info">
+      <text class="info-item">评价周期：{{currentCycle.startDate}} 至 {{currentCycle.endDate}}</text>
+      <text class="info-item">评价截止时间：{{currentCycle.deadline}}</text>
+    </view>
+
+    <view class="divider"></view>
+
+    <!-- 评价历史 -->
+    <view wx:if="{{isViewMode}}" class="history-content">
+      <view class="section-header">
+        <text class="section-title">评价详情</text>
+      </view>
+
+      <!-- 评分详情 -->
+      <view class="score-section" wx:for="{{dimensions}}" wx:for-item="dimension" wx:key="name">
+        <view class="score-header">
+          <text class="score-label">{{dimension.name}}：</text>
+          <text class="current-score">{{evaluationHistory.scores[dimension.name] || 0}} 分</text>
+        </view>
+        <view class="score-selector readonly">
+          <view wx:for="{{10}}" wx:for-item="scoreNum" wx:key="*this" 
+            class="score-option {{scoreNum <= evaluationHistory.scores[dimension.name] ? 'selected' : ''}}">
+            <text class="score-text">{{scoreNum}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 留言板 -->
+      <view class="comment-display" wx:if="{{evaluationHistory.comment}}">
+        <view class="comment-label">留言板</view>
+        <view class="comment-text">{{evaluationHistory.comment}}</view>
+      </view>
+
+      <view class="comment-display" wx:else>
+        <view class="comment-label">留言板</view>
+        <view class="comment-text empty">未留言</view>
+      </view>
+    </view>
+
+    <!-- 评价表单 -->
+    <view wx:else class="evaluation-content">
+      <view class="section-header">
+        <text class="section-title">评价内容</text>
+        <text class="section-note">注：满分为10分</text>
+      </view>
+      
+      <!-- 动态评价维度 -->
+      <view class="score-section" wx:for="{{dimensions}}" wx:for-item="dimension" wx:key="name">
+        <view class="score-header">
+          <text class="score-label">{{dimension.name}}：</text>
+          <text class="current-score">{{scores[dimension.name] || 0}} 分</text>
+        </view>
+        <view class="score-selector">
+          <view wx:for="{{10}}" wx:for-item="scoreNum" wx:key="*this" 
+            class="score-option {{scoreNum <= scores[dimension.name] ? 'selected' : ''}}"
+            bindtap="setScore"
+            data-dimension="{{dimension.name}}"
+            data-score="{{scoreNum}}">
+            <text class="score-text">{{scoreNum}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 留言板 -->
+      <view class="comment-section">
+        <view class="comment-label">留言板（选填）</view>
+        <textarea 
+          class="comment-input" 
+          placeholder="请输入您的意见或建议"
+          maxlength="500"
+          value="{{comment}}"
+          bindinput="onCommentInput"
+        />
+        <view class="comment-count">{{comment ? comment.length : 0}}/500</view>
+      </view>
+
+      <text class="warning-note">注：您的评价将作为物业公司服务改进的重要依据，请理性、客观评价</text>
+
+      <button class="submit-btn" bindtap="submitEvaluation" disabled="{{loading}}">
+        {{loading ? '提交中...' : '提交评价'}}
+      </button>
+    </view>
+  </view>
+</view>

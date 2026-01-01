@@ -1,0 +1,17 @@
+<view class="guest-tip {{show ? 'show' : ''}}" wx:if="{{bindingStatus !== 'approved'}}">
+  <view class="tip-content">
+    <view class="tip-icon">
+      <text wx:if="{{bindingStatus === 'none'}}">ℹ️</text>
+      <text wx:if="{{bindingStatus === 'pending'}}">⏱</text>
+      <text wx:if="{{bindingStatus === 'rejected'}}">⚠️</text>
+    </view>
+    <view class="tip-text">
+      <text wx:if="{{bindingStatus === 'none'}}">您当前为游客模式，绑定业主信息后可参与投票</text>
+      <text wx:if="{{bindingStatus === 'pending'}}">您的业主信息正在审核中</text>
+      <text wx:if="{{bindingStatus === 'rejected'}}">您的业主信息审核未通过</text>
+    </view>
+    <view class="tip-action" wx:if="{{bindingStatus !== 'pending'}}">
+      <text class="tip-link" bindtap="goBind">去绑定</text>
+    </view>
+  </view>
+</view>

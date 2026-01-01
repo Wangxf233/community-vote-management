@@ -1,0 +1,103 @@
+<view class="register-container">
+  <view class="header">
+    <text class="title">户主注册</text>
+    <text class="subtitle">请填写真实信息以便审核</text>
+  </view>
+
+  <view class="form-container">
+    <view class="form-item">
+      <view class="label">
+        <text class="required">*</text>
+        <text>姓名</text>
+      </view>
+      <input class="input" placeholder="请输入真实姓名" value="{{formData.name}}" bindinput="onNameInput" />
+    </view>
+
+    <view class="form-item">
+      <view class="label">
+        <text class="required">*</text>
+        <text>手机号</text>
+      </view>
+      <input class="input" type="number" maxlength="11" placeholder="请输入手机号" value="{{formData.phone}}" bindinput="onPhoneInput" bindblur="onPhoneBlur" />
+    </view>
+
+    <view class="form-item">
+      <view class="label">
+        <text class="required">*</text>
+        <text>小区名称</text>
+      </view>
+      <picker mode="region" bindchange="onRegionChange" value="{{region}}">
+        <view class="picker">
+          <text wx:if="{{region[0]}}">{{region[0]}} {{region[1]}} {{region[2]}}</text>
+          <text wx:else class="placeholder">请选择省市区</text>
+        </view>
+      </picker>
+    </view>
+
+    <view class="form-item">
+      <input class="input" placeholder="请输入小区名称" value="{{formData.communityName}}" bindinput="onCommunityInput" bindblur="onCommunityBlur" />
+    </view>
+
+    <view class="form-item" wx:if="{{communityNotFound}}">
+      <view class="error-tip">
+        <text class="error-text">您的小区还未开通服务</text>
+      </view>
+    </view>
+
+    <view class="form-item">
+      <view class="label">
+        <text class="required">*</text>
+        <text>区/期号</text>
+      </view>
+      <input class="input" placeholder="例如：1" value="{{formData.district}}" bindinput="onDistrictInput" disabled="{{communityNotFound}}" />
+    </view>
+
+    <view class="form-item">
+      <view class="label">
+        <text class="required">*</text>
+        <text>楼栋</text>
+      </view>
+      <picker mode="selector" range="{{buildings}}" range-key="name" bindchange="onBuildingChange" disabled="{{communityNotFound || buildings.length === 0}}">
+        <view class="picker {{communityNotFound || buildings.length === 0 ? 'disabled' : ''}}">
+          <text wx:if="{{formData.building}}">{{formData.building}}</text>
+          <text wx:else class="placeholder">请选择楼栋</text>
+        </view>
+      </picker>
+    </view>
+
+    <view class="form-item" wx:if="{{units.length > 0}}">
+      <view class="label">
+        <text class="required">*</text>
+        <text>单元</text>
+      </view>
+      <picker mode="selector" range="{{units}}" range-key="name" bindchange="onUnitChange" disabled="{{communityNotFound}}">
+        <view class="picker {{communityNotFound ? 'disabled' : ''}}">
+          <text wx:if="{{formData.unit}}">{{formData.unit}}</text>
+          <text wx:else class="placeholder">请选择单元</text>
+        </view>
+      </picker>
+    </view>
+
+    <view class="form-item" wx:if="{{rooms.length > 0}}">
+      <view class="label">
+        <text class="required">*</text>
+        <text>房号</text>
+      </view>
+      <picker mode="selector" range="{{rooms}}" bindchange="onRoomChange" disabled="{{communityNotFound}}">
+        <view class="picker {{communityNotFound ? 'disabled' : ''}}">
+          <text wx:if="{{formData.room}}">{{formData.room}}</text>
+          <text wx:else class="placeholder">请选择房号</text>
+        </view>
+      </picker>
+    </view>
+
+    <view class="tips">
+      <text class="tip-icon">ℹ️</text>
+      <text class="tip-text">提交后需要管理员审核，审核通常在24小时内完成</text>
+    </view>
+
+    <button class="submit-btn" bindtap="handleSubmit" disabled="{{submitting}}">
+      {{submitting ? '提交中...' : '提交审核'}}
+    </button>
+  </view>
+</view>

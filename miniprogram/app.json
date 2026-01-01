@@ -1,0 +1,69 @@
+{
+  "pages": [
+    "pages/service/index",
+    "pages/welcome/index",
+    "pages/owner-register/index",
+    "pages/family-register/index",
+    "pages/verification/index",
+    "pages/vote/index",
+    "pages/vote-detail/index",
+    "pages/evaluation/index",
+    "pages/company-evaluation/index",
+    "pages/repair/index",
+    "pages/information/index",
+    "pages/profile/index",
+    "pages/my-family/index",
+    "pages/my-house/index",
+    "pages/my-votes/index",
+    "pages/staff-list/index",
+    "pages/information-list/index",
+    "pages/information-detail/index",
+    "pages/basic-info/index",
+    "pages/repair-progress/index",
+    "pages/repair-detail/index",
+    "pages/profile-settings/index",
+    "pages/switch-community/index"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#fff",
+    "navigationBarTitleText": "业主投票评价系统",
+    "navigationBarTextStyle": "black"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#1AAD19",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/service/index",
+        "text": "物业服务",
+        "iconPath": "images/service.png",
+        "selectedIconPath": "images/service-active.png"
+      },
+      {
+        "pagePath": "pages/information/index",
+        "text": "信息公示",
+        "iconPath": "images/info.png",
+        "selectedIconPath": "images/info-active.png"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "我的",
+        "iconPath": "images/profile.png",
+        "selectedIconPath": "images/profile-active.png"
+      }
+    ]
+  },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "用于获取当前位置信息"
+    }
+  },
+  "requiredPrivateInfos": ["chooseLocation"],
+  "lazyCodeLoading": "requiredComponents",
+  "useExtendedLib": {
+    "weui": true
+  }
+}

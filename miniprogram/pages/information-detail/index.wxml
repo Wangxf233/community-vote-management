@@ -1,0 +1,62 @@
+<view class="detail-page">
+  <view class="loading-container" wx:if="{{loading}}">
+    <text>加载中...</text>
+  </view>
+
+  <view class="detail-content" wx:if="{{!loading && detailData}}">
+    <!-- 标题 -->
+    <view class="detail-header">
+      <text class="detail-title">{{detailData.title}}</text>
+    </view>
+
+    <!-- 元信息 -->
+    <view class="detail-meta">
+      <view class="meta-item">
+        <text class="meta-label">发布人：</text>
+        <text class="meta-value">{{detailData.publisher}}</text>
+      </view>
+      <view class="meta-divider"></view>
+      <view class="meta-item">
+        <text class="meta-label">发布时间：</text>
+        <text class="meta-value">{{detailData.publishTime}}</text>
+      </view>
+    </view>
+
+    <!-- 内容 -->
+    <view class="detail-body">
+      <text class="detail-text">{{detailData.content}}</text>
+    </view>
+
+    <!-- 附件 -->
+    <view class="attachments-section" wx:if="{{detailData.attachments && detailData.attachments.length > 0}}">
+      <view class="section-title">
+        <text class="title-icon">📎</text>
+        <text class="title-text">附件</text>
+        <text class="title-count">（{{detailData.attachments.length}}）</text>
+      </view>
+      <view class="attachment-list">
+        <block wx:for="{{detailData.attachments}}" wx:key="url">
+          <!-- 图片附件 -->
+          <view class="attachment-item" wx:if="{{item.type === 'image'}}" bindtap="previewImage" data-url="{{item.url}}">
+            <image class="attachment-image" src="{{item.url}}" mode="aspectFill"></image>
+            <text class="attachment-label">{{item.name}}</text>
+          </view>
+          
+          <!-- 文档附件 -->
+          <view class="attachment-item doc-item" wx:else bindtap="downloadAttachment" data-url="{{item.url}}" data-name="{{item.name}}">
+            <view class="doc-icon">📄</view>
+            <view class="doc-info">
+              <text class="doc-name">{{item.name}}</text>
+            </view>
+            <view class="download-icon">下载</view>
+          </view>
+        </block>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{!loading && !detailData}}">
+    <text class="empty-text">未找到公告信息</text>
+  </view>
+</view>

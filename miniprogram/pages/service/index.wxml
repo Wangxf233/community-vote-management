@@ -1,0 +1,49 @@
+<view class="service-container">
+  <view class="header">
+    <text class="title">物业服务</text>
+    <text class="subtitle">竭诚为您服务</text>
+  </view>
+
+  <!-- 审核状态提示 -->
+  <view class="status-tip pending" wx:if="{{bindingStatus === 'pending'}}">
+    <text class="status-icon">⏳</text>
+    <text class="status-text">您的认证申请正在审核中，请耐心等待</text>
+  </view>
+  <view class="status-tip rejected" wx:if="{{bindingStatus === 'rejected'}}">
+    <text class="status-icon">⚠️</text>
+    <text class="status-text">审核未通过，请重新提交认证申请</text>
+  </view>
+
+  <view class="service-grid">
+    <view class="service-item" bindtap="navigateToVote">
+      <view class="icon-wrapper vote-icon">
+        <image src="/images/vote.png" class="service-icon"></image>
+      </view>
+      <text class="service-text">投票</text>
+    </view>
+
+    <view class="service-item" bindtap="navigateToEvaluation">
+      <view class="icon-wrapper evaluation-icon">
+        <image src="/images/evaluation.png" class="service-icon"></image>
+      </view>
+      <text class="service-text">评价</text>
+    </view>
+
+    <view class="service-item" bindtap="navigateToRepair">
+      <view class="icon-wrapper repair-icon">
+        <image src="/images/repair.png" class="service-icon"></image>
+      </view>
+      <text class="service-text">报修</text>
+    </view>
+  </view>
+
+  <!-- 游客提示 -->
+  <view class="guest-tip" wx:if="{{isGuest}}">
+    <view class="tip-content">
+      <text class="tip-icon">ℹ️</text>
+      <text class="tip-text">您当前处于游客模式，</text>
+      <text class="tip-link" bindtap="goToBind">立即绑定</text>
+      <text class="tip-text">后可参与互动</text>
+    </view>
+  </view>
+</view>

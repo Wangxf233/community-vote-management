@@ -1,0 +1,25 @@
+{
+  "name": "community-vote-admin-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite --open",
+    "build": "vite build",
+    "serve": "vite preview"
+  },
+  "dependencies": {
+    "element-plus": "^2.3.8",
+    "pinia": "^2.0.35",
+    "vue": "^3.3.4",
+    "vue-router": "^4.2.2",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.1.4",
+    "@vitejs/plugin-vue": "^4.2.3",
+    "sass": "^1.64.1",
+    "typescript": "^5.4.2",
+    "vite": "5.2.0",
+    "vue-tsc": "^3.1.3"
+  }
+}

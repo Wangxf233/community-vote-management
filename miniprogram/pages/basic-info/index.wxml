@@ -1,0 +1,82 @@
+<view class="basic-info-page">
+  <!-- 头部 -->
+  <view class="page-header">
+    <text class="page-title">小区基本情况</text>
+  </view>
+
+  <!-- 小区名称 -->
+  <view class="community-name">
+    <text class="name-text">石化家园一期</text>
+  </view>
+
+  <!-- 基本信息表格 -->
+  <view class="info-table">
+    <view class="table-row">
+      <text class="table-label">栋数</text>
+      <text class="table-value">30栋</text>
+    </view>
+    <view class="table-row">
+      <text class="table-label">单元数</text>
+      <text class="table-value">50单元</text>
+    </view>
+    <view class="table-row">
+      <text class="table-label">户数</text>
+      <text class="table-value">500户</text>
+    </view>
+    <view class="table-row">
+      <text class="table-label">业主数量</text>
+      <text class="table-value">1500人</text>
+    </view>
+    <view class="table-row">
+      <text class="table-label">占地面积</text>
+      <text class="table-value">500亩</text>
+    </view>
+    
+    <!-- 建筑面积 -->
+    <view class="table-row nested">
+      <text class="table-label">建筑面积</text>
+      <view class="nested-content">
+        <view class="nested-row">
+          <text class="nested-label">住宅面积</text>
+          <text class="nested-value">500亩</text>
+        </view>
+        <view class="nested-row">
+          <text class="nested-label">商户面积</text>
+          <text class="nested-value">300亩</text>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 专有面积 -->
+    <view class="table-row nested">
+      <text class="table-label">专有面积</text>
+      <view class="nested-content">
+        <view class="nested-row">
+          <text class="nested-label">住宅面积</text>
+          <text class="nested-value">200亩</text>
+        </view>
+        <view class="nested-row">
+          <text class="nested-label">商户面积</text>
+          <text class="nested-value">300亩</text>
+        </view>
+      </view>
+    </view>
+    
+    <view class="table-row">
+      <text class="table-label">地下车库面积</text>
+      <text class="table-value">100亩</text>
+    </view>
+    <view class="table-row">
+      <text class="table-label">地面车位数量</text>
+      <text class="table-value">200个</text>
+    </view>
+    <view class="table-row">
+      <text class="table-label">地下车位数量</text>
+      <text class="table-value">500个</text>
+    </view>
+    <view class="table-row">
+      <text class="table-label">车辆数量</text>
+      <text class="table-value">600辆</text>
+    </view>
+  </view>
+</view>
