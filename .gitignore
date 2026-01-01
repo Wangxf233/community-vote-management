@@ -43,3 +43,4 @@ project.private.config.json
 # Cloud functions
 cloudfunctions/**/node_modules/
 cloudfunctions/**/.DS_Store
+node_modules

@@ -40,6 +40,15 @@ app.use((req, res, next) => {
   next();
 });
 
+// 健康检查接口（用于云托管健康检查）
+app.get("/api/health", (req, res) => {
+  res.status(200).json({
+    status: "ok",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  });
+});
+
 // 挂载模块化路由
 app.use("/api", authRoutes);
 app.use("/api", ownerRoutes);

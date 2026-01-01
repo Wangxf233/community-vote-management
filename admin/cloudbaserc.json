@@ -1,0 +1,41 @@
+# 云托管配置文件
+# https://cloud.tencent.com/document/product/1243
+
+# 服务配置
+service:
+  name: admin-api
+  description: 社区投票管理后台 API
+
+# 版本配置
+version:
+  name: v1.0.0
+  cpu: 0.25    # CPU 核数：0.25 / 0.5 / 1 / 2
+  memory: 0.5  # 内存 GB：0.5 / 1 / 2 / 4
+  minReplicas: 1  # 最小实例数
+  maxReplicas: 3  # 最大实例数
+  port: 3000      # 容器端口
+  
+# 环境变量（敏感信息在云托管控制台配置）
+env:
+  - key: NODE_ENV
+    value: production
+  - key: PORT
+    value: "3000"
+  
+# 构建配置
+build:
+  dockerfile: Dockerfile
+  context: .
+
+# 健康检查
+healthCheck:
+  path: /api/health
+  port: 3000
+  initialDelaySeconds: 10
+  periodSeconds: 30
+  timeoutSeconds: 3
+
+# 扩缩容策略
+autoscaling:
+  cpuTargetUtilization: 70  # CPU 使用率达到 70% 时扩容
+  memoryTargetUtilization: 70  # 内存使用率达到 70% 时扩容
