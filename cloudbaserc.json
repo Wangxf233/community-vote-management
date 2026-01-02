@@ -1,0 +1,20 @@
+{
+  "envId": "cloud1-6ghienoi526fff51",
+  "version": "2.0",
+  "framework": {
+    "name": "vue",
+    "plugins": {
+      "client": {
+        "use": "@cloudbase/framework-plugin-website",
+        "inputs": {
+          "buildCommand": "cd admin-frontend && npm install && npm run build",
+          "outputPath": "admin-frontend/dist",
+          "cloudPath": "/",
+          "envVariables": {
+            "NODE_ENV": "production"
+          }
+        }
+      }
+    }
+  }
+}
