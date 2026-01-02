@@ -279,6 +279,7 @@
 import { reactive, ref, onMounted, computed } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Refresh, Bell, Moon, Sunny, User } from "@element-plus/icons-vue";
+import request from "@/utils/axios";
 const filters = reactive({
   region: [] as string[],
   name: "",
@@ -368,25 +369,9 @@ function logout() {
 async function onViewAdmin(row: any) {
   try {
     currentCommunityId = row._id;
-    const token = localStorage.getItem("admin-token") || "";
-    const res = await fetch(
-      `/api/communities/${row._id}/admin-account?t=${Date.now()}`,
-      {
-        cache: "no-store",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      }
-    );
-    const text = await res.text();
-    let body: any = {};
-    try {
-      body = text ? JSON.parse(text) : {};
-    } catch (_) {
-      /* ignore parse error */
-    }
-    if (!res.ok || !body.success) {
-      ElMessage.error((body && body.error) || `加载失败(${res.status})`);
-      return;
-    }
+    const body = await request.get(`/communities/${row._id}/admin-account`, {
+      params: { t: Date.now() },
+    });
     // 优先使用接口 username；若为空再兜底使用行数据中的 adminUsername（如接口受缓存/权限影响）
     adminForm.username = body.username || row.adminUsername || "";
     // 初次查看不展示密码明文
@@ -404,32 +389,15 @@ async function onSaveUsername() {
     return;
   }
   try {
-    const token = localStorage.getItem("admin-token") || "";
-    const res = await fetch(
-      `/api/communities/${currentCommunityId}/admin-account`,
+    const body = await request.put(
+      `/communities/${currentCommunityId}/admin-account`,
       {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          username: adminForm.username.trim(),
-          ...(tempNewPassword.value
-            ? { newPassword: String(tempNewPassword.value) }
-            : {}),
-        }),
+        username: adminForm.username.trim(),
+        ...(tempNewPassword.value
+          ? { newPassword: String(tempNewPassword.value) }
+          : {}),
       }
     );
-    const dataText = await res.text();
-    let body: any = {};
-    try {
-      body = dataText ? JSON.parse(dataText) : {};
-    } catch (_) {}
-    if (!res.ok || !body.success) {
-      ElMessage.error((body && body.error) || "保存账号失败");
-      return;
-    }
     // 如果后端返回了新密码（如首次创建时），在弹窗中显示一次
     if (body.newPassword) {
       tempNewPassword.value = body.newPassword;
@@ -453,38 +421,21 @@ async function onResetAdmin() {
     return; // 用户取消
   }
   try {
-    const token = localStorage.getItem("admin-token") || "";
     // 生成8位纯数字密码
     const gen8Digit = () =>
       String(Math.floor(10000000 + Math.random() * 90000000));
     const nextPwd = gen8Digit();
-    const res = await fetch(
-      `/api/communities/${currentCommunityId}/admin-account`,
+    const body = await request.put(
+      `/communities/${currentCommunityId}/admin-account`,
       {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          // 带上已知账号更稳妥；若为空，后端会从 community 文档回退
-          ...(adminForm.username && adminForm.username.trim()
-            ? { username: adminForm.username.trim() }
-            : {}),
-          reset: true,
-          newPassword: nextPwd,
-        }),
+        // 带上已知账号更稳妥；若为空，后端会从 community 文档回退
+        ...(adminForm.username && adminForm.username.trim()
+          ? { username: adminForm.username.trim() }
+          : {}),
+        reset: true,
+        newPassword: nextPwd,
       }
     );
-    const dataText = await res.text();
-    let body: any = {};
-    try {
-      body = dataText ? JSON.parse(dataText) : {};
-    } catch (_) {}
-    if (!res.ok || !body.success) {
-      ElMessage.error((body && body.error) || "重置失败");
-      return;
-    }
     const newPwd = body.newPassword || nextPwd;
     tempNewPassword.value = newPwd; // 在弹窗内一次性展示
     ElMessage.success("密码已重置，请及时保存");
@@ -554,7 +505,6 @@ function computeDays(row: any) {
 
 async function load() {
   try {
-    const token = localStorage.getItem("admin-token") || "";
     const params: any = {
       page: page.value,
       pageSize: pageSize.value,
@@ -571,12 +521,7 @@ async function load() {
       params.startTo = new Date(filters.startRange[1]).toISOString();
     }
 
-    const qs = new URLSearchParams(params).toString();
-    const res = await fetch(`/api/communities?${qs}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
-    if (!res.ok) throw new Error(await res.text());
-    const body = await res.json();
+    const body = await request.get("/communities", { params });
     communities.value = body.data || body;
     total.value = body.total || (Array.isArray(body) ? body.length : 0);
 
@@ -636,40 +581,7 @@ async function onDelete(row: any) {
     return; // 用户取消
   }
   try {
-    const token = localStorage.getItem("admin-token") || "";
-    console.log("删除请求 - Token:", token);
-    console.log("删除请求 - 小区ID:", row._id);
-
-    if (!token) {
-      ElMessage.error("未登录或登录已过期，请重新登录");
-      return;
-    }
-
-    const res = await fetch(`/api/communities/${row._id}`, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    console.log("删除响应状态:", res.status);
-    const text = await res.text();
-    console.log("删除响应内容:", text);
-
-    let body: any = {};
-    try {
-      body = text ? JSON.parse(text) : {};
-    } catch (e) {
-      console.error("解析响应失败:", e);
-      ElMessage.error("删除失败: 服务器响应格式错误");
-      return;
-    }
-
-    if (!res.ok || !body.success) {
-      ElMessage.error("删除失败: " + (body.error || JSON.stringify(body)));
-      return;
-    }
+    await request.delete(`/communities/${row._id}`);
     ElMessage.success("删除成功");
     load();
   } catch (e) {

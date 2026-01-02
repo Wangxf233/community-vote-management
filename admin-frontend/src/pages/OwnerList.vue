@@ -393,6 +393,7 @@
 import { ref, reactive, onMounted, computed } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Plus } from "@element-plus/icons-vue";
+import request from "@/utils/axios";
 
 const ownerList = ref<any[]>([]);
 const currentPage = ref(1);
@@ -449,27 +450,15 @@ const verifyForm = reactive({
 
 async function loadList() {
   try {
-    const token = localStorage.getItem("admin-token") || "";
-    const params = new URLSearchParams({
-      page: currentPage.value.toString(),
-      pageSize: pageSize.value.toString(),
+    const params: any = {
+      page: currentPage.value,
+      pageSize: pageSize.value,
       ...searchForm,
-    });
+    };
 
-    const res = await fetch(`/api/owner-list?${params}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    if (!res.ok) {
-      ElMessage.error("获取户主名单失败");
-      return;
-    }
-
-    const data = await res.json();
-    if (data.success) {
-      ownerList.value = data.data || [];
-      total.value = data.total || 0;
-    }
+    const data = await request.get("/owner-list", { params });
+    ownerList.value = data.data || [];
+    total.value = data.total || 0;
   } catch (err) {
     console.error("加载户主名单失败:", err);
     ElMessage.error("加载失败");
@@ -505,24 +494,10 @@ function handleEdit(row: any) {
 
 async function submitEdit() {
   try {
-    const token = localStorage.getItem("admin-token") || "";
-    const res = await fetch(`/api/owner-list/${editForm.id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(editForm),
-    });
-
-    const data = await res.json();
-    if (data.success) {
-      ElMessage.success("修改成功");
-      editDialog.value = false;
-      loadList();
-    } else {
-      ElMessage.error(data.error || "修改失败");
-    }
+    await request.put(`/owner-list/${editForm.id}`, editForm);
+    ElMessage.success("修改成功");
+    editDialog.value = false;
+    loadList();
   } catch (err) {
     console.error("修改失败:", err);
     ElMessage.error("修改失败");
@@ -550,23 +525,13 @@ async function handleBatchDelete() {
       }
     );
 
-    const token = localStorage.getItem("admin-token") || "";
     let successCount = 0;
     let failCount = 0;
 
     for (const row of selectedRows.value) {
       try {
-        const res = await fetch(`/api/owner-list/${row._id}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        const data = await res.json();
-        if (data.success) {
-          successCount++;
-        } else {
-          failCount++;
-        }
+        await request.delete(`/owner-list/${row._id}`);
+        successCount++;
       } catch {
         failCount++;
       }
@@ -595,19 +560,9 @@ async function handleDelete(row: any) {
       type: "warning",
     });
 
-    const token = localStorage.getItem("admin-token") || "";
-    const res = await fetch(`/api/owner-list/${row._id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    const data = await res.json();
-    if (data.success) {
-      ElMessage.success("删除成功");
-      loadList();
-    } else {
-      ElMessage.error(data.error || "删除失败");
-    }
+    await request.delete(`/owner-list/${row._id}`);
+    ElMessage.success("删除成功");
+    loadList();
   } catch (err: any) {
     if (err !== "cancel") {
       console.error("删除失败:", err);
@@ -634,18 +589,9 @@ async function handleViewRealName(row: any) {
 
 async function loadRealNameData(ownerId: string) {
   try {
-    const token = localStorage.getItem("admin-token") || "";
-    const res = await fetch(`/api/owner-list/${ownerId}/realname`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const data = await request.get(`/owner-list/${ownerId}/realname`);
 
-    if (!res.ok) {
-      ElMessage.error("获取认证信息失败");
-      return;
-    }
-
-    const data = await res.json();
-    if (data.success && data.data) {
+    if (data.data) {
       const certTypeMap: any = {
         property: "房产证",
         contract: "购房合同",
@@ -692,7 +638,6 @@ async function submitReview() {
     }
 
     reviewing.value = true;
-    const token = localStorage.getItem("admin-token") || "";
 
     // 如果选择了自定义原因,使用自定义内容;否则使用选择的原因
     const finalRejectReason =
@@ -700,29 +645,14 @@ async function submitReview() {
         ? verifyForm.customRejectReason
         : verifyForm.reviewRejectReason;
 
-    const res = await fetch(
-      `/api/owner-list/${currentRow.value._id}/realname-review`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          status: verifyForm.reviewStatus,
-          rejectReason: finalRejectReason,
-        }),
-      }
-    );
+    await request.post(`/owner-list/${currentRow.value._id}/realname-review`, {
+      status: verifyForm.reviewStatus,
+      rejectReason: finalRejectReason,
+    });
 
-    const data = await res.json();
-    if (data.success) {
-      ElMessage.success("审核提交成功");
-      verifyDialog.value = false;
-      loadList();
-    } else {
-      ElMessage.error(data.error || "审核失败");
-    }
+    ElMessage.success("审核提交成功");
+    verifyDialog.value = false;
+    loadList();
   } catch (err) {
     console.error("提交审核失败:", err);
     ElMessage.error("提交失败");

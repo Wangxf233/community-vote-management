@@ -140,6 +140,7 @@
 import { ref, reactive, computed, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { ElMessage } from "element-plus";
+import request from "@/utils/axios";
 
 const router = useRouter();
 const route = useRoute();
@@ -390,7 +391,6 @@ async function onSubmit() {
   submitting.value = true;
 
   try {
-    const token = localStorage.getItem("admin-token") || "";
     const user = JSON.parse(localStorage.getItem("admin-user") || "{}");
     const communityId = user.communityId;
 
@@ -400,39 +400,19 @@ async function onSubmit() {
       return;
     }
 
-    const res = await fetch("/api/votes", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify({
-        communityId,
-        type: voteType.value,
-        title: form.title,
-        detail: form.detail,
-        attachment: form.attachment,
-        attachmentName: form.attachmentName,
-        initiator: form.initiator,
-        publishTime: publishTime.toISOString(),
-        deadlineTime: form.deadlineTime.toISOString(),
-        description: form.description,
-        showResult: form.showResult,
-      }),
+    const body = await request.post("/votes", {
+      communityId,
+      type: voteType.value,
+      title: form.title,
+      detail: form.detail,
+      attachment: form.attachment,
+      attachmentName: form.attachmentName,
+      initiator: form.initiator,
+      publishTime: publishTime.toISOString(),
+      deadlineTime: form.deadlineTime.toISOString(),
+      description: form.description,
+      showResult: form.showResult,
     });
-
-    if (!res.ok) {
-      ElMessage.error("创建失败：服务器错误");
-      submitting.value = false;
-      return;
-    }
-
-    const body = await res.json();
-    if (!body.success) {
-      ElMessage.error(body.error || "创建失败");
-      submitting.value = false;
-      return;
-    }
 
     ElMessage.success("创建成功");
     clearDraft();

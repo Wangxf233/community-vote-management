@@ -266,6 +266,7 @@
 import { ref, reactive, computed, onMounted, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
+import request from "@/utils/axios";
 
 const router = useRouter();
 const route = useRoute();
@@ -365,7 +366,6 @@ function getStatusType(row: any) {
 
 async function loadList() {
   try {
-    const token = localStorage.getItem("admin-token") || "";
     const user = JSON.parse(localStorage.getItem("admin-user") || "{}");
     const communityId = user.communityId;
 
@@ -392,18 +392,7 @@ async function loadList() {
       params.deadlineTimeEnd = new Date(filters.deadlineTime[1]).toISOString();
     }
 
-    const qs = new URLSearchParams(params).toString();
-    const res = await fetch(`/api/votes?${qs}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
-
-    if (!res.ok) throw new Error(await res.text());
-    const body = await res.json();
-
-    if (!body.success) {
-      ElMessage.error(body.error || "加载失败");
-      return;
-    }
+    const body = await request.get("/votes", { params });
 
     list.value = body.data || [];
     total.value = body.total || 0;
@@ -443,18 +432,7 @@ function downloadAttachment(url: string) {
 async function showStatistics(row: any) {
   currentItem.value = row;
   try {
-    const token = localStorage.getItem("admin-token") || "";
-    const res = await fetch(`/api/votes/${row._id}/statistics`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
-
-    if (!res.ok) throw new Error(await res.text());
-    const body = await res.json();
-
-    if (!body.success) {
-      ElMessage.error(body.error || "加载失败");
-      return;
-    }
+    const body = await request.get(`/votes/${row._id}/statistics`);
 
     Object.assign(statistics, body.data);
     statisticsDialog.value = true;
@@ -484,20 +462,7 @@ async function pauseVote() {
       type: "warning",
     });
 
-    const token = localStorage.getItem("admin-token") || "";
-    const res = await fetch(`/api/votes/${currentItem.value._id}/pause`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-    });
-
-    const body = await res.json();
-    if (!res.ok || !body.success) {
-      ElMessage.error(body.error || "操作失败");
-      return;
-    }
+    await request.put(`/votes/${currentItem.value._id}/pause`);
 
     ElMessage.success("已暂停投票");
     manageDialog.value = false;
@@ -512,20 +477,7 @@ async function pauseVote() {
 
 async function resumeVote() {
   try {
-    const token = localStorage.getItem("admin-token") || "";
-    const res = await fetch(`/api/votes/${currentItem.value._id}/resume`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-    });
-
-    const body = await res.json();
-    if (!res.ok || !body.success) {
-      ElMessage.error(body.error || "操作失败");
-      return;
-    }
+    await request.put(`/votes/${currentItem.value._id}/resume`);
 
     ElMessage.success("已恢复投票");
     manageDialog.value = false;
@@ -543,47 +495,15 @@ async function saveVoteSettings() {
   }
 
   try {
-    const token = localStorage.getItem("admin-token") || "";
-
     // 更新截止时间
-    const deadlineRes = await fetch(
-      `/api/votes/${currentItem.value._id}/deadline`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          deadlineTime: newDeadline.value.toISOString(),
-        }),
-      }
-    );
-
-    const deadlineBody = await deadlineRes.json();
-    if (!deadlineRes.ok || !deadlineBody.success) {
-      ElMessage.error(deadlineBody.error || "更新截止时间失败");
-      return;
-    }
+    await request.put(`/votes/${currentItem.value._id}/deadline`, {
+      deadlineTime: newDeadline.value.toISOString(),
+    });
 
     // 更新结果展示
-    const showResultRes = await fetch(
-      `/api/votes/${currentItem.value._id}/show-result`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ showResult: showResultSwitch.value }),
-      }
-    );
-
-    const showResultBody = await showResultRes.json();
-    if (!showResultRes.ok || !showResultBody.success) {
-      ElMessage.error(showResultBody.error || "更新结果展示设置失败");
-      return;
-    }
+    await request.put(`/votes/${currentItem.value._id}/show-result`, {
+      showResult: showResultSwitch.value,
+    });
 
     ElMessage.success("保存成功");
     manageDialog.value = false;

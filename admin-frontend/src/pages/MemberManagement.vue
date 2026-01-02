@@ -193,6 +193,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
+import request from "@/utils/axios";
 const members = ref<any[]>([]);
 const total = ref(0);
 const addDialog = ref(false);
@@ -237,7 +238,6 @@ function formatDate(val: any) {
 
 async function loadMembers() {
   try {
-    const token = localStorage.getItem("admin-token") || "";
     const user = JSON.parse(localStorage.getItem("admin-user") || "{}");
     const communityId = user.communityId;
 
@@ -247,29 +247,13 @@ async function loadMembers() {
     }
 
     const params: any = { communityId };
-    if (filters.department)
-      params.department = encodeURIComponent(filters.department);
-    if (filters.position)
-      params.position = encodeURIComponent(filters.position);
-    if (filters.name) params.name = encodeURIComponent(filters.name);
-    if (filters.phone) params.phone = encodeURIComponent(filters.phone);
-    if (filters.username)
-      params.username = encodeURIComponent(filters.username);
+    if (filters.department) params.department = filters.department;
+    if (filters.position) params.position = filters.position;
+    if (filters.name) params.name = filters.name;
+    if (filters.phone) params.phone = filters.phone;
+    if (filters.username) params.username = filters.username;
 
-    const qs = Object.keys(params)
-      .map((k) => `${k}=${params[k]}`)
-      .join("&");
-    const res = await fetch(`/api/community-admins?${qs}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
-
-    if (!res.ok) throw new Error(await res.text());
-    const body = await res.json();
-
-    if (!body.success) {
-      ElMessage.error(body.error || "加载失败");
-      return;
-    }
+    const body = await request.get("/community-admins", { params });
 
     members.value = body.data || [];
     total.value = body.total || 0;
@@ -314,32 +298,13 @@ async function onAddMember() {
   }
 
   try {
-    const token = localStorage.getItem("admin-token") || "";
     const user = JSON.parse(localStorage.getItem("admin-user") || "{}");
     const communityId = user.communityId;
 
-    const res = await fetch("/api/community-admins", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify({
-        communityId,
-        ...addForm,
-      }),
+    await request.post("/community-admins", {
+      communityId,
+      ...addForm,
     });
-
-    const body = await res.json();
-
-    if (!res.ok || !body.success) {
-      const errMsg =
-        body.error === "username_exists"
-          ? "用户名已存在"
-          : body.error || "添加失败";
-      ElMessage.error(errMsg);
-      return;
-    }
 
     ElMessage.success("添加成功");
     addDialog.value = false;
@@ -353,18 +318,8 @@ async function onAddMember() {
 async function onViewAccount(row: any) {
   try {
     currentMemberId = row._id;
-    const token = localStorage.getItem("admin-token") || "";
 
-    const res = await fetch(`/api/community-admins/${row._id}/account`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
-
-    const body = await res.json();
-
-    if (!res.ok || !body.success) {
-      ElMessage.error(body.error || "加载失败");
-      return;
-    }
+    const body = await request.get(`/community-admins/${row._id}/account`);
 
     accountForm.department = body.department || "";
     accountForm.position = body.position || "";
@@ -387,30 +342,15 @@ async function onSaveAccount() {
   }
 
   try {
-    const token = localStorage.getItem("admin-token") || "";
-    const res = await fetch(
-      `/api/community-admins/${currentMemberId}/account`,
+    const body = await request.put(
+      `/community-admins/${currentMemberId}/account`,
       {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          username: accountForm.username.trim(),
-          ...(tempNewPassword.value
-            ? { newPassword: tempNewPassword.value }
-            : {}),
-        }),
+        username: accountForm.username.trim(),
+        ...(tempNewPassword.value
+          ? { newPassword: tempNewPassword.value }
+          : {}),
       }
     );
-
-    const body = await res.json();
-
-    if (!res.ok || !body.success) {
-      ElMessage.error(body.error || "保存失败");
-      return;
-    }
 
     if (body.newPassword) {
       tempNewPassword.value = body.newPassword;
@@ -438,35 +378,20 @@ async function onResetPassword() {
   }
 
   try {
-    const token = localStorage.getItem("admin-token") || "";
     const gen8Digit = () =>
       String(Math.floor(10000000 + Math.random() * 90000000));
     const nextPwd = gen8Digit();
 
-    const res = await fetch(
-      `/api/community-admins/${currentMemberId}/account`,
+    const body = await request.put(
+      `/community-admins/${currentMemberId}/account`,
       {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          ...(accountForm.username
-            ? { username: accountForm.username.trim() }
-            : {}),
-          reset: true,
-          newPassword: nextPwd,
-        }),
+        ...(accountForm.username
+          ? { username: accountForm.username.trim() }
+          : {}),
+        reset: true,
+        newPassword: nextPwd,
       }
     );
-
-    const body = await res.json();
-
-    if (!res.ok || !body.success) {
-      ElMessage.error(body.error || "重置失败");
-      return;
-    }
 
     tempNewPassword.value = body.newPassword || nextPwd;
     ElMessage.success("密码已重置，请及时保存");
@@ -493,20 +418,7 @@ async function onDelete(row: any) {
   }
 
   try {
-    const token = localStorage.getItem("admin-token") || "";
-    const res = await fetch(`/api/community-admins/${row._id}`, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    const body = await res.json();
-
-    if (!res.ok || !body.success) {
-      ElMessage.error(body.error || "删除失败");
-      return;
-    }
+    await request.delete(`/community-admins/${row._id}`);
 
     ElMessage.success("删除成功");
     loadMembers();

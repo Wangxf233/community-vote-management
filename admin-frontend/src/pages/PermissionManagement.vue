@@ -162,6 +162,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { ElMessage } from "element-plus";
+import request from "@/utils/axios";
 const members = ref<any[]>([]);
 const total = ref(0);
 const permissionDrawer = ref(false);
@@ -206,7 +207,6 @@ function getPermissionLabel(value: string) {
 
 async function loadMembers() {
   try {
-    const token = localStorage.getItem("admin-token") || "";
     const user = JSON.parse(localStorage.getItem("admin-user") || "{}");
     const communityId = user.communityId;
 
@@ -215,24 +215,14 @@ async function loadMembers() {
       return;
     }
 
-    const query = new URLSearchParams({
-      communityId,
-      department: filters.value.department,
-      position: filters.value.position,
-      name: filters.value.name,
-    }).toString();
-
-    const res = await fetch(`/api/community-admins?${query}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    const body = await request.get("/community-admins", {
+      params: {
+        communityId,
+        department: filters.value.department,
+        position: filters.value.position,
+        name: filters.value.name,
+      },
     });
-
-    if (!res.ok) throw new Error(await res.text());
-    const body = await res.json();
-
-    if (!body.success) {
-      ElMessage.error(body.error || "加载失败");
-      return;
-    }
 
     members.value = body.data || [];
     total.value = body.total || 0;
@@ -252,27 +242,12 @@ async function onSavePermissions() {
   if (!currentMember.value) return;
 
   try {
-    const token = localStorage.getItem("admin-token") || "";
-    const res = await fetch(
-      `/api/community-admins/${currentMember.value._id}/permissions`,
+    await request.put(
+      `/community-admins/${currentMember.value._id}/permissions`,
       {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          permissions: selectedPermissions.value,
-        }),
+        permissions: selectedPermissions.value,
       }
     );
-
-    const body = await res.json();
-
-    if (!res.ok || !body.success) {
-      ElMessage.error(body.error || "保存失败");
-      return;
-    }
 
     ElMessage.success("权限已更新");
     permissionDrawer.value = false;

@@ -57,6 +57,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from "vue";
 import { ElMessage } from "element-plus";
+import request from "@/utils/axios";
 const communities = ref<any[]>([]);
 const form = reactive({
   name: "",
@@ -66,18 +67,9 @@ const form = reactive({
   endDate: null as any,
 });
 
-function getToken() {
-  return localStorage.getItem("admin-token") || "";
-}
-
 async function loadList() {
   try {
-    const token = getToken();
-    const headers: any = {};
-    if (token) headers["Authorization"] = `Bearer ${token}`;
-    const res = await fetch("/api/communities", { headers });
-    if (!res.ok) throw new Error(await res.text());
-    const body = await res.json();
+    const body = await request.get("/communities");
     communities.value = body.data || body;
   } catch (e) {
     console.error("load communities failed", e);
@@ -106,32 +98,16 @@ async function onCreate() {
     endDate: form.endDate ? new Date(form.endDate).toISOString() : undefined,
   };
   try {
-    const token = getToken();
-    const res = await fetch("/api/communities", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) {
-      const txt = await res.text();
-      throw new Error(txt);
-    }
-    const body = await res.json();
-    if (body && body.success) {
-      ElMessage.success("创建成功");
-      // reset form and reload
-      form.name = "";
-      form.address = "";
-      form.regionText = "";
-      form.startDate = null;
-      form.endDate = null;
-      await loadList();
-    } else {
-      ElMessage.error("创建失败: " + JSON.stringify(body));
-    }
+    await request.post("/communities", payload);
+
+    ElMessage.success("创建成功");
+    // reset form and reload
+    form.name = "";
+    form.address = "";
+    form.regionText = "";
+    form.startDate = null;
+    form.endDate = null;
+    await loadList();
   } catch (e: any) {
     console.error("create community failed", e);
     ElMessage.error("创建失败: " + (e.message || e));

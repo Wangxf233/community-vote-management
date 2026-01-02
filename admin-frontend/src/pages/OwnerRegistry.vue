@@ -615,6 +615,7 @@ import { ref, reactive, onMounted, h, computed } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Loading } from "@element-plus/icons-vue";
 import * as XLSX from "xlsx";
+import request from "@/utils/axios";
 
 const registryList = ref<any[]>([]);
 const currentPage = ref(1);
@@ -702,25 +703,14 @@ const realNameForm = reactive({
 
 async function loadList() {
   try {
-    const token = localStorage.getItem("admin-token") || "";
-    const params = new URLSearchParams({
-      page: currentPage.value.toString(),
-      pageSize: pageSize.value.toString(),
+    const params: any = {
+      page: currentPage.value,
+      pageSize: pageSize.value,
       ...searchForm,
-    });
+    };
 
-    const res = await fetch(`/api/owner-registry?${params}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    if (!res.ok) {
-      ElMessage.error("获取房屋清册失败");
-      return;
-    }
-
-    const data = await res.json();
-    if (data.success) {
-      const rawList = data.data || [];
+    const data = await request.get("/owner-registry", { params });
+    const rawList = data.data || [];
 
       // 合并同一户主的多套房产
       const ownerMap = new Map();
@@ -892,17 +882,9 @@ async function handleImport(file: File) {
       const importData = processedData;
 
       // 调用后端接口批量导入
-      const token = localStorage.getItem("admin-token") || "";
-      const res = await fetch("/api/owner-registry/import", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ data: importData }),
+      const result = await request.post("/owner-registry/import", {
+        data: importData,
       });
-
-      const result = await res.json();
 
       loading.close();
       importing.value = false;
@@ -1033,29 +1015,15 @@ async function submitEdit() {
       status: editForm.status,
     };
 
-    const token = localStorage.getItem("admin-token") || "";
-    const url = editForm.id
-      ? `/api/owner-registry/${editForm.id}`
-      : "/api/owner-registry";
-    const method = editForm.id ? "PUT" : "POST";
-
-    const res = await fetch(url, {
-      method,
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(submitData),
-    });
-
-    const data = await res.json();
-    if (data.success) {
-      ElMessage.success(editForm.id ? "修改成功" : "添加成功");
-      editDialog.value = false;
-      loadList();
+    if (editForm.id) {
+      await request.put(`/owner-registry/${editForm.id}`, submitData);
     } else {
-      ElMessage.error(data.error || "操作失败");
+      await request.post("/owner-registry", submitData);
     }
+
+    ElMessage.success(editForm.id ? "修改成功" : "添加成功");
+    editDialog.value = false;
+    loadList();
   } catch (err) {
     // 验证失败
   }
@@ -1081,8 +1049,6 @@ async function handleBatchDelete() {
       { confirmButtonText: "确定", cancelButtonText: "取消", type: "warning" }
     );
 
-    const token = localStorage.getItem("admin-token") || "";
-
     // 收集所有需要删除的ID（包括主记录和额外房产记录）
     const allIdsToDelete: string[] = [];
     selectedRows.value.forEach((row) => {
@@ -1099,10 +1065,7 @@ async function handleBatchDelete() {
     });
 
     const deletePromises = allIdsToDelete.map((id) =>
-      fetch(`/api/owner-registry/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      }).then((res) => res.json())
+      request.delete(`/owner-registry/${id}`).then(() => ({ success: true })).catch(() => ({ success: false }))
     );
 
     const results = await Promise.all(deletePromises);
@@ -1146,8 +1109,6 @@ async function handleDelete(row: any) {
       type: "warning",
     });
 
-    const token = localStorage.getItem("admin-token") || "";
-
     // 收集所有需要删除的ID
     const idsToDelete = [row._id];
     if (row.properties && row.properties.length > 0) {
@@ -1160,10 +1121,7 @@ async function handleDelete(row: any) {
 
     // 删除所有记录
     const deletePromises = idsToDelete.map((id) =>
-      fetch(`/api/owner-registry/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      }).then((res) => res.json())
+      request.delete(`/owner-registry/${id}`).then(() => ({ success: true })).catch(() => ({ success: false }))
     );
 
     const results = await Promise.all(deletePromises);
@@ -1227,32 +1185,18 @@ async function submitRealNameReview() {
   reviewing.value = true;
 
   try {
-    const token = localStorage.getItem("admin-token") || "";
-    const res = await fetch(
-      `/api/owner-registry/${realNameForm.id}/realname-review`,
+    await request.post(
+      `/owner-registry/${realNameForm.id}/realname-review`,
       {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          status: realNameForm.reviewStatus,
-          rejectReason: realNameForm.rejectReason,
-        }),
+        status: realNameForm.reviewStatus,
+        rejectReason: realNameForm.rejectReason,
       }
     );
 
-    const data = await res.json();
     reviewing.value = false;
-
-    if (data.success) {
-      ElMessage.success("审核成功");
-      realNameDialog.value = false;
-      loadList();
-    } else {
-      ElMessage.error(data.error || "审核失败");
-    }
+    ElMessage.success("审核成功");
+    realNameDialog.value = false;
+    loadList();
   } catch (err) {
     reviewing.value = false;
     ElMessage.error("审核失败");

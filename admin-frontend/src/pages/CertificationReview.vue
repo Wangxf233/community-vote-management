@@ -202,6 +202,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
+import request from "@/utils/axios";
 
 const applicationList = ref<any[]>([]);
 const currentPage = ref(1);
@@ -229,27 +230,16 @@ const reviewForm = reactive({
 
 async function loadList() {
   try {
-    const token = localStorage.getItem("admin-token") || "";
-    const params = new URLSearchParams({
-      page: currentPage.value.toString(),
-      pageSize: pageSize.value.toString(),
-      ...searchForm,
+    const data = await request.get("/certification-applications", {
+      params: {
+        page: currentPage.value,
+        pageSize: pageSize.value,
+        ...searchForm,
+      },
     });
 
-    const res = await fetch(`/api/certification-applications?${params}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    if (!res.ok) {
-      ElMessage.error("获取申请列表失败");
-      return;
-    }
-
-    const data = await res.json();
-    if (data.success) {
-      applicationList.value = data.data || [];
-      total.value = data.total || 0;
-    }
+    applicationList.value = data.data || [];
+    total.value = data.total || 0;
   } catch (err) {
     console.error("加载申请列表失败:", err);
     ElMessage.error("加载失败");
@@ -294,7 +284,6 @@ async function submitReview() {
       return;
     }
 
-    const token = localStorage.getItem("admin-token") || "";
     let rejectReason = "";
     if (reviewForm.action === "rejected") {
       rejectReason =
@@ -303,29 +292,17 @@ async function submitReview() {
           : "姓名与房屋信息不匹配";
     }
 
-    const res = await fetch(
-      `/api/certification-applications/${currentRow.value._id}/review`,
+    await request.post(
+      `/certification-applications/${currentRow.value._id}/review`,
       {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          action: reviewForm.action,
-          reason: rejectReason,
-        }),
+        action: reviewForm.action,
+        reason: rejectReason,
       }
     );
 
-    const data = await res.json();
-    if (data.success) {
-      ElMessage.success("审核成功");
-      reviewDialog.value = false;
-      loadList();
-    } else {
-      ElMessage.error(data.error || "审核失败");
-    }
+    ElMessage.success("审核成功");
+    reviewDialog.value = false;
+    loadList();
   } catch (err) {
     console.error("审核失败:", err);
     ElMessage.error("审核失败");
@@ -353,32 +330,15 @@ async function handleBatchApprove() {
       }
     );
 
-    const token = localStorage.getItem("admin-token") || "";
     let successCount = 0;
     let failCount = 0;
 
     for (const row of selectedRows.value) {
       try {
-        const res = await fetch(
-          `/api/certification-applications/${row._id}/review`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              action: "approved",
-            }),
-          }
-        );
-
-        const data = await res.json();
-        if (data.success) {
-          successCount++;
-        } else {
-          failCount++;
-        }
+        await request.post(`/certification-applications/${row._id}/review`, {
+          action: "approved",
+        });
+        successCount++;
       } catch {
         failCount++;
       }
@@ -416,23 +376,13 @@ async function handleBatchDelete() {
       }
     );
 
-    const token = localStorage.getItem("admin-token") || "";
     let successCount = 0;
     let failCount = 0;
 
     for (const row of selectedRows.value) {
       try {
-        const res = await fetch(`/api/certification-applications/${row._id}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        const data = await res.json();
-        if (data.success) {
-          successCount++;
-        } else {
-          failCount++;
-        }
+        await request.delete(`/certification-applications/${row._id}`);
+        successCount++;
       } catch {
         failCount++;
       }
@@ -461,19 +411,9 @@ async function handleDelete(row: any) {
       type: "warning",
     });
 
-    const token = localStorage.getItem("admin-token") || "";
-    const res = await fetch(`/api/certification-applications/${row._id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    const data = await res.json();
-    if (data.success) {
-      ElMessage.success("删除成功");
-      loadList();
-    } else {
-      ElMessage.error(data.error || "删除失败");
-    }
+    await request.delete(`/certification-applications/${row._id}`);
+    ElMessage.success("删除成功");
+    loadList();
   } catch (err: any) {
     if (err !== "cancel") {
       console.error("删除失败:", err);
@@ -495,25 +435,14 @@ async function toggleAutoReview() {
       type: "warning",
     });
 
-    const token = localStorage.getItem("admin-token") || "";
-    const res = await fetch("/api/auto-review-config", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ enabled: !autoReviewEnabled.value }),
+    await request.post("/auto-review-config", {
+      enabled: !autoReviewEnabled.value,
     });
 
-    const data = await res.json();
-    if (data.success) {
-      autoReviewEnabled.value = !autoReviewEnabled.value;
-      ElMessage.success(
-        autoReviewEnabled.value ? "已开启自动审核" : "已关闭自动审核"
-      );
-    } else {
-      ElMessage.error(data.error || "操作失败");
-    }
+    autoReviewEnabled.value = !autoReviewEnabled.value;
+    ElMessage.success(
+      autoReviewEnabled.value ? "已开启自动审核" : "已关闭自动审核"
+    );
   } catch (err: any) {
     if (err !== "cancel") {
       console.error("操作失败:", err);
@@ -523,15 +452,8 @@ async function toggleAutoReview() {
 
 async function loadAutoReviewConfig() {
   try {
-    const token = localStorage.getItem("admin-token") || "";
-    const res = await fetch("/api/auto-review-config", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    const data = await res.json();
-    if (data.success) {
-      autoReviewEnabled.value = data.enabled || false;
-    }
+    const data = await request.get("/auto-review-config");
+    autoReviewEnabled.value = data.enabled || false;
   } catch (err) {
     console.error("加载自动审核配置失败:", err);
   }

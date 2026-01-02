@@ -165,6 +165,7 @@
 import { reactive, ref, computed, onMounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Bell, Moon, Sunny, User, View, Hide } from "@element-plus/icons-vue";
+import request from "@/utils/axios";
 
 const showPassword = ref(false);
 const today = new Date();
@@ -336,50 +337,9 @@ async function onCreate() {
           : undefined,
     };
 
-    const headers: any = {
-      "Content-Type": "application/json",
-    };
-    if (token) headers["Authorization"] = `Bearer ${token}`;
-
-    console.debug("Creating community request headers:", headers);
     console.debug("Creating community payload:", payload);
 
-    const res = await fetch("/api/communities", {
-      method: "POST",
-      headers,
-      body: JSON.stringify(payload),
-    });
-
-    // try to parse JSON, fallback to text
-    let body: any = null;
-    const text = await res.text();
-    try {
-      body = text ? JSON.parse(text) : null;
-    } catch (err) {
-      body = text;
-    }
-
-    if (res.status === 401) {
-      console.warn("Create community unauthorized response:", body);
-      ElMessageBox.alert(
-        "创建失败：未授权 (401)。请确认已登录且为超级管理员。将跳转到登录页。\n\n后端返回：" +
-          JSON.stringify(body),
-        "未授权",
-        { confirmButtonText: "重新登录" }
-      ).then(() => {
-        window.location.href = "/#/login";
-      });
-      return;
-    }
-
-    if (!res.ok || (body && body.success === false)) {
-      console.warn("Create community failed:", res.status, body);
-      ElMessage.error(
-        "创建失败: " + (body && body.error ? body.error : JSON.stringify(body))
-      );
-      return;
-    }
-
+    const body = await request.post("/communities", payload);
     ElMessage.success("创建成功");
     onReset();
   } catch (e) {
@@ -412,23 +372,22 @@ const account = ref("");
 const expiringDialog = ref(false);
 const expiringList = ref<any[]>([]);
 const expiringCount = computed(() => expiringList.value.length);
-function refreshExpiring() {
+async function refreshExpiring() {
   // 仅在本页面简单调用后端，以最少字段获取即将到期小区
   // 这里复用 /api/communities 接口，拉取前50条并筛选。
-  const token = localStorage.getItem("admin-token") || "";
-  fetch(`/api/communities?page=1&pageSize=50`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  })
-    .then((r) => r.json())
-    .then((body) => {
-      const arr = body.data || body || [];
-      expiringList.value = arr.filter((c: any) => {
-        const d = computeDays(c);
-        const n = typeof d === "number" ? d : d === "已到期" ? 0 : 99999;
-        return n <= 30;
-      });
-    })
-    .catch(() => {});
+  try {
+    const body = await request.get("/communities", {
+      params: { page: 1, pageSize: 50 },
+    });
+    const arr = body.data || body || [];
+    expiringList.value = arr.filter((c: any) => {
+      const d = computeDays(c);
+      const n = typeof d === "number" ? d : d === "已到期" ? 0 : 99999;
+      return n <= 30;
+    });
+  } catch (error) {
+    // 静默失败
+  }
 }
 function openExpiringDialog() {
   if (expiringCount.value === 0) {

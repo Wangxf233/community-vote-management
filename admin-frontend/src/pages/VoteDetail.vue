@@ -118,6 +118,7 @@
 import { ref, reactive, onMounted, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
+import request from "@/utils/axios";
 
 const route = useRoute();
 const router = useRouter();
@@ -145,27 +146,16 @@ const hasMultipleProperties = computed(() => {
 async function loadRecords() {
   loading.value = true;
   try {
-    const token = localStorage.getItem("admin-token") || "";
-    const params = new URLSearchParams({
-      page: currentPage.value.toString(),
-      pageSize: pageSize.value.toString(),
+    const data = await request.get(`/votes/${voteId.value}/records`, {
+      params: {
+        page: currentPage.value,
+        pageSize: pageSize.value,
+      },
     });
 
-    const res = await fetch(`/api/votes/${voteId.value}/records?${params}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    if (!res.ok) {
-      ElMessage.error("获取投票记录失败");
-      return;
-    }
-
-    const data = await res.json();
-    if (data.success) {
-      voteRecords.value = data.data || [];
-      total.value = data.total || 0;
-      voteTitle.value = data.voteTitle || "";
-    }
+    voteRecords.value = data.data || [];
+    total.value = data.total || 0;
+    voteTitle.value = data.voteTitle || "";
   } catch (err) {
     console.error("加载投票记录失败:", err);
     ElMessage.error("加载失败");

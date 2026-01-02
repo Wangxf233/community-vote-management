@@ -247,6 +247,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
+import request from "@/utils/axios";
 
 const residentsList = ref<any[]>([]);
 const currentPage = ref(1);
@@ -315,24 +316,15 @@ function calculateTotalArea(row: any) {
 
 async function loadList() {
   try {
-    const token = localStorage.getItem("admin-token") || "";
-    const res = await fetch(
-      `/api/residents?page=${currentPage.value}&pageSize=${pageSize.value}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
+    const data = await request.get("/residents", {
+      params: {
+        page: currentPage.value,
+        pageSize: pageSize.value,
+      },
+    });
 
-    if (!res.ok) {
-      ElMessage.error("获取业主列表失败");
-      return;
-    }
-
-    const data = await res.json();
-    if (data.success) {
-      residentsList.value = data.data || [];
-      total.value = data.total || 0;
-    }
+    residentsList.value = data.data || [];
+    total.value = data.total || 0;
   } catch (err) {
     console.error("加载业主列表失败:", err);
     ElMessage.error("加载失败");
@@ -373,32 +365,19 @@ async function submitAudit() {
   }
 
   try {
-    const token = localStorage.getItem("admin-token") || "";
     const finalReason =
       auditForm.rejectReason === "custom"
         ? auditForm.customReason
         : auditForm.rejectReason;
 
-    const res = await fetch(`/api/residents/${auditForm.id}/audit`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        status: auditForm.result,
-        rejectReason: finalReason,
-      }),
+    await request.post(`/residents/${auditForm.id}/audit`, {
+      status: auditForm.result,
+      rejectReason: finalReason,
     });
 
-    const data = await res.json();
-    if (data.success) {
-      ElMessage.success("审核成功");
-      auditDialog.value = false;
-      loadList();
-    } else {
-      ElMessage.error(data.error || "审核失败");
-    }
+    ElMessage.success("审核成功");
+    auditDialog.value = false;
+    loadList();
   } catch (err) {
     console.error("审核失败:", err);
     ElMessage.error("审核失败");
@@ -421,24 +400,11 @@ function handleEdit(row: any) {
 
 async function submitEdit() {
   try {
-    const token = localStorage.getItem("admin-token") || "";
-    const res = await fetch(`/api/residents/${editForm.id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(editForm),
-    });
+    await request.put(`/residents/${editForm.id}`, editForm);
 
-    const data = await res.json();
-    if (data.success) {
-      ElMessage.success("修改成功");
-      editDialog.value = false;
-      loadList();
-    } else {
-      ElMessage.error(data.error || "修改失败");
-    }
+    ElMessage.success("修改成功");
+    editDialog.value = false;
+    loadList();
   } catch (err) {
     console.error("修改失败:", err);
     ElMessage.error("修改失败");
@@ -453,19 +419,10 @@ async function handleDelete(row: any) {
       type: "warning",
     });
 
-    const token = localStorage.getItem("admin-token") || "";
-    const res = await fetch(`/api/residents/${row._id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    await request.delete(`/residents/${row._id}`);
 
-    const data = await res.json();
-    if (data.success) {
-      ElMessage.success("删除成功");
-      loadList();
-    } else {
-      ElMessage.error(data.error || "删除失败");
-    }
+    ElMessage.success("删除成功");
+    loadList();
   } catch (err: any) {
     if (err !== "cancel") {
       console.error("删除失败:", err);

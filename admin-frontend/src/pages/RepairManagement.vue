@@ -516,7 +516,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, watch, computed } from "vue";
 import { ElMessage } from "element-plus";
-import axios from "../utils/axios";
+import request from "@/utils/axios";
 
 // 权限检查
 const userPermissions = ref<string[]>([]);
@@ -630,11 +630,11 @@ const loadData = async () => {
 
     // 根据类型选择不同的接口路径
     const apiPath = activeTab.value === "repair" ? "/repairs" : "/reports";
-    const response = await axios.get(apiPath, { params });
+    const response = await request.get(apiPath, { params });
 
-    if (response.data.success) {
-      tableData.value = response.data.data;
-      pagination.total = response.data.total;
+    if (response.success) {
+      tableData.value = response.data;
+      pagination.total = response.total;
     } else {
       ElMessage.error(response.data.error || "加载失败");
     }
@@ -694,17 +694,13 @@ const handleUpdateStatus = (row: any) => {
 const confirmUpdateStatus = async () => {
   try {
     const apiPath = activeTab.value === "repair" ? "repairs" : "reports";
-    const response = await axios.put(`/${apiPath}/${currentRow.value._id}`, {
+    await request.put(`/${apiPath}/${currentRow.value._id}`, {
       status: statusForm.status,
     });
 
-    if (response.data.success) {
-      ElMessage.success("进度更新成功");
-      statusDialogVisible.value = false;
-      loadData();
-    } else {
-      ElMessage.error(response.data.error || "更新失败");
-    }
+    ElMessage.success("进度更新成功");
+    statusDialogVisible.value = false;
+    loadData();
   } catch (error: any) {
     console.error("更新进度失败:", error);
     ElMessage.error(error.message || "更新失败");
@@ -721,17 +717,13 @@ const handleUpdateRemark = (row: any) => {
 const confirmUpdateRemark = async () => {
   try {
     const apiPath = activeTab.value === "repair" ? "repairs" : "reports";
-    const response = await axios.put(`/${apiPath}/${currentRow.value._id}`, {
+    await request.put(`/${apiPath}/${currentRow.value._id}`, {
       remark: remarkForm.remark,
     });
 
-    if (response.data.success) {
-      ElMessage.success("备注更新成功");
-      remarkDialogVisible.value = false;
-      loadData();
-    } else {
-      ElMessage.error(response.data.error || "更新失败");
-    }
+    ElMessage.success("备注更新成功");
+    remarkDialogVisible.value = false;
+    loadData();
   } catch (error: any) {
     console.error("更新备注失败:", error);
     ElMessage.error(error.message || "更新失败");

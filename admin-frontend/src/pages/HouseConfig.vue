@@ -229,6 +229,7 @@
 import { ref, reactive, onMounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Edit, Delete } from "@element-plus/icons-vue";
+import request from "@/utils/axios";
 
 interface Unit {
   name: string;
@@ -452,8 +453,6 @@ async function deleteTemplate(index: number) {
 
 async function saveConfig() {
   try {
-    const token = localStorage.getItem("admin-token") || "";
-
     // 转换为后端需要的格式
     const config = {
       buildings: configForm.buildings.map((b) => ({
@@ -465,22 +464,9 @@ async function saveConfig() {
       })),
     };
 
-    const res = await fetch("/api/house-config", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(config),
-    });
-
-    const data = await res.json();
-    if (data.success) {
-      ElMessage.success("保存成功");
-      loadConfig();
-    } else {
-      ElMessage.error(data.error || "保存失败");
-    }
+    await request.post("/house-config", config);
+    ElMessage.success("保存成功");
+    loadConfig();
   } catch (err) {
     console.error("保存配置失败:", err);
     ElMessage.error("保存失败");
@@ -489,13 +475,8 @@ async function saveConfig() {
 
 async function loadConfig() {
   try {
-    const token = localStorage.getItem("admin-token") || "";
-    const res = await fetch("/api/house-config", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    const data = await res.json();
-    if (data.success && data.config) {
+    const data = await request.get("/house-config");
+    if (data.config) {
       const config = data.config;
       configForm.buildingCount = config.buildings?.length || 0;
       configForm.buildings =
