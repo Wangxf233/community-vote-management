@@ -30,6 +30,7 @@
 import { reactive } from "vue";
 import { ElMessage } from "element-plus";
 import { useRouter } from "vue-router";
+import request from "@/utils/axios";
 
 const router = useRouter();
 
@@ -41,22 +42,10 @@ async function onLogin() {
     return;
   }
   try {
-    const res = await fetch("/api/login/password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        username: (form.username || "").trim(),
-        password: form.password,
-      }),
+    const body = await request.post("/login/password", {
+      username: (form.username || "").trim(),
+      password: form.password,
     });
-    const body = await res.json();
-    if (!res.ok || !body.success) {
-      // 密码错误或账号不存在等，统一中文提示
-      const msg =
-        res.status === 401 ? "用户名或密码错误" : body.error || "登录失败";
-      ElMessage.error(msg);
-      return;
-    }
     localStorage.setItem("admin-user", JSON.stringify(body.user));
     if (body.token) {
       localStorage.setItem("admin-token", body.token);
