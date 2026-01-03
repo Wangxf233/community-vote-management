@@ -712,43 +712,42 @@ async function loadList() {
     const data = await request.get("/owner-registry", { params });
     const rawList = data.data || [];
 
-      // 合并同一户主的多套房产
-      const ownerMap = new Map();
+    // 合并同一户主的多套房产
+    const ownerMap = new Map();
 
-      rawList.forEach((item: any) => {
-        const key = `${item.ownerName1}_${item.ownerName2 || ""}`;
+    rawList.forEach((item: any) => {
+      const key = `${item.ownerName1}_${item.ownerName2 || ""}`;
 
-        if (ownerMap.has(key)) {
-          // 已存在该户主，将当前房产添加到 properties
-          const owner = ownerMap.get(key);
-          if (!owner.properties) {
-            owner.properties = [];
-          }
-          owner.properties.push({
-            district: item.district,
-            building: item.building,
-            unit: item.unit,
-            room: item.room,
-            area: item.area,
-            _id: item._id,
-          });
-          // 合并车牌号
-          if (item.carNumber && !owner.carNumber.includes(item.carNumber)) {
-            owner.carNumber = owner.carNumber
-              ? `${owner.carNumber},${item.carNumber}`
-              : item.carNumber;
-          }
-        } else {
-          // 新户主记录 - 不初始化 properties 数组
-          ownerMap.set(key, {
-            ...item,
-          });
+      if (ownerMap.has(key)) {
+        // 已存在该户主，将当前房产添加到 properties
+        const owner = ownerMap.get(key);
+        if (!owner.properties) {
+          owner.properties = [];
         }
-      });
+        owner.properties.push({
+          district: item.district,
+          building: item.building,
+          unit: item.unit,
+          room: item.room,
+          area: item.area,
+          _id: item._id,
+        });
+        // 合并车牌号
+        if (item.carNumber && !owner.carNumber.includes(item.carNumber)) {
+          owner.carNumber = owner.carNumber
+            ? `${owner.carNumber},${item.carNumber}`
+            : item.carNumber;
+        }
+      } else {
+        // 新户主记录 - 不初始化 properties 数组
+        ownerMap.set(key, {
+          ...item,
+        });
+      }
+    });
 
-      registryList.value = Array.from(ownerMap.values());
-      total.value = data.total || 0;
-    }
+    registryList.value = Array.from(ownerMap.values());
+    total.value = data.total || 0;
   } catch (err) {
     ElMessage.error("加载失败");
   }
@@ -1065,7 +1064,10 @@ async function handleBatchDelete() {
     });
 
     const deletePromises = allIdsToDelete.map((id) =>
-      request.delete(`/owner-registry/${id}`).then(() => ({ success: true })).catch(() => ({ success: false }))
+      request
+        .delete(`/owner-registry/${id}`)
+        .then(() => ({ success: true }))
+        .catch(() => ({ success: false }))
     );
 
     const results = await Promise.all(deletePromises);
@@ -1121,7 +1123,10 @@ async function handleDelete(row: any) {
 
     // 删除所有记录
     const deletePromises = idsToDelete.map((id) =>
-      request.delete(`/owner-registry/${id}`).then(() => ({ success: true })).catch(() => ({ success: false }))
+      request
+        .delete(`/owner-registry/${id}`)
+        .then(() => ({ success: true }))
+        .catch(() => ({ success: false }))
     );
 
     const results = await Promise.all(deletePromises);
@@ -1185,13 +1190,10 @@ async function submitRealNameReview() {
   reviewing.value = true;
 
   try {
-    await request.post(
-      `/owner-registry/${realNameForm.id}/realname-review`,
-      {
-        status: realNameForm.reviewStatus,
-        rejectReason: realNameForm.rejectReason,
-      }
-    );
+    await request.post(`/owner-registry/${realNameForm.id}/realname-review`, {
+      status: realNameForm.reviewStatus,
+      rejectReason: realNameForm.rejectReason,
+    });
 
     reviewing.value = false;
     ElMessage.success("审核成功");
