@@ -238,7 +238,7 @@ const loadData = async () => {
 
   try {
     const res = await axios.get(`/announcements/${route.query.id}`);
-    const data = res.data.data;
+    const data = res.data;
 
     form.title = data.title;
     form.publisher = data.publisher;

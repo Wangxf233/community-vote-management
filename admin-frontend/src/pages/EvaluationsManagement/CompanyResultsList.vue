@@ -164,9 +164,7 @@ const fetchCyclesList = async () => {
         pageSize: 1000,
       },
     });
-    if (response.data.success) {
-      cyclesList.value = response.data.data;
-    }
+    cyclesList.value = response.data;
   } catch (error: any) {
     ElMessage.error(error.response?.data?.error || "获取评价周期列表失败");
   }
@@ -190,10 +188,8 @@ const fetchResultsList = async () => {
       }
     );
 
-    if (response.data.success) {
-      companyResult.value = response.data.data;
-      totalEvaluations.value = response.data.total || 0;
-    }
+    companyResult.value = response.data;
+    totalEvaluations.value = response.total || 0;
   } catch (error: any) {
     ElMessage.error(error.response?.data?.error || "获取评价结果失败");
   }

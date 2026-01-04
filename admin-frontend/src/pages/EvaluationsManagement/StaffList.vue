@@ -179,10 +179,8 @@ const fetchStaffList = async () => {
         pageSize: pageSize.value,
       },
     });
-    if (response.data.success) {
-      staffList.value = response.data.data;
-      total.value = response.data.total;
-    }
+    staffList.value = response.data;
+    total.value = response.total;
   } catch (error: any) {
     ElMessage.error(error.response?.data?.error || "获取服务人员列表失败");
   }
@@ -233,10 +231,8 @@ const handleToggleStatus = async (row: Staff) => {
       status: row.status === "active" ? "inactive" : "active",
     });
 
-    if (response.data.success) {
-      ElMessage.success(`${action}成功`);
-      fetchStaffList();
-    }
+    ElMessage.success(`${action}成功`);
+    fetchStaffList();
   } catch (error: any) {
     if (error !== "cancel") {
       ElMessage.error(error.response?.data?.error || `${action}失败`);
@@ -259,10 +255,8 @@ const handleDelete = async (row: Staff) => {
 
     const response = await axios.delete(`/evaluation/staff/${row._id}`);
 
-    if (response.data.success) {
-      ElMessage.success("删除成功");
-      fetchStaffList();
-    }
+    ElMessage.success("删除成功");
+    fetchStaffList();
   } catch (error: any) {
     if (error !== "cancel") {
       ElMessage.error(error.response?.data?.error || "删除失败");
@@ -283,11 +277,9 @@ const handleSubmit = async () => {
 
     const response = await axios[method](url, formData);
 
-    if (response.data.success) {
-      ElMessage.success(editingId.value ? "编辑成功" : "添加成功");
-      dialogVisible.value = false;
-      fetchStaffList();
-    }
+    ElMessage.success(editingId.value ? "编辑成功" : "添加成功");
+    dialogVisible.value = false;
+    fetchStaffList();
   } catch (error: any) {
     if (error.response) {
       ElMessage.error(error.response.data?.error || "操作失败");

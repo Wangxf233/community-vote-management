@@ -315,10 +315,8 @@ const fetchCyclesList = async () => {
         pageSize: pageSize.value,
       },
     });
-    if (response.data.success) {
-      cyclesList.value = response.data.data;
-      total.value = response.data.total;
-    }
+    cyclesList.value = response.data;
+    total.value = response.total;
   } catch (error: any) {
     ElMessage.error(error.response?.data?.error || "获取评价周期列表失败");
   }
@@ -396,10 +394,8 @@ const handleDelete = async (row: Cycle) => {
 
     const response = await axios.delete(`/evaluation/cycles/${row._id}`);
 
-    if (response.data.success) {
-      ElMessage.success("删除成功");
-      fetchCyclesList();
-    }
+    ElMessage.success("删除成功");
+    fetchCyclesList();
   } catch (error: any) {
     if (error !== "cancel") {
       ElMessage.error(error.response?.data?.error || "删除失败");
@@ -442,11 +438,9 @@ const handleSubmit = async () => {
 
     const response = await axios[method](url, submitData);
 
-    if (response.data.success) {
-      ElMessage.success(editingId.value ? "编辑成功" : "创建成功");
-      dialogVisible.value = false;
-      fetchCyclesList();
-    }
+    ElMessage.success(editingId.value ? "编辑成功" : "创建成功");
+    dialogVisible.value = false;
+    fetchCyclesList();
   } catch (error: any) {
     if (error.response) {
       ElMessage.error(error.response.data?.error || "操作失败");

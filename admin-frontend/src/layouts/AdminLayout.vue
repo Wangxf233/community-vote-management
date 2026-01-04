@@ -127,6 +127,7 @@
 import { computed, ref, reactive, computed as vComputed, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { ElMessage } from "element-plus";
+import request from "../utils/axios";
 import { Refresh, Bell, Moon, Sunny, User } from "@element-plus/icons-vue";
 const router = useRouter();
 const route = useRoute();
@@ -231,12 +232,9 @@ function computeDays(r: any) {
 
 async function loadExpiring() {
   try {
-    const token = localStorage.getItem("admin-token") || "";
-    const res = await fetch(`/api/communities?page=1&pageSize=1000`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    const body = await request.get("/communities", {
+      params: { page: 1, pageSize: 1000 },
     });
-    if (!res.ok) throw new Error(await res.text());
-    const body = await res.json();
     communities.value = body.data || body || [];
   } catch (e) {
     communities.value = [];
@@ -272,19 +270,10 @@ async function submitPwd() {
       return;
     }
     const token = localStorage.getItem("admin-token") || "";
-    const res = await fetch(`/api/users/${uid}/change-password`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify({ newPassword: pwdForm.newPassword }),
+    const body = await request.post(`/users/${uid}/change-password`, {
+      newPassword: pwdForm.newPassword,
     });
-    const body = await res.json();
-    if (!res.ok || !body.success) {
-      ElMessage.error(body.error || "修改失败");
-      return;
-    }
+
     ElMessage.success("密码已更新，请牢记新密码");
     pwdDialog.value = false;
     pwdForm.newPassword = "";

@@ -245,9 +245,7 @@ const fetchCyclesList = async () => {
         pageSize: 1000,
       },
     });
-    if (response.data.success) {
-      cyclesList.value = response.data.data;
-    }
+    cyclesList.value = response.data;
   } catch (error: any) {
     ElMessage.error(error.response?.data?.error || "获取评价周期列表失败");
   }
@@ -267,9 +265,7 @@ const fetchResultsList = async () => {
       params,
     });
 
-    if (response.data.success) {
-      resultsList.value = response.data.data;
-    }
+    resultsList.value = response.data;
   } catch (error: any) {
     ElMessage.error(error.response?.data?.error || "获取评价结果失败");
   }
@@ -287,10 +283,8 @@ const handleViewDetails = async (cycle: any, staff: any) => {
       `/evaluation/results/${cycle._id}/staff/${staff.staffId}`
     );
 
-    if (response.data.success) {
-      currentStaffDetail.value = response.data.data;
-      detailDialogVisible.value = true;
-    }
+    currentStaffDetail.value = response.data;
+    detailDialogVisible.value = true;
   } catch (error: any) {
     ElMessage.error(error.response?.data?.error || "获取详情失败");
   }

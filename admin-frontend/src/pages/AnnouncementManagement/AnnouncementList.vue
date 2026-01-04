@@ -273,8 +273,8 @@ const fetchList = async () => {
     }
 
     const res = await axios.get("/announcements", { params });
-    tableData.value = res.data.data;
-    total.value = res.data.total;
+    tableData.value = res.data;
+    total.value = res.total;
   } catch (error: any) {
     ElMessage.error(error.response?.data?.error || "获取列表失败");
   } finally {

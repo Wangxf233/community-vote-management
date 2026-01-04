@@ -150,6 +150,7 @@
 import { computed, ref, reactive, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { ElMessage } from "element-plus";
+import request from "../utils/axios";
 import {
   Refresh,
   Moon,
@@ -200,14 +201,9 @@ async function loadCommunityInfo() {
     if (!token) return;
 
     // 从服务器获取最新的用户信息（包含 communityId）
-    const userRes = await fetch(`/api/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const userData = await request.get("/me");
 
-    if (!userRes.ok) return;
-    const userData = await userRes.json();
-
-    if (!userData.success || !userData.user) return;
+    if (!userData.user) return;
 
     const user = userData.user;
     const communityId = user.communityId;
@@ -223,12 +219,10 @@ async function loadCommunityInfo() {
     if (!communityId) return;
 
     // 根据 communityId 获取小区名称
-    const res = await fetch(`/api/communities?page=1&pageSize=1000`, {
-      headers: { Authorization: `Bearer ${token}` },
+    const body = await request.get("/communities", {
+      params: { page: 1, pageSize: 1000 },
     });
 
-    if (!res.ok) return;
-    const body = await res.json();
     const communities = body.data || body || [];
     const myCommunity = communities.find((c: any) => c._id === communityId);
 
@@ -305,19 +299,10 @@ async function submitPwd() {
       return;
     }
     const token = localStorage.getItem("admin-token") || "";
-    const res = await fetch(`/api/users/${uid}/change-password`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify({ newPassword: pwdForm.newPassword }),
+    const body = await request.post(`/users/${uid}/change-password`, {
+      newPassword: pwdForm.newPassword,
     });
-    const body = await res.json();
-    if (!res.ok || !body.success) {
-      ElMessage.error(body.error || "修改失败");
-      return;
-    }
+
     ElMessage.success("密码已更新，请牢记新密码");
     pwdDialog.value = false;
     pwdForm.newPassword = "";
