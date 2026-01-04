@@ -76,16 +76,6 @@
               </el-button>
             </el-tooltip>
 
-            <el-tooltip
-              :content="isDark ? '切换到日间模式' : '切换到夜间模式'"
-              placement="bottom"
-            >
-              <el-button text circle @click="toggleDark">
-                <el-icon v-if="!isDark"><Moon /></el-icon>
-                <el-icon v-else><Sunny /></el-icon>
-              </el-button>
-            </el-tooltip>
-
             <el-popover placement="bottom-end" trigger="hover" width="240">
               <template #reference>
                 <el-button text circle>

@@ -456,6 +456,8 @@ async function loadAutoReviewConfig() {
     autoReviewEnabled.value = data.enabled || false;
   } catch (err) {
     console.error("加载自动审核配置失败:", err);
+    // 如果集合不存在，默认为关闭状态
+    autoReviewEnabled.value = false;
   }
 }
 

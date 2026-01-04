@@ -50,13 +50,19 @@ instance.interceptors.response.use(
             window.location.href = "/#/login";
           }, 1000);
         }
-      } else {
-        // 显示错误信息
-        const errorMsg = data?.error || data?.message || "请求失败";
+      } else if (status >= 500) {
+        // 500 错误显示服务器错误
+        const errorMsg = data?.error || data?.message || "服务器错误";
         ElMessage.error(errorMsg);
       }
+      // 其他错误（如404、400等）不显示全局错误提示，由调用方处理
     } else if (error.request) {
-      ElMessage.error("网络错误，请检查连接");
+      // 网络错误或超时
+      if (error.code === "ECONNABORTED" || error.message.includes("timeout")) {
+        ElMessage.error("请求超时，请稍后重试");
+      } else {
+        ElMessage.error("网络错误，请检查连接");
+      }
     } else {
       ElMessage.error(error.message || "请求失败");
     }
