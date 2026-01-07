@@ -96,6 +96,7 @@ exports.main = async (event, context) => {
       data: enrichedRecords,
       total,
       voteTitle: vote.title,
+      voteInitiator: vote.initiator,
       options,
     };
   } catch (err) {

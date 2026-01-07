@@ -218,4 +218,47 @@ router.get("/votes/:id/records", authMiddleware, async (req, res) => {
   }
 });
 
+/**
+ * GET /api/votes/proxy-image - 代理获取云存储图片（解决CORS问题）
+ */
+router.get("/votes/proxy-image", authMiddleware, async (req, res) => {
+  try {
+    const { url } = req.query;
+    if (!url) {
+      return res.status(400).json({ success: false, error: "缺少url参数" });
+    }
+
+    const https = require("https");
+    const http = require("http");
+
+    const protocol = url.startsWith("https") ? https : http;
+
+    protocol
+      .get(url, (response) => {
+        if (response.statusCode !== 200) {
+          return res.status(response.statusCode).json({
+            success: false,
+            error: `图片获取失败: ${response.statusCode}`,
+          });
+        }
+
+        // 设置响应头
+        res.setHeader(
+          "Content-Type",
+          response.headers["content-type"] || "image/png"
+        );
+        res.setHeader("Access-Control-Allow-Origin", "*");
+
+        // 将图片数据流转发给客户端
+        response.pipe(res);
+      })
+      .on("error", (err) => {
+        console.error("图片代理失败:", err);
+        return res.status(500).json({ success: false, error: err.message });
+      });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: e.message || e });
+  }
+});
+
 module.exports = router;
