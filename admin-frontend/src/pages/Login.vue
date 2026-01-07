@@ -1,7 +1,7 @@
 <template>
   <div class="login-modal">
     <el-card class="login-card-simple">
-      <h3 style="text-align: center; margin-bottom: 12px">管理后台登录</h3>
+      <h3 style="text-align: center; margin-bottom: 12px">业主投票评价系统管理后台登录</h3>
 
       <el-form :model="form" @submit.native.prevent>
         <el-form-item>
