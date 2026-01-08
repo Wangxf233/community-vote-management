@@ -95,7 +95,11 @@
         <el-table-column prop="district" label="区/期号" min-width="100" />
         <el-table-column prop="building" label="楼栋号" min-width="80" />
         <el-table-column prop="unit" label="单元号" min-width="80" />
-        <el-table-column prop="room" label="房号" min-width="80" />
+        <el-table-column prop="room" label="房号" min-width="80">
+          <template #default="{ row }">
+            {{ formatRoom(row.room) }}
+          </template>
+        </el-table-column>
         <el-table-column prop="createdAt" label="提交时间" min-width="160">
           <template #default="{ row }">
             {{ formatTime(row.createdAt) }}
@@ -203,6 +207,7 @@
 import { ref, reactive, onMounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import request from "@/utils/axios";
+import { formatRoom } from "@/utils/formatRoom";
 
 const applicationList = ref<any[]>([]);
 const currentPage = ref(1);

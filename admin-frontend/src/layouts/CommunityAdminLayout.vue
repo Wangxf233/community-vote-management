@@ -64,6 +64,13 @@
             <el-icon><Bell /></el-icon>
             <span>信息公示</span>
           </el-menu-item>
+          <el-menu-item
+            v-if="isPrimaryAdmin || hasPermission('notification')"
+            index="/community-admin/notifications"
+          >
+            <el-icon><Notification /></el-icon>
+            <span>通知公告</span>
+          </el-menu-item>
         </el-menu>
       </el-aside>
       <el-container>
@@ -158,6 +165,7 @@ import {
   ChatLineSquare,
   Tools,
   Bell,
+  Notification,
 } from "@element-plus/icons-vue";
 const router = useRouter();
 const route = useRoute();

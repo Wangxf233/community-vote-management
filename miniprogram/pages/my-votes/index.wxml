@@ -42,7 +42,7 @@
 
   <!-- 空状态 -->
   <view class="empty-state" wx:if="{{voteList.length === 0 && !loading}}">
-    <image src="/images/icon-empty.png" mode="aspectFit" class="empty-icon"/>
+    <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/icon-empty.png" mode="aspectFit" class="empty-icon"/>
     <text class="empty-text">暂无投票记录</text>
     <text class="empty-hint">您还没有参与过任何投票</text>
   </view>

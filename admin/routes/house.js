@@ -10,10 +10,16 @@ const router = express.Router();
 router.get("/house-config", authMiddleware, async (req, res) => {
   try {
     const user = req.user;
+    const { type } = req.query; // house 或 shop
+
+    const whereCondition = { communityId: user.communityId };
+    if (type) {
+      whereCondition.type = type;
+    }
 
     const configRes = await db
       .collection("house_config")
-      .where({ communityId: user.communityId })
+      .where(whereCondition)
       .limit(1)
       .get();
 
@@ -22,7 +28,7 @@ router.get("/house-config", authMiddleware, async (req, res) => {
 
     return res.json({
       success: true,
-      config: config || { buildings: [] },
+      config: config || { buildings: [], type: type || "house", district: "1" },
     });
   } catch (e) {
     console.error("获取房屋配置失败:", e);
@@ -36,22 +42,29 @@ router.get("/house-config", authMiddleware, async (req, res) => {
 router.post("/house-config", authMiddleware, async (req, res) => {
   try {
     const user = req.user;
-    const { buildings } = req.body;
+    const { buildings, type, district } = req.body; // 添加type和district
 
     if (!buildings || !Array.isArray(buildings)) {
       return res.status(400).json({ success: false, error: "invalid_data" });
     }
 
-    // 检查是否已存在配置
+    // 检查是否已存在配置（根据类型）
+    const whereCondition = { communityId: user.communityId };
+    if (type) {
+      whereCondition.type = type;
+    }
+
     const existingRes = await db
       .collection("house_config")
-      .where({ communityId: user.communityId })
+      .where(whereCondition)
       .limit(1)
       .get();
 
     const now = new Date().toISOString();
     const configData = {
       communityId: user.communityId,
+      type: type || "house", // 默认house
+      district: district || "1", // 默认1
       buildings,
       updatedAt: now,
     };
@@ -65,7 +78,7 @@ router.post("/house-config", authMiddleware, async (req, res) => {
     } else {
       // 新增
       configData.createdAt = now;
-      await db.collection("house_config").add({ data: configData });
+      await db.collection("house_config").add(configData);
     }
 
     return res.json({ success: true });

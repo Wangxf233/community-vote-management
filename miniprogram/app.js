@@ -1,4 +1,6 @@
 // app.js
+const cloudImages = require("./config/cloudImages");
+
 App({
   onLaunch() {
     // 初始化云开发
@@ -26,6 +28,7 @@ App({
     bindingStatus: "none", // none, guest, pending, approved, rejected
     bindingInfo: null,
     communityId: null, // 社区ID
+    cloudImages: cloudImages, // 云存储图片配置
   },
 
   // 静默登录获取openid

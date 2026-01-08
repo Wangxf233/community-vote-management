@@ -1,3 +1,5 @@
+const { formatRoom } = require("../../utils/formatRoom.js");
+
 Page({
   data: {
     houseList: [],
@@ -28,8 +30,13 @@ Page({
         if (res.result && res.result.success) {
           const houses = res.result.data || [];
 
-          // 处理状态文本
+          // 处理状态文本和房号格式
           houses.forEach((house) => {
+            // 格式化房号为4位数
+            if (house.room) {
+              house.room = formatRoom(house.room);
+            }
+
             if (house.status === "approved") {
               house.statusText = "已认证";
             } else if (house.status === "pending") {

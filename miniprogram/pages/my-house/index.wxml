@@ -38,7 +38,7 @@
 
   <!-- 空状态 -->
   <view class="empty-state" wx:if="{{houseList.length === 0 && !loading}}">
-    <image src="/images/icon-empty.png" mode="aspectFit" class="empty-icon"/>
+    <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/icon-empty.png" mode="aspectFit" class="empty-icon"/>
     <text class="empty-text">暂无房产信息</text>
     <text class="empty-hint">请先完成实名认证</text>
   </view>

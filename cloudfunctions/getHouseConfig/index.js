@@ -8,13 +8,16 @@ const db = cloud.database();
  *
  * 参数:
  * - communityName: 小区名称
+ * - type: 配置类型 (house/shop)，默认为house
  *
  * 返回:
  * - buildings: 房屋结构数组
+ * - type: 配置类型
+ * - district: 小区期/区号
  */
 exports.main = async (event, context) => {
   try {
-    const { communityName } = event;
+    const { communityName, type } = event;
 
     if (!communityName) {
       return { code: -1, message: "请提供小区名称" };
@@ -34,10 +37,16 @@ exports.main = async (event, context) => {
     const community = communityRes.data[0];
     const communityId = community._id;
 
+    // 构建查询条件
+    const whereCondition = { communityId };
+    if (type) {
+      whereCondition.type = type;
+    }
+
     // 查询房屋配置
     const configRes = await db
       .collection("house_config")
-      .where({ communityId })
+      .where(whereCondition)
       .limit(1)
       .get();
 
@@ -46,6 +55,8 @@ exports.main = async (event, context) => {
         code: 0,
         data: {
           buildings: [],
+          type: type || "house",
+          district: "1",
         },
       };
     }
@@ -56,6 +67,8 @@ exports.main = async (event, context) => {
       code: 0,
       data: {
         buildings: config.buildings || [],
+        type: config.type || "house",
+        district: config.district || "1",
       },
     };
   } catch (error) {

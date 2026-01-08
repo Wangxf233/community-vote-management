@@ -81,6 +81,14 @@ const routes = [
         component: () =>
           import("./pages/AnnouncementManagement/AnnouncementForm.vue"),
       },
+      {
+        path: "notifications",
+        component: () => import("./pages/NotificationManagement.vue"),
+      },
+      {
+        path: "notification-form",
+        component: () => import("./pages/NotificationForm.vue"),
+      },
     ],
   },
 ];

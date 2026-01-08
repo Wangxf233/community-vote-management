@@ -23,7 +23,7 @@
         <view class="attachments">
           <view class="attachment-item" wx:for="{{voteDetail.attachments}}" wx:key="id" bindtap="previewAttachment" data-url="{{item.url}}">
             <view class="attachment-left">
-              <image src="/images/file-icon.png" class="attachment-icon"></image>
+              <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/file-icon.png" class="attachment-icon"></image>
               <text class="attachment-name">{{item.name}}</text>
             </view>
             <text class="attachment-size">{{item.size}}</text>

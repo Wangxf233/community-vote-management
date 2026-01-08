@@ -518,7 +518,7 @@ router.get("/owner-list", async (req, res) => {
 router.put("/owner-list/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, phone, district, building, unit, room } = req.body;
+    const { name, phone, district, building, unit, room, remark } = req.body;
 
     await db
       .collection("owner_list")
@@ -530,6 +530,7 @@ router.put("/owner-list/:id", async (req, res) => {
         building,
         unit,
         room,
+        remark: remark || "", // 添加备注字段
         updatedAt: new Date().toISOString(),
       });
 

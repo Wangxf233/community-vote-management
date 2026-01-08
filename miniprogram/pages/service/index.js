@@ -33,6 +33,11 @@ Page({
     this.checkAndNavigate("/pages/repair/index", "报修");
   },
 
+  navigateToInformation() {
+    // 信息公示不需要认证，所有用户都可以访问
+    wx.navigateTo({ url: "/pages/information-categories/index" });
+  },
+
   checkAndNavigate(url, feature) {
     const app = getApp();
     const bindingStatus = app.globalData.bindingStatus || "guest";

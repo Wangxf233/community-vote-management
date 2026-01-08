@@ -125,7 +125,7 @@
   <!-- 步骤4: 提交成功 -->
   <view wx:if="{{step === 4}}" class="step-content">
     <view class="success-content">
-      <image src="/images/success-icon.png" class="success-icon" mode="aspectFit" />
+      <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/success.png" class="success-icon" mode="aspectFit" />
       <text class="success-title">提交成功</text>
       <text class="success-desc">您的认证申请已提交,管理员会在1-3个工作日内完成审核</text>
       

@@ -153,12 +153,21 @@
                   min-width="100"
                 />
                 <el-table-column prop="unit" label="单元号" min-width="100" />
-                <el-table-column prop="room" label="房号" min-width="100" />
+                <el-table-column prop="room" label="房号" min-width="100">
+                  <template #default="{ row }">
+                    {{ formatRoom(row.room) }}
+                  </template>
+                </el-table-column>
                 <el-table-column
                   prop="area"
                   label="专有面积(㎡)"
                   min-width="120"
                 />
+                <el-table-column prop="remark" label="备注" min-width="120">
+                  <template #default="{ row }">
+                    {{ row.remark || "-" }}
+                  </template>
+                </el-table-column>
               </el-table>
             </div>
           </template>
@@ -168,7 +177,11 @@
         <el-table-column prop="district" label="区/期号" min-width="100" />
         <el-table-column prop="building" label="楼栋号" min-width="80" />
         <el-table-column prop="unit" label="单元号" min-width="80" />
-        <el-table-column prop="room" label="房号" min-width="80" />
+        <el-table-column prop="room" label="房号" min-width="80">
+          <template #default="{ row }">
+            {{ formatRoom(row.room) }}
+          </template>
+        </el-table-column>
         <el-table-column label="车牌号" min-width="150">
           <template #default="{ row }">
             <el-tooltip
@@ -184,6 +197,11 @@
           </template>
         </el-table-column>
         <el-table-column prop="area" label="专有面积(㎡)" min-width="120" />
+        <el-table-column prop="remark" label="备注" min-width="120">
+          <template #default="{ row }">
+            {{ row.remark || "-" }}
+          </template>
+        </el-table-column>
         <el-table-column prop="status" label="导入状态" min-width="100">
           <template #default="{ row }">
             <el-tag :type="row.status === 'valid' ? 'success' : 'danger'">
@@ -383,8 +401,9 @@
               >
                 <el-input
                   v-model="property.room"
-                  placeholder="例如：101"
+                  placeholder="例如：0101（四位数）"
                   style="width: 100%"
+                  @blur="property.room = formatRoom(property.room)"
                 />
               </el-form-item>
             </el-col>
@@ -399,6 +418,20 @@
                 <el-input
                   v-model="property.area"
                   placeholder="例如：100"
+                  style="width: 100%"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="12">
+            <el-col :span="24">
+              <el-form-item
+                :label="'备注'"
+                :prop="`properties.${index}.remark`"
+              >
+                <el-input
+                  v-model="property.remark"
+                  placeholder="例如：商户（如无则留空）"
                   style="width: 100%"
                 />
               </el-form-item>
@@ -616,6 +649,7 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import { Loading } from "@element-plus/icons-vue";
 import * as XLSX from "xlsx";
 import request from "@/utils/axios";
+import { formatRoom } from "@/utils/formatRoom";
 
 const registryList = ref<any[]>([]);
 const currentPage = ref(1);
@@ -730,6 +764,7 @@ async function loadList() {
           unit: item.unit,
           room: item.room,
           area: item.area,
+          remark: item.remark,
           _id: item._id,
         });
         // 合并车牌号
@@ -789,10 +824,11 @@ function downloadTemplate() {
       "房号（必填）",
       "车牌号（多个用逗号分隔，如无则留空）",
       "专有面积（必填）",
+      "备注（如无，留空）",
     ],
-    ["张三", "李四", "1", "1", "1", "101", "粤B12345,粤B67890", "100"],
-    ["", "", "1", "1", "2", "201", "", "120"],
-    ["王五", "", "2", "3", "1", "102", "粤A88888", "95"],
+    ["张三", "李四", "1", "1", "1", "101", "粤B12345,粤B67890", "100", "商户"],
+    ["", "", "1", "1", "2", "201", "", "120", ""],
+    ["王五", "", "2", "3", "1", "102", "粤A88888", "95", ""],
   ];
 
   const ws = XLSX.utils.aoa_to_sheet(template);
@@ -807,6 +843,7 @@ function downloadTemplate() {
     { wch: 15 }, // 房号
     { wch: 30 }, // 车牌号
     { wch: 20 }, // 专有面积
+    { wch: 20 }, // 备注
   ];
   ws["!cols"] = colWidths;
 
@@ -853,6 +890,7 @@ async function handleImport(file: File) {
           room: row[5]?.toString() || "",
           carNumber: row[6]?.toString() || "",
           area: row[7]?.toString() || "",
+          remark: row[8]?.toString() || "",
           rowNumber: index + 10,
         };
 
@@ -871,6 +909,7 @@ async function handleImport(file: File) {
             unit: rowData.unit,
             room: rowData.room,
             area: rowData.area,
+            remark: rowData.remark,
             rowNumber: rowData.rowNumber,
           });
         } else {
@@ -926,6 +965,7 @@ function showAddDialog() {
       unit: "",
       room: "",
       area: "",
+      remark: "",
     },
   ];
   editForm.carNumbers = [""];
@@ -940,6 +980,7 @@ function addProperty() {
     unit: "",
     room: "",
     area: "",
+    remark: "",
   });
 }
 
@@ -970,6 +1011,7 @@ function handleEdit(row: any) {
         unit: row.unit,
         room: row.room,
         area: row.area || "",
+        remark: row.remark || "",
       },
       ...row.properties,
     ];
@@ -982,6 +1024,7 @@ function handleEdit(row: any) {
         unit: row.unit,
         room: row.room,
         area: row.area || "",
+        remark: row.remark || "",
       },
     ];
   }

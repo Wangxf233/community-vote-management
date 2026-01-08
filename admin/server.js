@@ -3,6 +3,19 @@ const bodyParser = require("body-parser");
 const cloudbase = require("@cloudbase/node-sdk");
 require("dotenv").config();
 
+// 全局错误处理 - 防止未捕获的异常导致进程崩溃
+process.on("uncaughtException", (err) => {
+  console.error("❌ 未捕获的异常:", err);
+  console.error("堆栈信息:", err.stack);
+  // 不退出进程，继续运行
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("❌ 未处理的 Promise rejection:", reason);
+  console.error("Promise:", promise);
+  // 不退出进程，继续运行
+});
+
 // 引入模块化路由
 const authRoutes = require("./routes/auth");
 const ownerRoutes = require("./routes/owner");
@@ -64,6 +77,7 @@ app.use("/api/repairs", repairRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/evaluation", evaluationRoutes);
 app.use("/api/announcements", announcementRoutes);
+app.use("/api/notifications", announcementRoutes); // 通知公告使用相同的路由
 
 // Helper to extract Bearer token or query token (保留用于未迁移的路由)
 function getTokenFromReq(req) {
@@ -83,16 +97,39 @@ const SECRET_ID = process.env.TCB_SECRET_ID;
 const SECRET_KEY = process.env.TCB_SECRET_KEY;
 
 if (!ENV_ID || !SECRET_ID || !SECRET_KEY) {
-  console.warn("Warning: TCB env vars not set. See admin/.env.example");
+  console.warn("⚠️  Warning: TCB env vars not set. See admin/.env.example");
 }
 
 const tcb = cloudbase.init({
   env: ENV_ID,
   secretId: SECRET_ID,
   secretKey: SECRET_KEY,
+  timeout: 15000, // 设置超时时间为 15 秒
 });
 
 const db = tcb.database();
+
+// 测试数据库连接
+async function testDatabaseConnection() {
+  try {
+    console.log("🔍 正在测试数据库连接...");
+    await db.collection("users").limit(1).get();
+    console.log("✅ 数据库连接成功");
+    return true;
+  } catch (error) {
+    console.error("❌ 数据库连接失败:", error.message);
+    console.error("请检查:");
+    console.error("  1. 腾讯云开发环境 ID 是否正确");
+    console.error("  2. Secret ID 和 Secret Key 是否有效");
+    console.error("  3. 网络连接是否正常");
+    return false;
+  }
+}
+
+// 延迟测试数据库连接（避免阻塞服务启动）
+setTimeout(() => {
+  testDatabaseConnection();
+}, 2000);
 
 async function ensureAdmin(token) {
   if (!token) {
@@ -2388,6 +2425,36 @@ app.post("/api/owner-list/:id/verify", async (req, res) => {
 // ===== 所有业务路由已完全模块化，server.js 只保留服务器启动代码 =====
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Admin service listening on port ${PORT}`);
+
+const server = app.listen(PORT, () => {
+  console.log(`✅ Admin service listening on port ${PORT}`);
+  console.log(`📅 启动时间: ${new Date().toLocaleString("zh-CN")}`);
+  console.log(`🔧 Node 版本: ${process.version}`);
+  console.log(`📁 工作目录: ${process.cwd()}`);
+});
+
+// 服务器错误处理
+server.on("error", (err) => {
+  console.error("❌ 服务器错误:", err);
+  if (err.code === "EADDRINUSE") {
+    console.error(`端口 ${PORT} 已被占用，请更换端口或关闭占用该端口的进程`);
+    process.exit(1);
+  }
+});
+
+// 优雅关闭
+process.on("SIGTERM", () => {
+  console.log("📡 收到 SIGTERM 信号，正在关闭服务器...");
+  server.close(() => {
+    console.log("✅ 服务器已关闭");
+    process.exit(0);
+  });
+});
+
+process.on("SIGINT", () => {
+  console.log("\n📡 收到 SIGINT 信号 (Ctrl+C)，正在关闭服务器...");
+  server.close(() => {
+    console.log("✅ 服务器已关闭");
+    process.exit(0);
+  });
 });

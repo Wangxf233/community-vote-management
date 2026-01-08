@@ -4,6 +4,7 @@ Page({
       name: "",
       phone: "",
       communityName: "",
+      propertyType: "house", // house 或 shop
       district: "",
       building: "",
       unit: "",
@@ -176,13 +177,35 @@ Page({
     });
   },
 
+  onPropertyTypeChange(e) {
+    const propertyType = e.detail.value;
+    this.setData({
+      "formData.propertyType": propertyType,
+      buildings: [],
+      units: [],
+      rooms: [],
+      "formData.building": "",
+      "formData.unit": "",
+      "formData.room": "",
+    });
+
+    // 重新加载配置
+    const communityName = this.data.formData.communityName.trim();
+    if (communityName) {
+      this.loadHouseConfig(communityName);
+    }
+  },
+
   async loadHouseConfig(communityName) {
     try {
-      wx.showLoading({ title: "加载房屋配置...", mask: true });
+      wx.showLoading({ title: "加载配置...", mask: true });
 
       const result = await wx.cloud.callFunction({
         name: "getHouseConfig",
-        data: { communityName },
+        data: {
+          communityName,
+          type: this.data.formData.propertyType, // 传递类型
+        },
       });
 
       wx.hideLoading();

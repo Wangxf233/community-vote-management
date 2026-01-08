@@ -1,3 +1,5 @@
+const { formatRoom } = require("../../utils/formatRoom.js");
+
 Page({
   data: {
     // 三步流程：1=获取手机号, 2=填写信息, 3=提交成功
@@ -166,7 +168,10 @@ Page({
   },
 
   onRoomInput(e) {
-    this.setData({ room: e.detail.value });
+    const room = e.detail.value;
+    // 格式化房号为4位数
+    const formattedRoom = formatRoom(room);
+    this.setData({ room: formattedRoom });
   },
 
   onResidentialAreaInput(e) {

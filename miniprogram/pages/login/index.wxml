@@ -5,7 +5,7 @@
   
   <view class="login-options">
     <button class="login-btn wechat-btn" open-type="getPhoneNumber" bindgetphonenumber="onWechatLogin">
-      <image src="/images/wechat-icon.png" class="btn-icon"></image>
+      <image src="	cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/wechat-icon.png" class="btn-icon"></image>
       微信登录
     </button>
     <!-- 临时测试按钮：点击触发 mock wechatLogin

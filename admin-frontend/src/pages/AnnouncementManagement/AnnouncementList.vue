@@ -37,7 +37,7 @@
           <el-button @click="handleReset">重置</el-button>
         </el-form-item>
         <el-form-item style="margin-bottom: 0; margin-left: auto">
-          <el-button type="primary" @click="handleAdd">添加新通知</el-button>
+          <el-button type="primary" @click="handleAdd">添加新信息</el-button>
         </el-form-item>
       </el-form>
     </el-card>

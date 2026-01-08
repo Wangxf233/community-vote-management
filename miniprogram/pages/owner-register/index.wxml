@@ -44,6 +44,23 @@
       </view>
     </view>
 
+    <view class="form-item" wx:if="{{!communityNotFound && formData.communityName}}">
+      <view class="label">
+        <text class="required">*</text>
+        <text>类型</text>
+      </view>
+      <radio-group bindchange="onPropertyTypeChange">
+        <label class="radio-label">
+          <radio value="house" checked="{{formData.propertyType === 'house'}}" />
+          <text>房屋</text>
+        </label>
+        <label class="radio-label" style="margin-left: 30px;">
+          <radio value="shop" checked="{{formData.propertyType === 'shop'}}" />
+          <text>商铺</text>
+        </label>
+      </radio-group>
+    </view>
+
     <view class="form-item">
       <view class="label">
         <text class="required">*</text>
@@ -81,12 +98,12 @@
     <view class="form-item" wx:if="{{rooms.length > 0}}">
       <view class="label">
         <text class="required">*</text>
-        <text>房号</text>
+        <text>{{formData.propertyType === 'shop' ? '门牌号' : '房号'}}</text>
       </view>
       <picker mode="selector" range="{{rooms}}" bindchange="onRoomChange" disabled="{{communityNotFound}}">
         <view class="picker {{communityNotFound ? 'disabled' : ''}}">
           <text wx:if="{{formData.room}}">{{formData.room}}</text>
-          <text wx:else class="placeholder">请选择房号</text>
+          <text wx:else class="placeholder">请选择{{formData.propertyType === 'shop' ? '门牌号' : '房号'}}</text>
         </view>
       </picker>
     </view>

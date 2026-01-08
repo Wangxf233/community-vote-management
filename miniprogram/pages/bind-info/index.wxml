@@ -64,7 +64,7 @@
         <view class="community-wrapper">
           <view class="community-row">
             <input class="input" placeholder="请选择或输入小区名称" value="{{communityName}}" bindinput="onCommunityInput" />
-            <image class="loc-icon" src="/images/location.png" bindtap="onChooseLocation" mode="aspectFit" />
+            <image class="loc-icon" src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/location.png" bindtap="onChooseLocation" mode="aspectFit" />
           </view>
 
           <view wx:if="{{showCandidates}}" class="candidates-list {{dropdownActive ? 'show' : 'hide'}}" bindtransitionend="onDropdownTransitionEnd">
@@ -126,21 +126,21 @@
   <view wx:if="{{currentStep === 3}}" class="step-content">
     <view class="status-box">
       <view wx:if="{{bindingStatus === 'pending'}}" class="status-pending">
-        <image class="status-icon" src="/images/pending.png" mode="aspectFit"></image>
+        <image class="status-icon" src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/pending.png" mode="aspectFit"></image>
         <text class="status-title">审核中</text>
         <text class="status-desc">您的信息正在审核中，请耐心等待</text>
         <button class="back-btn" bindtap="backToHome">返回首页</button>
       </view>
 
       <view wx:if="{{bindingStatus === 'approved'}}" class="status-success">
-        <image class="status-icon" src="/images/success.png" mode="aspectFit"></image>
+        <image class="status-icon" src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/success.png" mode="aspectFit"></image>
         <text class="status-title">审核通过</text>
         <text class="status-desc">您已成功绑定业主信息</text>
         <button class="back-btn" bindtap="backToHome">返回首页</button>
       </view>
 
       <view wx:if="{{bindingStatus === 'rejected'}}" class="status-fail">
-        <image class="status-icon" src="/images/error.png" mode="aspectFit"></image>
+        <image class="status-icon" src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/error.png" mode="aspectFit"></image>
         <text class="status-title">审核未通过</text>
         <text class="status-desc">{{rejectReason}}</text>
         <button class="submit-btn" bindtap="resubmit">重新提交</button>

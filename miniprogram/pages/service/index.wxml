@@ -17,23 +17,30 @@
   <view class="service-grid">
     <view class="service-item" bindtap="navigateToVote">
       <view class="icon-wrapper vote-icon">
-        <image src="/images/vote.png" class="service-icon"></image>
+        <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/vote.png" class="service-icon"></image>
       </view>
       <text class="service-text">投票</text>
     </view>
 
     <view class="service-item" bindtap="navigateToEvaluation">
       <view class="icon-wrapper evaluation-icon">
-        <image src="/images/evaluation.png" class="service-icon"></image>
+        <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/evaluation.png" class="service-icon"></image>
       </view>
       <text class="service-text">评价</text>
     </view>
 
     <view class="service-item" bindtap="navigateToRepair">
       <view class="icon-wrapper repair-icon">
-        <image src="/images/repair.png" class="service-icon"></image>
+        <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/repair.png" class="service-icon"></image>
       </view>
       <text class="service-text">报修</text>
+    </view>
+
+    <view class="service-item" bindtap="navigateToInformation">
+      <view class="icon-wrapper information-icon">
+        <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/info.png" class="service-icon"></image>
+      </view>
+      <text class="service-text">信息公示</text>
     </view>
   </view>
 

@@ -15,7 +15,11 @@
         <el-table-column prop="phone" label="电话号码" width="120" />
         <el-table-column prop="building" label="楼栋" width="80" />
         <el-table-column prop="unit" label="单元" width="80" />
-        <el-table-column prop="room" label="房号" width="80" />
+        <el-table-column prop="room" label="房号" width="80">
+          <template #default="{ row }">
+            {{ formatRoom(row.room) }}
+          </template>
+        </el-table-column>
         <el-table-column prop="matchStatus" label="匹配状态" width="100">
           <template #default="{ row }">
             <el-tag v-if="row.matchStatus === 'matched'" type="success"
@@ -248,6 +252,7 @@
 import { ref, reactive, onMounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import request from "@/utils/axios";
+import { formatRoom } from "@/utils/formatRoom";
 
 const residentsList = ref<any[]>([]);
 const currentPage = ref(1);

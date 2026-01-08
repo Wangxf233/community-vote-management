@@ -183,6 +183,7 @@ const availablePermissions = [
   { value: "repair", label: "报修" },
   { value: "report", label: "报事" },
   { value: "announcement", label: "信息公示" },
+  { value: "notification", label: "通知公告" },
 ];
 
 const selectAll = computed({

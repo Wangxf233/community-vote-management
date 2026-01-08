@@ -3,7 +3,7 @@
   <view class="current-section">
     <view class="section-title">当前小区</view>
     <view class="current-community" wx:if="{{currentCommunity}}">
-      <image src="/images/icon-community.png" class="community-icon" mode="aspectFit"/>
+      <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/icon-community.png" class="community-icon" mode="aspectFit"/>
       <view class="community-info">
         <text class="community-name">{{currentCommunity.communityName}}</text>
         <text class="community-address">{{currentCommunity.fullAddress}}</text>
@@ -25,7 +25,7 @@
             bindtap="switchCommunity"
             data-community-id="{{item.communityId}}"
             data-binding-id="{{item._id}}">
-        <image src="/images/icon-community.png" class="community-icon" mode="aspectFit"/>
+        <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/icon-community.png" class="community-icon" mode="aspectFit"/>
         <view class="community-info">
           <text class="community-name">{{item.communityName}}</text>
           <text class="community-address">{{item.fullAddress}}</text>

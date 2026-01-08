@@ -18,7 +18,7 @@
   <!-- 搜索框 -->
   <view class="search-box">
     <view class="search-input-container">
-      <image src="/images/search-icon.png" class="search-icon"></image>
+      <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/search-icon.png" class="search-icon"></image>
       <input class="search-input" placeholder="请输入姓名或者岗位搜索" 
              value="{{searchKeyword}}" 
              bindinput="onSearchInput"
@@ -49,7 +49,7 @@
       </view>
 
       <view class="no-result" wx:if="{{filteredStaffList.length === 0}}">
-        <image src="/images/no-data.png" class="no-data-img"></image>
+        <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/no-data.png" class="no-data-img"></image>
         <text class="no-result-text">暂无相关人员</text>
       </view>
     </view>

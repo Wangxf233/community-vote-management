@@ -1,0 +1,35 @@
+<view class="information-categories-page">
+  <!-- 审核状态提示 -->
+  <view class="status-tip pending" wx:if="{{bindingStatus === 'pending'}}">
+    <text class="status-icon">⏳</text>
+    <text class="status-text">您的认证申请正在审核中，请耐心等待</text>
+  </view>
+  <view class="status-tip rejected" wx:if="{{bindingStatus === 'rejected'}}">
+    <text class="status-icon">⚠️</text>
+    <text class="status-text">审核未通过，请重新提交认证申请</text>
+  </view>
+
+  <!-- 三个分类入口 -->
+  <view class="info-section categories-section">
+    <view class="section-header">
+      <text class="section-title">信息公示</text>
+    </view>
+
+    <view class="categories">
+      <view class="category-item" bindtap="goToCommitteeList">
+        <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/icon-committee.png" mode="aspectFit" class="category-icon" />
+        <text class="category-text">业委会信息公示</text>
+      </view>
+
+      <view class="category-item" bindtap="goToPropertyList">
+        <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/icon-property.png" mode="aspectFit" class="category-icon" />
+        <text class="category-text">物业信息公示</text>
+      </view>
+
+      <view class="category-item" bindtap="goToLawsList">
+        <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/icon-laws.png" mode="aspectFit" class="category-icon" />
+        <text class="category-text">法律法规</text>
+      </view>
+    </view>
+  </view>
+</view>

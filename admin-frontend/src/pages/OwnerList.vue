@@ -108,7 +108,11 @@
                   min-width="80"
                 />
                 <el-table-column prop="unit" label="单元号" min-width="80" />
-                <el-table-column prop="room" label="房号" min-width="80" />
+                <el-table-column prop="room" label="房号" min-width="80">
+                  <template #default="{ row }">
+                    {{ formatRoom(row.room) }}
+                  </template>
+                </el-table-column>
                 <el-table-column
                   prop="area"
                   label="专有面积(㎡)"
@@ -123,7 +127,11 @@
         <el-table-column prop="district" label="区/期号" min-width="100" />
         <el-table-column prop="building" label="楼栋号" min-width="80" />
         <el-table-column prop="unit" label="单元号" min-width="80" />
-        <el-table-column prop="room" label="房号" min-width="80" />
+        <el-table-column prop="room" label="房号" min-width="80">
+          <template #default="{ row }">
+            {{ formatRoom(row.room) }}
+          </template>
+        </el-table-column>
         <el-table-column label="车牌号" min-width="150">
           <template #default="{ row }">
             <el-tooltip
@@ -139,6 +147,20 @@
           </template>
         </el-table-column>
         <el-table-column prop="area" label="专有面积(㎡)" min-width="120" />
+        <el-table-column prop="remark" label="备注" min-width="150">
+          <template #default="{ row }">
+            <el-tooltip
+              v-if="row.remark && row.remark.length > 10"
+              :content="row.remark"
+              placement="top"
+            >
+              <span style="cursor: pointer">{{
+                row.remark.substring(0, 10) + "..."
+              }}</span>
+            </el-tooltip>
+            <span v-else>{{ row.remark || "-" }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="realNameStatus" label="实名状态" min-width="140">
           <template #default="{ row }">
             <el-tag
@@ -226,6 +248,14 @@
         </el-form-item>
         <el-form-item label="房号">
           <el-input v-model="editForm.room" />
+        </el-form-item>
+        <el-form-item label="备注">
+          <el-input
+            v-model="editForm.remark"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入备注（如无，留空）"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -394,6 +424,7 @@ import { ref, reactive, onMounted, computed } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Plus } from "@element-plus/icons-vue";
 import request from "@/utils/axios";
+import { formatRoom } from "@/utils/formatRoom";
 
 const ownerList = ref<any[]>([]);
 const currentPage = ref(1);
@@ -427,6 +458,7 @@ const editForm = reactive({
   building: "",
   unit: "",
   room: "",
+  remark: "",
 });
 
 const verifyDialog = ref(false);
@@ -489,6 +521,7 @@ function handleEdit(row: any) {
   editForm.building = row.building;
   editForm.unit = row.unit;
   editForm.room = row.room;
+  editForm.remark = row.remark || "";
   editDialog.value = true;
 }
 

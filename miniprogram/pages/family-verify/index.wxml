@@ -69,7 +69,7 @@
   <!-- 步骤2: 等待户主同意 -->
   <view wx:if="{{step === 2}}" class="step-content">
     <view class="status-display">
-      <image src="/images/waiting-icon.png" class="status-icon" mode="aspectFit" />
+      <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/waiting.png" class="status-icon" mode="aspectFit" />
       <text class="status-title">等待户主同意</text>
       <text class="status-desc">您的家属申请已发送给户主,请耐心等待户主审核</text>
 
@@ -101,7 +101,7 @@
   <!-- 步骤3: 户主已同意,等待管理员审核 -->
   <view wx:if="{{step === 3}}" class="step-content">
     <view class="status-display">
-      <image src="/images/review-icon.png" class="status-icon" mode="aspectFit" />
+      <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/review.png" class="status-icon" mode="aspectFit" />
       <text class="status-title">管理员审核中</text>
       <text class="status-desc">户主已同意您的申请,管理员将在1-3个工作日内完成审核</text>
 
