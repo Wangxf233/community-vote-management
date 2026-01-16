@@ -1,0 +1,59 @@
+.settings-page {
+  background-color: #f5f5f5;
+  min-height: 100vh;
+}
+
+.page-header {
+  background: white;
+  padding: 30rpx;
+  border-bottom: 1rpx solid #eee;
+}
+
+.page-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.settings-list {
+  background: white;
+  margin-top: 20rpx;
+}
+
+.setting-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 30rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.setting-item:active {
+  background-color: #f8f9fa;
+}
+
+.setting-item:last-child {
+  border-bottom: none;
+}
+
+.setting-text {
+  font-size: 30rpx;
+  color: #333;
+}
+
+.setting-arrow {
+  font-size: 28rpx;
+  color: #ccc;
+}
+
+/* 退出按钮特殊样式 */
+.setting-item.logout {
+  justify-content: center;
+  margin-top: 40rpx;
+  background: #fff;
+}
+
+.logout-text {
+  color: #ff4d4f;
+  font-weight: 500;
+}

@@ -34,6 +34,13 @@ exports.main = async (event, context) => {
 
       const owner = ownerRes.data[0];
 
+      // 获取投票信息以获取 communityId
+      const voteRes = await db.collection("votes").doc(voteId).get();
+      if (!voteRes.data) {
+        return { success: false, error: "投票不存在" };
+      }
+      const vote = voteRes.data;
+
       // 检查是否已投票
       const voteRecordRes = await db
         .collection("vote_records")
@@ -47,10 +54,11 @@ exports.main = async (event, context) => {
         return { success: false, error: "您已经投过票了" };
       }
 
-      // 保存投票记录
+      // 保存投票记录（添加 communityId）
       const addRes = await db.collection("vote_records").add({
         data: {
           voteId,
+          communityId: vote.communityId || owner.communityId,
           openid,
           optionId,
           signatureUrl,

@@ -47,17 +47,17 @@
         </view>
         <text class="menu-arrow">></text>
       </view>
-      <view class="menu-item" bindtap="goToContact">
-        <view class="menu-left">
-          <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/icon-contact.png" mode="aspectFit" class="menu-icon"/>
-          <text class="menu-text">联系开发者</text>
-        </view>
-        <text class="menu-arrow">></text>
-      </view>
       <view class="menu-item" bindtap="goToSettings">
         <view class="menu-left">
           <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/changeCommunity.png" mode="aspectFit" class="menu-icon"/>
           <text class="menu-text">切换小区</text>
+        </view>
+        <text class="menu-arrow">></text>
+      </view>
+      <view class="menu-item" bindtap="goToContact">
+        <view class="menu-left">
+          <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/icon-contact.png" mode="aspectFit" class="menu-icon"/>
+          <text class="menu-text">联系开发者</text>
         </view>
         <text class="menu-arrow">></text>
       </view>

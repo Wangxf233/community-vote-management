@@ -4,6 +4,7 @@ Page({
   data: {
     houseList: [],
     loading: true,
+    totalArea: 0, // 总面积
   },
 
   onLoad: function () {
@@ -29,12 +30,21 @@ Page({
 
         if (res.result && res.result.success) {
           const houses = res.result.data || [];
+          let totalArea = 0;
 
           // 处理状态文本和房号格式
           houses.forEach((house) => {
             // 格式化房号为4位数
             if (house.room) {
               house.room = formatRoom(house.room);
+            }
+
+            // 累计总面积
+            if (house.area) {
+              const area = parseFloat(house.area);
+              if (!isNaN(area)) {
+                totalArea += area;
+              }
             }
 
             if (house.status === "approved") {
@@ -50,6 +60,7 @@ Page({
 
           that.setData({
             houseList: houses,
+            totalArea: totalArea.toFixed(2), // 保留12位小数
             loading: false,
           });
         } else {

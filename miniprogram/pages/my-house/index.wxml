@@ -1,7 +1,7 @@
 <view class="my-house-page">
   <view class="header">
     <text class="title">我的房屋</text>
-    <text class="subtitle">共 {{houseList.length}} 套房产</text>
+    <text class="subtitle">共 {{houseList.length}} 套房产   |   专有面积共 {{totalArea}} 平方米</text>
   </view>
 
   <!-- 房产列表 -->
@@ -12,10 +12,6 @@
         <text class="status-tag {{item.status}}">{{item.statusText}}</text>
       </view>
       <view class="card-body">
-        <view class="info-row">
-          <text class="label">区/期号：</text>
-          <text class="value">{{item.district || item.region || '-'}}</text>
-        </view>
         <view class="info-row">
           <text class="label">楼栋号：</text>
           <text class="value">{{item.building || '-'}}</text>

@@ -1,0 +1,75 @@
+const cloud = require("wx-server-sdk");
+cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
+const db = cloud.database();
+const _ = db.command;
+
+exports.main = async (event, context) => {
+  const wxContext = cloud.getWXContext();
+  const openid = wxContext.OPENID;
+
+  try {
+    // 查询该用户的所有投票记录
+    const recordsRes = await db
+      .collection("vote_records")
+      .where({
+        openid: openid,
+        deleted: _.neq(true),
+      })
+      .orderBy("createdAt", "desc")
+      .get();
+
+    const records = recordsRes.data || [];
+
+    // 获取所有相关投票的详细信息
+    const voteIds = [...new Set(records.map((r) => r.voteId))];
+
+    const votesMap = {};
+    if (voteIds.length > 0) {
+      // 批量查询投票信息
+      const votesRes = await db
+        .collection("votes")
+        .where({
+          _id: _.in(voteIds),
+        })
+        .get();
+
+      votesRes.data.forEach((vote) => {
+        votesMap[vote._id] = vote;
+      });
+    }
+
+    // 固定的投票选项
+    const fixedOptions = [
+      { id: "option1", text: "同意" },
+      { id: "option2", text: "不同意" },
+      { id: "option3", text: "弃权" },
+    ];
+
+    // 为每条记录添加投票信息和选项文本
+    const enrichedRecords = records.map((record) => {
+      const vote = votesMap[record.voteId] || {};
+      const option = fixedOptions.find((opt) => opt.id === record.optionId);
+
+      return {
+        ...record,
+        voteTitle: vote.title || "未知投票",
+        voteType: vote.type || "vote",
+        voteStatus: vote.status || "unknown",
+        voteDeadline: vote.deadlineTime,
+        optionText: option ? option.text : "未知选项",
+      };
+    });
+
+    return {
+      success: true,
+      data: enrichedRecords,
+      total: enrichedRecords.length,
+    };
+  } catch (err) {
+    console.error("getMyVoteRecords error:", err);
+    return {
+      success: false,
+      error: err.message || "Failed to get vote records",
+    };
+  }
+};

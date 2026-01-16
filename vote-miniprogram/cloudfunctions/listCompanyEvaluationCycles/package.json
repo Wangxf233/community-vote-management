@@ -1,0 +1,9 @@
+{
+  "name": "listCompanyEvaluationCycles",
+  "version": "1.0.0",
+  "description": "获取物业公司评价周期列表",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

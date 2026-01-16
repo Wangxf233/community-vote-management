@@ -6,6 +6,7 @@
     "pages/family-register/index",
     "pages/verification/index",
     "pages/vote/index",
+    "pages/survey/index",
     "pages/vote-detail/index",
     "pages/evaluation/index",
     "pages/company-evaluation/index",

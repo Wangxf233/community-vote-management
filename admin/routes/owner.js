@@ -513,29 +513,73 @@ router.get("/owner-list", async (req, res) => {
 });
 
 /**
- * PUT /api/owner-list/:id - 修改户主信息
+ * PUT /api/owner-list/:id - 修改户主信息（支持多房产）
  */
 router.put("/owner-list/:id", async (req, res) => {
   try {
+    const user = req.user;
     const { id } = req.params;
-    const { name, phone, district, building, unit, room, remark } = req.body;
+    const { name, phone, properties, carNumber } = req.body;
 
-    await db
-      .collection("owner_list")
-      .doc(id)
-      .update({
-        name,
-        phone,
-        district: district || "",
-        building,
-        unit,
-        room,
-        remark: remark || "", // 添加备注字段
-        updatedAt: new Date().toISOString(),
+    // 如果有多套房产，需要先删除旧的记录，再新增
+    if (properties && properties.length > 0) {
+      // 1. 先查询该户主的所有房产记录
+      const existingRecords = await db
+        .collection("owner_list")
+        .where({
+          name,
+          phone,
+          communityId: user.communityId,
+        })
+        .get();
+
+      // 保存第一条记录的重要字段
+      let preservedFields = {};
+      if (existingRecords.data && existingRecords.data.length > 0) {
+        const firstRecord = existingRecords.data[0];
+        preservedFields = {
+          openid: firstRecord.openid,
+          realNameStatus: firstRecord.realNameStatus || "unverified",
+          realNameSubmitTime: firstRecord.realNameSubmitTime,
+          realNameIdCardFront: firstRecord.realNameIdCardFront,
+          realNameIdCardBack: firstRecord.realNameIdCardBack,
+          realNameCertType: firstRecord.realNameCertType,
+          realNameCertImage: firstRecord.realNameCertImage,
+          realNameRejectReason: firstRecord.realNameRejectReason,
+        };
+
+        // 2. 删除所有旧记录（包括主记录和额外房产）
+        const deletePromises = existingRecords.data.map((record) =>
+          db.collection("owner_list").doc(record._id).remove()
+        );
+        await Promise.all(deletePromises);
+      }
+
+      // 3. 重新创建所有房产记录
+      const addPromises = properties.map((property, index) => {
+        const record = {
+          communityId: user.communityId,
+          name,
+          phone,
+          building: property.building,
+          unit: property.unit,
+          room: property.room,
+          area: property.area || "",
+          remark: property.remark || "",
+          carNumber: carNumber || "",
+          ...preservedFields, // 保留原有的openid和实名认证信息
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        return db.collection("owner_list").add(record);
       });
+
+      await Promise.all(addPromises);
+    }
 
     return res.json({ success: true });
   } catch (e) {
+    console.error("修改户主信息失败:", e);
     return res.status(500).json({ success: false, error: e.message || e });
   }
 });
@@ -554,33 +598,81 @@ router.delete("/owner-list/:id", async (req, res) => {
     }
 
     const owner = ownerRes.data[0];
+    const { name, phone, communityId } = owner;
 
-    // 删除户主记录
-    await db.collection("owner_list").doc(id).remove();
+    // 删除该户主的所有房产记录（同一户主可能有多套房产）
+    const allOwnersRes = await db
+      .collection("owner_list")
+      .where({
+        name: name,
+        phone: phone,
+        communityId: communityId,
+      })
+      .get();
 
-    // 删除对应的认证申请记录
-    if (owner.openid) {
-      try {
-        const certRes = await db
+    if (allOwnersRes && allOwnersRes.data && allOwnersRes.data.length > 0) {
+      for (const ownerRecord of allOwnersRes.data) {
+        await db.collection("owner_list").doc(ownerRecord._id).remove();
+      }
+    }
+
+    // 更新认证申请状态为已移除（通过手机号或openid查询）
+    try {
+      // 通过手机号查询
+      if (phone) {
+        const certByPhoneRes = await db
+          .collection("certification_applications")
+          .where({
+            phone: phone,
+            communityId: communityId,
+          })
+          .get();
+
+        if (
+          certByPhoneRes &&
+          certByPhoneRes.data &&
+          certByPhoneRes.data.length > 0
+        ) {
+          for (const cert of certByPhoneRes.data) {
+            await db
+              .collection("certification_applications")
+              .doc(cert._id)
+              .update({
+                status: "removed",
+                updatedAt: new Date().toISOString(),
+              });
+          }
+        }
+      }
+
+      // 通过 openid 查询（如果有）
+      if (owner.openid) {
+        const certByOpenidRes = await db
           .collection("certification_applications")
           .where({
             openid: owner.openid,
             communityId: owner.communityId,
-            status: "approved",
           })
           .get();
 
-        if (certRes && certRes.data && certRes.data.length > 0) {
-          for (const cert of certRes.data) {
+        if (
+          certByOpenidRes &&
+          certByOpenidRes.data &&
+          certByOpenidRes.data.length > 0
+        ) {
+          for (const cert of certByOpenidRes.data) {
             await db
               .collection("certification_applications")
               .doc(cert._id)
-              .remove();
+              .update({
+                status: "removed",
+                updatedAt: new Date().toISOString(),
+              });
           }
         }
-      } catch (certError) {
-        console.error("删除认证申请记录失败:", certError);
       }
+    } catch (certError) {
+      console.error("更新认证申请状态失败:", certError);
     }
 
     return res.json({ success: true });

@@ -4,8 +4,7 @@ Page({
       name: "",
       phone: "",
       communityName: "",
-      propertyType: "house", // house 或 shop
-      district: "",
+      propertyType: "house",
       building: "",
       unit: "",
       room: "",
@@ -14,9 +13,12 @@ Page({
     buildings: [],
     units: [],
     rooms: [],
+    properties: [], // 已添加的房产列表
     submitting: false,
     communityNotFound: false,
-    isAdding: false, // 是否是添加新小区模式
+    isAdding: false,
+    communityList: [],
+    showCommunityList: false,
   },
 
   checkCommunityTimer: null,
@@ -56,11 +58,71 @@ Page({
       region: e.detail.value,
     });
 
+    // 选择区域后加载该区域的小区列表
+    if (e.detail.value[2]) {
+      this.loadCommunitiesByRegion();
+    }
+
     // 如果已经输入了小区名称，则重新验证
     const communityName = this.data.formData.communityName.trim();
     if (communityName) {
       this.debouncedCheckCommunity();
     }
+  },
+
+  // 加载指定区域的小区列表
+  async loadCommunitiesByRegion() {
+    try {
+      const [province, city, district] = this.data.region;
+
+      const result = await wx.cloud.callFunction({
+        name: "listCommunitiesByRegion",
+        data: {
+          province,
+          city,
+          district,
+        },
+      });
+
+      if (result.result && result.result.code === 0) {
+        this.setData({
+          communityList: result.result.data || [],
+        });
+      } else {
+        this.setData({ communityList: [] });
+      }
+    } catch (err) {
+      console.error("加载小区列表失败:", err);
+      this.setData({ communityList: [] });
+    }
+  },
+
+  // 小区输入框获得焦点
+  onCommunityFocus() {
+    // 如果已选择了区域且有小区列表，则显示
+    if (this.data.region[2]) {
+      this.setData({ showCommunityList: true });
+      // 如果还没有加载过小区列表，则加载
+      if (this.data.communityList.length === 0) {
+        this.loadCommunitiesByRegion();
+      }
+    } else {
+      wx.showToast({
+        title: "请先选择省市区",
+        icon: "none",
+      });
+    }
+  },
+
+  // 选择小区
+  onSelectCommunity(e) {
+    const communityName = e.currentTarget.dataset.name;
+    this.setData({
+      "formData.communityName": communityName,
+      showCommunityList: false,
+    });
+    // 选择后立即验证
+    this.checkCommunity(communityName);
   },
 
   onCommunityInput(e) {
@@ -105,18 +167,23 @@ Page({
     }, 800);
   },
 
-  onCommunityBlur(e) {
-    // 失焦时不再验证，因为防抖机制已经处理了验证
-    // 只需要清除可能存在的定时器，让验证立即执行
-    if (this.checkCommunityTimer) {
-      clearTimeout(this.checkCommunityTimer);
-      this.checkCommunityTimer = null;
+  onCommunityInputBlur() {
+    // 延迟隐藏列表，给点击事件时间
+    setTimeout(() => {
+      this.setData({ showCommunityList: false });
 
-      const communityName = e.detail.value.trim();
-      if (communityName) {
-        this.checkCommunity(communityName);
+      // 失焦时不再验证，因为防抖机制已经处理了验证
+      // 只需要清除可能存在的定时器，让验证立即执行
+      if (this.checkCommunityTimer) {
+        clearTimeout(this.checkCommunityTimer);
+        this.checkCommunityTimer = null;
+
+        const communityName = this.data.formData.communityName.trim();
+        if (communityName) {
+          this.checkCommunity(communityName);
+        }
       }
-    }
+    }, 200);
   },
 
   async checkCommunity(communityName) {
@@ -169,12 +236,6 @@ Page({
         icon: "none",
       });
     }
-  },
-
-  onDistrictInput(e) {
-    this.setData({
-      "formData.district": e.detail.value,
-    });
   },
 
   onPropertyTypeChange(e) {
@@ -275,8 +336,7 @@ Page({
   },
 
   validateForm() {
-    const { name, phone, communityName, district, building, unit, room } =
-      this.data.formData;
+    const { name, phone, building, unit, room } = this.data.formData;
 
     if (!name) {
       wx.showToast({ title: "请输入姓名", icon: "none" });
@@ -298,22 +358,83 @@ Page({
       return false;
     }
 
-    if (!communityName) {
-      wx.showToast({ title: "请输入小区名称", icon: "none" });
-      return false;
-    }
+    // 检查是否有已添加的房产或当前表单中有完整的房产信息
+    const hasAddedProperties = this.data.properties.length > 0;
+    const hasCurrentProperty = building && unit && room;
 
-    if (!district) {
-      wx.showToast({ title: "请输入区/期号", icon: "none" });
-      return false;
-    }
-
-    if (!building || !unit || !room) {
-      wx.showToast({ title: "请选择完整的房号信息", icon: "none" });
+    if (!hasAddedProperties && !hasCurrentProperty) {
+      wx.showToast({ title: "请至少填写一套房产信息", icon: "none" });
       return false;
     }
 
     return true;
+  },
+
+  // 添加房产到列表
+  addProperty() {
+    const { communityName, propertyType, building, unit, room } =
+      this.data.formData;
+
+    if (!communityName) {
+      wx.showToast({ title: "请输入小区名称", icon: "none" });
+      return;
+    }
+
+    if (this.data.communityNotFound) {
+      wx.showToast({ title: "该小区还未开通服务", icon: "none" });
+      return;
+    }
+
+    if (!building || !unit || !room) {
+      wx.showToast({ title: "请选择完整的房号信息", icon: "none" });
+      return;
+    }
+
+    // 检查是否已添加相同房产
+    const duplicate = this.data.properties.some(
+      (p) =>
+        p.building === building &&
+        p.unit === unit &&
+        p.room === room &&
+        p.propertyType === propertyType
+    );
+
+    if (duplicate) {
+      wx.showToast({ title: "该房产已添加", icon: "none" });
+      return;
+    }
+
+    // 添加到列表
+    const properties = this.data.properties.concat([
+      {
+        communityName,
+        propertyType,
+        building,
+        unit,
+        room,
+      },
+    ]);
+
+    this.setData({
+      properties,
+      // 清空当前房产信息（保留小区和类型）
+      "formData.building": "",
+      "formData.unit": "",
+      "formData.room": "",
+      buildings: [],
+      units: [],
+      rooms: [],
+    });
+
+    wx.showToast({ title: "添加成功", icon: "success" });
+  },
+
+  // 删除房产
+  deleteProperty(e) {
+    const index = e.currentTarget.dataset.index;
+    const properties = this.data.properties.filter((_, i) => i !== index);
+    this.setData({ properties });
+    wx.showToast({ title: "删除成功", icon: "success" });
   },
 
   async handleSubmit() {
@@ -333,6 +454,33 @@ Page({
         return;
       }
 
+      // 准备提交的房产列表
+      let propertiesToSubmit = [...this.data.properties];
+
+      // 如果当前表单中有房产信息，且还没有添加到列表，则自动添加
+      const { communityName, propertyType, building, unit, room } =
+        this.data.formData;
+      if (building && unit && room) {
+        // 检查是否已存在
+        const exists = propertiesToSubmit.some(
+          (p) =>
+            p.building === building &&
+            p.unit === unit &&
+            p.room === room &&
+            p.propertyType === propertyType
+        );
+
+        if (!exists) {
+          propertiesToSubmit.push({
+            communityName,
+            propertyType,
+            building,
+            unit,
+            room,
+          });
+        }
+      }
+
       const result = await wx.cloud.callFunction({
         name: "submitCertification",
         data: {
@@ -340,11 +488,7 @@ Page({
           name: this.data.formData.name,
           phone: this.data.formData.phone,
           region: this.data.region,
-          communityName: this.data.formData.communityName,
-          district: this.data.formData.district,
-          building: this.data.formData.building,
-          unit: this.data.formData.unit,
-          room: this.data.formData.room,
+          properties: propertiesToSubmit,
         },
       });
 

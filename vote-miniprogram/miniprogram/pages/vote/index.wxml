@@ -1,0 +1,31 @@
+<view class="vote-container">
+  <!-- 投票列表 -->
+  <scroll-view class="vote-list" scroll-y>
+    <block wx:for="{{voteList}}" wx:key="id">
+      <view class="vote-item" bindtap="navigateToVoteDetail" data-id="{{item.id}}">
+        <view class="vote-header">
+          <text class="vote-title">标题：{{item.title}}</text>
+          <text class="vote-status {{item.status}}">{{item.statusText}}</text>
+        </view>
+        <view class="vote-description">简介：{{item.description}}</view>
+        <view class="vote-meta">
+          <text class="vote-deadline">{{item.deadline}} 截止</text>
+          <text class="vote-count">{{item.voteCount}}人已参与</text>
+        </view>
+      </view>
+      <view class="divider" wx:if="{{!index === voteList.length - 1}}"></view>
+    </block>
+    
+    <view class="load-more" wx:if="{{hasMore}}" bindtap="loadMore">
+      <text>加载更多</text>
+    </view>
+    
+    <view class="no-data" wx:if="{{voteList.length === 0 && !loading}}">
+      <text>暂无投票</text>
+    </view>
+    
+    <view class="loading" wx:if="{{loading}}">
+      <text>加载中...</text>
+    </view>
+  </scroll-view>
+</view>

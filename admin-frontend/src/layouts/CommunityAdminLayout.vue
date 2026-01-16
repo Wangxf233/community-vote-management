@@ -9,9 +9,16 @@
           @select="onSelect"
           :default-openeds="['certification', 'backend-admin']"
         >
+          <el-menu-item
+            v-if="isPrimaryAdmin"
+            index="/community-admin/community-info"
+          >
+            <el-icon><Files /></el-icon>
+            <span>小区基本情况</span>
+          </el-menu-item>
           <el-sub-menu v-if="isPrimaryAdmin" index="backend-admin">
             <template #title>
-              <el-icon><Setting /></el-icon>
+              <el-icon><UserFilled /></el-icon>
               <span>后台成员管理</span>
             </template>
             <el-menu-item index="/community-admin/members">
@@ -166,6 +173,7 @@ import {
   Tools,
   Bell,
   Notification,
+  Files,
 } from "@element-plus/icons-vue";
 const router = useRouter();
 const route = useRoute();

@@ -37,14 +37,9 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="参与人数/总人数" width="150">
+      <el-table-column label="参与人数" width="100">
         <template #default="{ row }">
-          {{ row.participantCount || 0 }}/{{ row.totalUsers || 0 }}
-          <span v-if="row.totalUsers > 0" style="color: #909399">
-            ({{
-              (((row.participantCount || 0) / row.totalUsers) * 100).toFixed(0)
-            }}%)
-          </span>
+          {{ row.participantCount || 0 }}
         </template>
       </el-table-column>
       <el-table-column label="操作" width="240" fixed="right">

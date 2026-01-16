@@ -52,11 +52,13 @@ async function applyFamily(event, familyOpenid) {
     phone,
     name,
     communityName,
+    communityId,
     building,
-    block,
+    unit,
     room,
-    householdRelation,
+    relation,
     ownerOpenid,
+    ownerName,
   } = event;
 
   // 验证必填字段
@@ -65,45 +67,45 @@ async function applyFamily(event, familyOpenid) {
     !name ||
     !communityName ||
     !building ||
-    !block ||
+    !unit ||
     !room ||
-    !householdRelation ||
+    !relation ||
     !ownerOpenid
   ) {
     return { success: false, error: "missing_required_fields" };
   }
 
-  // 查找户主的绑定记录
-  const ownerBindingRes = await db
-    .collection("bindings")
+  // 查找户主的认证记录
+  const ownerCertRes = await db
+    .collection("certification_applications")
     .where({
       openid: ownerOpenid,
       communityName,
       building,
-      block,
+      unit,
       room,
-      userType: "owner",
+      type: "owner",
       status: "approved",
     })
     .limit(1)
     .get();
 
-  if (!ownerBindingRes.data || ownerBindingRes.data.length === 0) {
+  if (!ownerCertRes.data || ownerCertRes.data.length === 0) {
     return { success: false, error: "owner_not_found" };
   }
 
-  const ownerBinding = ownerBindingRes.data[0];
+  const ownerCert = ownerCertRes.data[0];
 
   // 检查是否已有申请
   const existingRes = await db
-    .collection("bindings")
+    .collection("certification_applications")
     .where({
       openid: familyOpenid,
       communityName,
       building,
-      block,
+      unit,
       room,
-      userType: "family",
+      type: "family",
       status: _.in(["pending", "approved"]),
     })
     .limit(1)
@@ -113,48 +115,51 @@ async function applyFamily(event, familyOpenid) {
     return { success: false, error: "already_applied" };
   }
 
-  // 创建家属绑定记录
-  const familyBinding = {
+  // 创建家属认证记录
+  const familyCert = {
     openid: familyOpenid,
-    communityId: ownerBinding.communityId,
+    communityId: communityId || ownerCert.communityId,
     communityName,
     phone,
     name,
-    region: ownerBinding.region,
+    region: ownerCert.region || [],
     building,
-    block,
+    unit,
     room,
-    userType: "family",
-    householdRelation,
+    type: "family",
+    relation,
     ownerOpenid,
+    ownerName: ownerName || ownerCert.name,
     ownerApprovalStatus: "pending", // 等待户主审核
     status: "pending", // 等待管理员最终审核
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
 
-  const addRes = await db.collection("bindings").add({ data: familyBinding });
+  const addRes = await db
+    .collection("certification_applications")
+    .add({ data: familyCert });
 
   return {
     success: true,
-    bindingId: addRes._id,
+    certId: addRes._id,
     message: "申请已提交，请等待户主审核",
   };
 }
 
 // 获取家属列表
 async function listFamily(event, ownerOpenid) {
-  // 查找当前用户作为户主的所有绑定记录
-  const ownerBindingsRes = await db
-    .collection("bindings")
+  // 查找当前用户作为户主的所有认证记录
+  const ownerCertRes = await db
+    .collection("certification_applications")
     .where({
       openid: ownerOpenid,
-      userType: "owner",
+      type: "owner",
       status: "approved",
     })
     .get();
 
-  if (!ownerBindingsRes.data || ownerBindingsRes.data.length === 0) {
+  if (!ownerCertRes.data || ownerCertRes.data.length === 0) {
     return {
       success: true,
       pending: [],
@@ -166,10 +171,10 @@ async function listFamily(event, ownerOpenid) {
 
   // 查找所有关联的家属
   const familyRes = await db
-    .collection("bindings")
+    .collection("certification_applications")
     .where({
       ownerOpenid,
-      userType: "family",
+      type: "family",
     })
     .get();
 
@@ -196,26 +201,29 @@ async function listFamily(event, ownerOpenid) {
 // 户主批准家属
 async function approveFamily(familyBindingId, ownerOpenid) {
   if (!familyBindingId) {
-    return { success: false, error: "missing_binding_id" };
+    return { success: false, error: "missing_cert_id" };
   }
 
-  // 查找家属绑定记录
-  const familyRes = await db.collection("bindings").doc(familyBindingId).get();
+  // 查找家属认证记录
+  const familyRes = await db
+    .collection("certification_applications")
+    .doc(familyBindingId)
+    .get();
 
   if (!familyRes.data) {
-    return { success: false, error: "binding_not_found" };
+    return { success: false, error: "cert_not_found" };
   }
 
-  const familyBinding = familyRes.data;
+  const familyCert = familyRes.data;
 
   // 验证是否有权限审核
-  if (familyBinding.ownerOpenid !== ownerOpenid) {
+  if (familyCert.ownerOpenid !== ownerOpenid) {
     return { success: false, error: "permission_denied" };
   }
 
   // 更新状态
   await db
-    .collection("bindings")
+    .collection("certification_applications")
     .doc(familyBindingId)
     .update({
       data: {
@@ -234,26 +242,29 @@ async function approveFamily(familyBindingId, ownerOpenid) {
 // 户主拒绝家属
 async function rejectFamily(familyBindingId, rejectReason, ownerOpenid) {
   if (!familyBindingId) {
-    return { success: false, error: "missing_binding_id" };
+    return { success: false, error: "missing_cert_id" };
   }
 
-  // 查找家属绑定记录
-  const familyRes = await db.collection("bindings").doc(familyBindingId).get();
+  // 查找家属认证记录
+  const familyRes = await db
+    .collection("certification_applications")
+    .doc(familyBindingId)
+    .get();
 
   if (!familyRes.data) {
-    return { success: false, error: "binding_not_found" };
+    return { success: false, error: "cert_not_found" };
   }
 
-  const familyBinding = familyRes.data;
+  const familyCert = familyRes.data;
 
   // 验证是否有权限审核
-  if (familyBinding.ownerOpenid !== ownerOpenid) {
+  if (familyCert.ownerOpenid !== ownerOpenid) {
     return { success: false, error: "permission_denied" };
   }
 
   // 更新状态
   await db
-    .collection("bindings")
+    .collection("certification_applications")
     .doc(familyBindingId)
     .update({
       data: {
@@ -274,25 +285,38 @@ async function rejectFamily(familyBindingId, rejectReason, ownerOpenid) {
 // 户主解绑家属
 async function unbindFamily(familyBindingId, ownerOpenid) {
   if (!familyBindingId) {
-    return { success: false, error: "missing_binding_id" };
+    return { success: false, error: "missing_cert_id" };
   }
 
-  // 查找家属绑定记录
-  const familyRes = await db.collection("bindings").doc(familyBindingId).get();
+  // 查找家属认证记录
+  const familyRes = await db
+    .collection("certification_applications")
+    .doc(familyBindingId)
+    .get();
 
   if (!familyRes.data) {
-    return { success: false, error: "binding_not_found" };
+    return { success: false, error: "cert_not_found" };
   }
 
-  const familyBinding = familyRes.data;
+  const familyCert = familyRes.data;
 
   // 验证是否有权限解绑
-  if (familyBinding.ownerOpenid !== ownerOpenid) {
+  if (familyCert.ownerOpenid !== ownerOpenid) {
     return { success: false, error: "permission_denied" };
   }
 
-  // 删除绑定记录
-  await db.collection("bindings").doc(familyBindingId).remove();
+  // 标记为已移除（不直接删除，保留记录）
+  await db
+    .collection("certification_applications")
+    .doc(familyBindingId)
+    .update({
+      data: {
+        status: "removed",
+        removedBy: "owner",
+        removedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    });
 
   return {
     success: true,

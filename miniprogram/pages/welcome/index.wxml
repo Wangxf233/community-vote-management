@@ -25,7 +25,7 @@
 
     <view class="bind-tip">
       <view class="tip-box">
-        <image src="/images/welcome-tip.png" class="tip-icon"></image>
+        <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/welcome-tip.png" class="tip-icon"></image>
         <text class="tip-text">绑定后可使用投票、评价、报修等功能，审核通常在24小时内完成</text>
       </view>
     </view>

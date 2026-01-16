@@ -1,0 +1,31 @@
+<view class="survey-container">
+  <!-- 问卷调查列表 -->
+  <scroll-view class="survey-list" scroll-y>
+    <block wx:for="{{surveyList}}" wx:key="id">
+      <view class="survey-item" bindtap="navigateToSurveyDetail" data-id="{{item.id}}">
+        <view class="survey-header">
+          <text class="survey-title">标题：{{item.title}}</text>
+          <text class="survey-status {{item.status}}">{{item.statusText}}</text>
+        </view>
+        <view class="survey-description">简介：{{item.description}}</view>
+        <view class="survey-meta">
+          <text class="survey-deadline">{{item.deadline}} 截止</text>
+          <text class="survey-count">{{item.voteCount}}人已参与</text>
+        </view>
+      </view>
+      <view class="divider" wx:if="{{!index === surveyList.length - 1}}"></view>
+    </block>
+    
+    <view class="load-more" wx:if="{{hasMore}}" bindtap="loadMore">
+      <text>加载更多</text>
+    </view>
+    
+    <view class="no-data" wx:if="{{surveyList.length === 0 && !loading}}">
+      <text>暂无问卷</text>
+    </view>
+    
+    <view class="loading" wx:if="{{loading}}">
+      <text>加载中...</text>
+    </view>
+  </scroll-view>
+</view>

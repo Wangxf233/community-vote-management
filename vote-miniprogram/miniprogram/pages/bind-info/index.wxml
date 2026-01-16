@@ -1,0 +1,150 @@
+<view class="bind-container">
+  <!-- 步骤指示器 -->
+  <view class="steps">
+    <view class="step {{currentStep >= 1 ? 'active' : ''}}">
+      <view class="step-number">1</view>
+      <text class="step-text">授权手机号</text>
+    </view>
+    <view class="step-line"></view>
+    <view class="step {{currentStep >= 2 ? 'active' : ''}}">
+      <view class="step-number">2</view>
+      <text class="step-text">填写信息</text>
+    </view>
+    <view class="step-line"></view>
+    <view class="step {{currentStep >= 3 ? 'active' : ''}}">
+      <view class="step-number">3</view>
+      <text class="step-text">等待审核</text>
+    </view>
+  </view>
+
+  <!-- Step 1: 获取手机号 -->
+  <view wx:if="{{currentStep === 1}}" class="step-content">
+    <view class="step-header">
+      <text class="step-title">授权手机号</text>
+      <text class="step-desc">需要您的手机号用于身份验证</text>
+    </view>
+    <view class="phone-box">
+      <button open-type="getPhoneNumber" bindgetphonenumber="getPhoneNumber" class="phone-btn">
+        授权手机号
+      </button>
+    </view>
+  </view>
+
+  <!-- Step 2: 填写信息 -->
+  <view wx:if="{{currentStep === 2}}" class="step-content">
+    <view class="step-header">
+      <text class="step-title">填写绑定信息</text>
+      <text class="step-desc" wx:if="{{bindingStatus === 'rejected'}}">
+        审核未通过：{{rejectReason}}
+      </text>
+    </view>
+
+    <view wx:if="{{showCandidates}}" class="overlay {{dropdownActive ? 'show' : 'hide'}}" bindtap="hideCandidates"></view>
+
+    <view class="bind-form">
+      <view class="form-item">
+        <text class="label">姓名</text>
+        <input class="input" placeholder="请输入姓名" value="{{name}}" bindinput="onNameInput" />
+      </view>
+
+      <view class="form-item">
+        <text class="label">手机号</text>
+        <view class="input disabled">{{phone}}</view>
+      </view>
+
+      <view class="form-item">
+        <text class="label">省／市／区</text>
+        <picker mode="region" value="{{region}}" bindchange="onRegionChange">
+          <view class="picker-row">{{regionDisplay || '请选择省/市/区'}}</view>
+        </picker>
+      </view>
+
+      <view class="form-item">
+        <text class="label">小区名称</text>
+        <view class="community-wrapper">
+          <view class="community-row">
+            <input class="input" placeholder="请选择或输入小区名称" value="{{communityName}}" bindinput="onCommunityInput" />
+            <image class="loc-icon" src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/location.png" bindtap="onChooseLocation" mode="aspectFit" />
+          </view>
+
+          <view wx:if="{{showCandidates}}" class="candidates-list {{dropdownActive ? 'show' : 'hide'}}" bindtransitionend="onDropdownTransitionEnd">
+            <scroll-view class="candidates-scroll" scroll-y="true">
+              <block wx:for="{{candidates}}" wx:key="_id">
+                <view class="candidate-item" data-idx="{{index}}" bindtap="selectCandidate">
+                  <text class="cand-name">{{item.name}}</text>
+                  <text class="cand-region" wx:if="{{item.region && item.region.length}}">{{item.region.join(' / ')}}</text>
+                </view>
+              </block>
+            </scroll-view>
+          </view>
+        </view>
+        <text class="hint" wx:if="{{communityChecked === false}}">该小区未注册</text>
+      </view>
+
+      <view class="form-item">
+        <text class="label">楼栋号</text>
+        <input class="input" placeholder="例如：12" value="{{building}}" bindinput="onBuildingInput" />
+      </view>
+
+      <view class="form-item">
+        <text class="label">单元号</text>
+        <input class="input" placeholder="例如：1" value="{{block}}" bindinput="onBlockInput" />
+      </view>
+
+      <view class="form-item">
+        <text class="label">房号</text>
+        <input class="input" placeholder="例如：101" value="{{room}}" bindinput="onRoomInput" />
+      </view>
+
+      <view class="form-item">
+        <text class="label">住宅面积(㎡)</text>
+        <input class="input" placeholder="选填" value="{{residentialArea}}" bindinput="onResidentialAreaInput" type="digit" />
+      </view>
+
+      <view class="form-item">
+        <text class="label">商业面积(㎡)</text>
+        <input class="input" placeholder="选填" value="{{commercialArea}}" bindinput="onCommercialAreaInput" type="digit" />
+      </view>
+
+      <view class="form-item">
+        <text class="label">车位面积(㎡)</text>
+        <input class="input" placeholder="选填" value="{{parkingArea}}" bindinput="onParkingAreaInput" type="digit" />
+      </view>
+
+      <view class="form-item">
+        <text class="label">车牌号</text>
+        <input class="input" placeholder="选填" value="{{carNumber}}" bindinput="onCarNumberInput" />
+      </view>
+
+      <view class="form-actions">
+        <button class="submit-btn" bindtap="onSubmit">提交审核</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- Step 3: 审核状态 -->
+  <view wx:if="{{currentStep === 3}}" class="step-content">
+    <view class="status-box">
+      <view wx:if="{{bindingStatus === 'pending'}}" class="status-pending">
+        <image class="status-icon" src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/pending.png" mode="aspectFit"></image>
+        <text class="status-title">审核中</text>
+        <text class="status-desc">您的信息正在审核中，请耐心等待</text>
+        <button class="back-btn" bindtap="backToHome">返回首页</button>
+      </view>
+
+      <view wx:if="{{bindingStatus === 'approved'}}" class="status-success">
+        <image class="status-icon" src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/success.png" mode="aspectFit"></image>
+        <text class="status-title">审核通过</text>
+        <text class="status-desc">您已成功绑定业主信息</text>
+        <button class="back-btn" bindtap="backToHome">返回首页</button>
+      </view>
+
+      <view wx:if="{{bindingStatus === 'rejected'}}" class="status-fail">
+        <image class="status-icon" src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/error.png" mode="aspectFit"></image>
+        <text class="status-title">审核未通过</text>
+        <text class="status-desc">{{rejectReason}}</text>
+        <button class="submit-btn" bindtap="resubmit">重新提交</button>
+      </view>
+    </view>
+  </view>
+</view>

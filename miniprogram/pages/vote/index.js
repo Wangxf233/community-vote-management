@@ -2,7 +2,6 @@ const app = getApp();
 
 Page({
   data: {
-    currentTab: 0, // 0: 投票表决, 1: 问卷调查
     voteList: [],
     page: 1,
     hasMore: true,
@@ -37,36 +36,17 @@ Page({
     this.loadVoteList(true);
   },
 
-  switchTab(e) {
-    const tab = parseInt(e.currentTarget.dataset.tab);
-    if (tab !== this.data.currentTab) {
-      this.setData(
-        {
-          currentTab: tab,
-          page: 1,
-          hasMore: true,
-          voteList: [],
-        },
-        () => {
-          this.loadVoteList(true);
-        }
-      );
-    }
-  },
-
   loadVoteList(refresh = false) {
     if (this.data.loading) return;
 
     this.setData({ loading: true });
-
-    const type = this.data.currentTab === 0 ? "vote" : "survey";
 
     // 临时：不传 communityId，查询所有投票用于测试
     // 获取投票列表
     wx.cloud.callFunction({
       name: "listVotes",
       data: {
-        type,
+        type: "vote",
       },
       success: (res) => {
         if (res.result.success) {
@@ -156,7 +136,6 @@ Page({
 
   navigateToVoteDetail(e) {
     const voteId = e.currentTarget.dataset.id;
-    const voteType = this.data.currentTab === 0 ? "vote" : "survey";
 
     // 检查绑定状态，未绑定用户可以查看但不能投票
     const app = getApp();
@@ -164,7 +143,7 @@ Page({
 
     // 游客模式可以浏览，投票页面内部会再次检查权限
     wx.navigateTo({
-      url: `/pages/vote-detail/index?id=${voteId}&type=${voteType}`,
+      url: `/pages/vote-detail/index?id=${voteId}&type=vote`,
     });
   },
 

@@ -7,6 +7,25 @@ const db = cloud.database();
 const _ = db.command;
 
 /**
+ * 计算有效期截止时间
+ */
+function calculateExpiryTime(announcement) {
+  if (announcement.expiryTime) {
+    return new Date(announcement.expiryTime);
+  }
+
+  if (announcement.expiryDays && announcement.publishTime) {
+    const publishTime = new Date(announcement.publishTime);
+    const expiryTime = new Date(
+      publishTime.getTime() + announcement.expiryDays * 24 * 60 * 60 * 1000
+    );
+    return expiryTime;
+  }
+
+  return null;
+}
+
+/**
  * 获取未读公告数量
  */
 exports.main = async (event, context) => {
@@ -39,10 +58,21 @@ exports.main = async (event, context) => {
       .where(where)
       .field({
         _id: true,
+        expiryDays: true,
+        expiryTime: true,
+        publishTime: true,
       })
       .get();
 
-    const announcementIds = announcementsResult.data.map((item) => item._id);
+    // 过滤掉已过期的公告
+    const now = new Date();
+    const validAnnouncements = announcementsResult.data.filter((item) => {
+      const expiryTime = calculateExpiryTime(item);
+      if (!expiryTime) return true;
+      return now <= expiryTime;
+    });
+
+    const announcementIds = validAnnouncements.map((item) => item._id);
 
     if (announcementIds.length === 0) {
       return {

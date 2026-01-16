@@ -4,9 +4,22 @@
       <template #header>
         <div class="card-header">
           <span>认证审核</span>
-          <el-button type="primary" @click="toggleAutoReview">
-            {{ autoReviewEnabled ? "关闭自动审核" : "开启自动审核" }}
-          </el-button>
+          <div>
+            <el-button
+              :type="autoReviewEnabled ? 'success' : 'info'"
+              @click="toggleAutoReview"
+            >
+              {{ autoReviewEnabled ? "关闭自动审核" : "开启自动审核" }}
+            </el-button>
+            <el-text
+              v-if="autoReviewEnabled"
+              type="success"
+              size="small"
+              style="margin-left: 12px"
+            >
+              已开启 · 每1分钟自动审核一次
+            </el-text>
+          </div>
         </div>
       </template>
 
@@ -15,13 +28,6 @@
           <el-input
             v-model="searchForm.name"
             placeholder="请输入姓名"
-            clearable
-          />
-        </el-form-item>
-        <el-form-item label="区/期号">
-          <el-input
-            v-model="searchForm.district"
-            placeholder="请输入区/期号"
             clearable
           />
         </el-form-item>
@@ -92,7 +98,6 @@
         <el-table-column type="selection" width="55" />
         <el-table-column prop="name" label="户主姓名" min-width="100" />
         <el-table-column prop="phone" label="手机号" min-width="120" />
-        <el-table-column prop="district" label="区/期号" min-width="100" />
         <el-table-column prop="building" label="楼栋号" min-width="80" />
         <el-table-column prop="unit" label="单元号" min-width="80" />
         <el-table-column prop="room" label="房号" min-width="80">
@@ -161,8 +166,8 @@
         </el-form-item>
         <el-form-item label="房屋信息">
           <span>
-            {{ currentRow?.building }} {{ currentRow?.unit }}
-            {{ currentRow?.room }}
+            {{ currentRow?.building }}栋 {{ currentRow?.unit }}单元
+            {{ formatRoom(currentRow?.room) }}室
           </span>
         </el-form-item>
         <el-form-item label="审核结果">
@@ -204,7 +209,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, onMounted, onUnmounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import request from "@/utils/axios";
 import { formatRoom } from "@/utils/formatRoom";
@@ -215,10 +220,10 @@ const pageSize = ref(20);
 const total = ref(0);
 const autoReviewEnabled = ref(false);
 const selectedRows = ref<any[]>([]);
+let autoRefreshTimer: NodeJS.Timeout | null = null; // 自动刷新定时器
 
 const searchForm = reactive({
   name: "",
-  district: "",
   building: "",
   unit: "",
   room: "",
@@ -258,7 +263,6 @@ function search() {
 
 function resetSearch() {
   searchForm.name = "";
-  searchForm.district = "";
   searchForm.building = "";
   searchForm.unit = "";
   searchForm.room = "";
@@ -429,10 +433,10 @@ async function handleDelete(row: any) {
 
 async function toggleAutoReview() {
   try {
-    const action = autoReviewEnabled.value ? "disable" : "enable";
+    const newEnabledState = !autoReviewEnabled.value;
     const message = autoReviewEnabled.value
       ? "确定要关闭自动审核功能吗？"
-      : "是否要开启此功能？开启后系统将自动匹配户主提交的注册信息并进行审核";
+      : "是否要开启此功能？开启后系统将每1分钟自动匹配户主提交的注册信息（姓名、楼栋号、单元号、房号）与业主名册进行比对，匹配成功则自动通过审核";
 
     await ElMessageBox.confirm(message, "提示", {
       confirmButtonText: "确定",
@@ -440,29 +444,64 @@ async function toggleAutoReview() {
       type: "warning",
     });
 
-    await request.post("/auto-review-config", {
-      enabled: !autoReviewEnabled.value,
+    const response = await request.post("/auto-review-config", {
+      enabled: newEnabledState,
     });
 
-    autoReviewEnabled.value = !autoReviewEnabled.value;
-    ElMessage.success(
-      autoReviewEnabled.value ? "已开启自动审核" : "已关闭自动审核"
-    );
+    autoReviewEnabled.value = newEnabledState;
+
+    // 如果是开启自动审核，立即执行一次并启动定时刷新
+    if (newEnabledState) {
+      try {
+        await request.post("/auto-review-execute");
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        await loadList();
+        ElMessage.success("已开启自动审核，并完成首次审核");
+      } catch (execErr) {
+        console.error("执行自动审核失败:", execErr);
+        ElMessage.success("已开启自动审核");
+      }
+      startAutoRefresh();
+    } else {
+      ElMessage.success("已关闭自动审核");
+      stopAutoRefresh();
+    }
   } catch (err: any) {
     if (err !== "cancel") {
       console.error("操作失败:", err);
+      ElMessage.error("操作失败，请重试");
     }
   }
 }
 
 async function loadAutoReviewConfig() {
   try {
-    const data = await request.get("/auto-review-config");
-    autoReviewEnabled.value = data.enabled || false;
+    const response = await request.get("/auto-review-config");
+    autoReviewEnabled.value = response.enabled || false;
+
+    // 如果开启了自动审核，启动定时刷新
+    if (autoReviewEnabled.value) {
+      startAutoRefresh();
+    }
   } catch (err) {
     console.error("加载自动审核配置失败:", err);
-    // 如果集合不存在，默认为关闭状态
     autoReviewEnabled.value = false;
+  }
+}
+
+// 启动自动刷新
+function startAutoRefresh() {
+  stopAutoRefresh();
+  autoRefreshTimer = setInterval(() => {
+    loadList();
+  }, 30000);
+}
+
+// 停止自动刷新
+function stopAutoRefresh() {
+  if (autoRefreshTimer) {
+    clearInterval(autoRefreshTimer);
+    autoRefreshTimer = null;
   }
 }
 
@@ -474,6 +513,10 @@ function formatTime(time: string) {
 onMounted(() => {
   loadList();
   loadAutoReviewConfig();
+});
+
+onUnmounted(() => {
+  stopAutoRefresh();
 });
 </script>
 

@@ -17,7 +17,7 @@
         <text class="status-desc" wx:if="{{verificationStatus === 'pending'}}">您的认证资料正在审核中，请耐心等待</text>
         <text class="status-desc" wx:if="{{verificationStatus === 'approved'}}">您已完成实名认证，可以参与投票</text>
         <text class="status-desc" wx:if="{{verificationStatus === 'rejected'}}">{{rejectReason}}</text>
-        <text class="status-desc" wx:if="{{verificationStatus === 'unverified'}}">请上传身份证和房产证明完成实名认证</text>
+        <text class="status-desc" wx:if="{{verificationStatus === 'unverified'}}">请上传身份证和不动产证明完成实名认证</text>
       </view>
     </view>
   </view>
@@ -70,13 +70,13 @@
             <view class="radio">
               <text class="radio-dot" wx:if="{{certType === 'property'}}"></text>
             </view>
-            <text class="option-title">房产证</text>
+            <text class="option-title">不动产证</text>
           </view>
           <view class="upload-box small" wx:if="{{certType === 'property'}}" bindtap="uploadPropertyCert">
             <image wx:if="{{propertyCert}}" src="{{propertyCert}}" class="preview-image" mode="aspectFill"></image>
             <view wx:else class="upload-placeholder">
               <text class="upload-icon small">+</text>
-              <text class="upload-text small">上传房产证</text>
+              <text class="upload-text small">上传不动产证</text>
             </view>
           </view>
         </view>
@@ -102,13 +102,13 @@
             <view class="radio">
               <text class="radio-dot" wx:if="{{certType === 'payment'}}"></text>
             </view>
-            <text class="option-title">缴费证明</text>
+            <text class="option-title">购买发票或收据</text>
           </view>
           <view class="upload-box small" wx:if="{{certType === 'payment'}}" bindtap="uploadPayment">
             <image wx:if="{{payment}}" src="{{payment}}" class="preview-image" mode="aspectFill"></image>
             <view wx:else class="upload-placeholder">
               <text class="upload-icon small">+</text>
-              <text class="upload-text small">上传缴费证明</text>
+              <text class="upload-text small">上传购买发票或收据</text>
             </view>
           </view>
         </view>

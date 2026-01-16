@@ -2,14 +2,17 @@ Page({
   data: {
     isGuest: false,
     bindingStatus: "none",
+    propertyName: "物业服务", // 默认显示
   },
 
   onLoad() {
     this.checkBindStatus();
+    this.loadPropertyName();
   },
 
   onShow() {
     this.checkBindStatus();
+    this.loadPropertyName();
   },
 
   checkBindStatus() {
@@ -21,8 +24,33 @@ Page({
     });
   },
 
+  loadPropertyName() {
+    const app = getApp();
+    const bindingStatus = app.globalData.bindingStatus;
+
+    // 所有用户都尝试加载物业名称，包括游客
+    wx.cloud.callFunction({
+      name: "getCommunityInfo",
+      success: (res) => {
+        if (res.result.success && res.result.data) {
+          const propertyName = res.result.data.propertyName || "物业服务";
+          this.setData({
+            propertyName: propertyName,
+          });
+        }
+      },
+      fail: (err) => {
+        console.error("加载物业名称失败:", err);
+      },
+    });
+  },
+
   navigateToVote() {
     this.checkAndNavigate("/pages/vote/index", "投票");
+  },
+
+  navigateToSurvey() {
+    this.checkAndNavigate("/pages/survey/index", "问卷调查");
   },
 
   navigateToEvaluation() {
@@ -45,8 +73,12 @@ Page({
 
     // 检查是否是家属账号
     if (bindingInfo && bindingInfo.type === "family") {
-      // 家属只能访问报修功能，不能使用投票和评价
-      if (url.includes("/vote/") || url.includes("/evaluation/")) {
+      // 家属只能访问报修功能，不能使用投票、问卷调查和评价
+      if (
+        url.includes("/vote/") ||
+        url.includes("/survey/") ||
+        url.includes("/evaluation/")
+      ) {
         wx.showModal({
           title: "功能限制",
           content: `家属账号暂不支持${feature}功能，请使用户主账号进行${feature}`,

@@ -4,36 +4,9 @@
   background-color: #f5f5f5;
 }
 
-/* 选项卡样式 */
-.tab-container {
-  display: flex;
-  background: white;
-  border-radius: 12rpx;
-  margin-bottom: 30rpx;
-  padding: 8rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
-}
-
-.tab-item {
-  flex: 1;
-  text-align: center;
-  padding: 20rpx;
-  font-size: 28rpx;
-  color: #666;
-  border-radius: 8rpx;
-  transition: all 0.3s;
-}
-
-.tab-item.active {
-  background: linear-gradient(135deg, #1AAD19, #4CD964);
-  color: white;
-  font-weight: bold;
-  box-shadow: 0 4rpx 12rpx rgba(26, 173, 25, 0.3);
-}
-
 /* 投票列表样式 */
 .vote-list {
-  height: calc(100vh - 200rpx);
+  height: calc(100vh - 60rpx);
 }
 
 .vote-item {
@@ -68,7 +41,7 @@
 
 .vote-status.ongoing {
   background: #e8f5e8;
-  color: #1AAD19;
+  color: #1aad19;
 }
 
 .vote-status.ended {
@@ -78,7 +51,7 @@
 
 .vote-status.voted {
   background: #e8f5e8;
-  color: #1AAD19;
+  color: #1aad19;
 }
 
 .vote-description {
@@ -114,7 +87,9 @@
   margin: 30rpx 0;
 }
 
-.load-more, .no-data, .loading {
+.load-more,
+.no-data,
+.loading {
   text-align: center;
   padding: 40rpx;
   color: #999;
@@ -122,5 +97,5 @@
 }
 
 .load-more text {
-  color: #1AAD19;
+  color: #1aad19;
 }

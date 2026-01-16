@@ -21,6 +21,30 @@ Page({
   },
 
   /**
+   * 分享配置
+   */
+  onShareAppMessage() {
+    const { inviteCode, expiresAt } = this.data;
+
+    if (!inviteCode) {
+      wx.showToast({
+        title: "请先生成邀请码",
+        icon: "none",
+      });
+      return {
+        title: "邀请你成为我的家属",
+        path: "/pages/index/index",
+      };
+    }
+
+    return {
+      title: `邀请码：${inviteCode}（有效期至${expiresAt}）`,
+      path: "/pages/family-register/index?inviteCode=" + inviteCode,
+      imageUrl: "", // 可以设置自定义分享图片
+    };
+  },
+
+  /**
    * 加载已有的邀请码
    */
   async loadExistingInviteCode() {
@@ -153,6 +177,64 @@ Page({
       });
     } finally {
       this.setData({ loading: false });
+    }
+  },
+
+  /**
+   * 移出家庭成员
+   */
+  removeMember(e) {
+    const { id, name } = e.currentTarget.dataset;
+
+    wx.showModal({
+      title: "移出成员",
+      content: `确定要移出"${name}"吗？移出后该成员需要重新提交认证申请。`,
+      confirmText: "确定移出",
+      confirmColor: "#ff4444",
+      success: (res) => {
+        if (res.confirm) {
+          this.executeRemoveMember(id);
+        }
+      },
+    });
+  },
+
+  /**
+   * 执行移出操作
+   */
+  async executeRemoveMember(certificationId) {
+    wx.showLoading({ title: "处理中..." });
+
+    try {
+      const result = await wx.cloud.callFunction({
+        name: "removeFamilyMember",
+        data: {
+          certificationId: certificationId,
+        },
+      });
+
+      wx.hideLoading();
+
+      if (result.result && result.result.success) {
+        wx.showToast({
+          title: "已移出",
+          icon: "success",
+        });
+        // 刷新列表
+        this.loadFamilyList();
+      } else {
+        wx.showToast({
+          title: result.result.error || "移出失败",
+          icon: "none",
+        });
+      }
+    } catch (err) {
+      wx.hideLoading();
+      console.error("移出成员失败:", err);
+      wx.showToast({
+        title: "移出失败，请重试",
+        icon: "none",
+      });
     }
   },
 

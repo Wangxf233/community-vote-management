@@ -4,6 +4,66 @@ const { db } = require("../config/db");
 const { verifyToken } = require("../middleware/auth");
 const _ = db.command;
 
+// 计算有效期截止时间
+function calculateExpiryTime(announcement) {
+  if (announcement.expiryTime) {
+    return new Date(announcement.expiryTime);
+  }
+
+  if (announcement.expiryDays && announcement.publishTime) {
+    const publishTime = new Date(announcement.publishTime);
+    const expiryTime = new Date(
+      publishTime.getTime() + announcement.expiryDays * 24 * 60 * 60 * 1000
+    );
+    return expiryTime;
+  }
+
+  return null;
+}
+
+// 检查并更新过期的通知
+async function checkAndUpdateExpiredAnnouncements() {
+  try {
+    const now = new Date();
+
+    // 查找所有已发布的通知
+    const result = await db
+      .collection("announcements")
+      .where({
+        status: "published",
+      })
+      .get();
+
+    // 检查哪些已过期
+    const expiredIds = [];
+    result.data.forEach((item) => {
+      const expiryTime = calculateExpiryTime(item);
+      if (expiryTime && now > expiryTime) {
+        expiredIds.push(item._id);
+      }
+    });
+
+    // 批量更新为已过期状态
+    if (expiredIds.length > 0) {
+      const updatePromises = expiredIds.map((id) =>
+        db.collection("announcements").doc(id).update({
+          status: "expired",
+          updatedAt: now,
+        })
+      );
+      await Promise.all(updatePromises);
+      console.log(`更新了 ${expiredIds.length} 个过期通知`);
+    }
+  } catch (error) {
+    console.error("检查过期通知失败:", error);
+  }
+}
+
+// 每小时检查一次过期通知
+setInterval(checkAndUpdateExpiredAnnouncements, 60 * 60 * 1000);
+// 立即执行一次
+checkAndUpdateExpiredAnnouncements();
+
 // 获取公告列表
 router.get("/", verifyToken, async (req, res) => {
   try {
@@ -53,9 +113,28 @@ router.get("/", verifyToken, async (req, res) => {
       .limit(limit)
       .get();
 
+    // 计算每个通知的实际状态（检查是否过期）
+    const now = new Date();
+    const dataWithStatus = result.data.map((item) => {
+      let actualStatus = item.status;
+
+      // 检查是否过期
+      if (item.status === "published") {
+        const expiryTime = calculateExpiryTime(item);
+        if (expiryTime && now > expiryTime) {
+          actualStatus = "expired";
+        }
+      }
+
+      return {
+        ...item,
+        actualStatus,
+      };
+    });
+
     res.json({
       success: true,
-      data: result.data,
+      data: dataWithStatus,
       total: countResult.total,
     });
   } catch (error) {
@@ -76,6 +155,8 @@ router.post("/", verifyToken, async (req, res) => {
       attachments,
       type,
       communityId,
+      expiryDays,
+      expiryTime,
     } = req.body;
 
     if (!title || !publisher || !content || !type || !communityId) {
@@ -96,6 +177,8 @@ router.post("/", verifyToken, async (req, res) => {
       status: finalPublishTime <= now ? "published" : "scheduled",
       isPinned: false,
       viewCount: 0,
+      expiryDays: expiryDays || 3,
+      expiryTime: expiryTime ? new Date(expiryTime) : null,
       createdAt: now,
       updatedAt: now,
     };
@@ -116,8 +199,16 @@ router.post("/", verifyToken, async (req, res) => {
 router.put("/:id", verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, publisher, publishTime, publishNow, content, attachments } =
-      req.body;
+    const {
+      title,
+      publisher,
+      publishTime,
+      publishNow,
+      content,
+      attachments,
+      expiryDays,
+      expiryTime,
+    } = req.body;
 
     const updateData = {
       updatedAt: new Date(),
@@ -127,6 +218,9 @@ router.put("/:id", verifyToken, async (req, res) => {
     if (publisher) updateData.publisher = publisher;
     if (content) updateData.content = content;
     if (attachments !== undefined) updateData.attachments = attachments;
+    if (expiryDays !== undefined) updateData.expiryDays = expiryDays;
+    if (expiryTime !== undefined)
+      updateData.expiryTime = expiryTime ? new Date(expiryTime) : null;
 
     if (publishNow !== undefined || publishTime) {
       const now = new Date();
@@ -205,9 +299,24 @@ router.get("/:id", verifyToken, async (req, res) => {
       return res.status(404).json({ success: false, error: "公告不存在" });
     }
 
+    const item = result.data[0];
+    let actualStatus = item.status;
+
+    // 检查是否过期
+    if (item.status === "published") {
+      const now = new Date();
+      const expiryTime = calculateExpiryTime(item);
+      if (expiryTime && now > expiryTime) {
+        actualStatus = "expired";
+      }
+    }
+
     res.json({
       success: true,
-      data: result.data[0],
+      data: {
+        ...item,
+        actualStatus,
+      },
     });
   } catch (error) {
     console.error("获取公告详情失败:", error);

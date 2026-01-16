@@ -61,11 +61,10 @@ exports.main = async (event, context) => {
  * 处理户主认证
  */
 async function handleOwnerCertification(openid, event) {
-  const { name, phone, region, communityName, district, building, unit, room } =
-    event;
+  const { name, phone, region, properties } = event;
 
   // 验证必填字段
-  if (!name || !phone || !communityName || !building || !unit || !room) {
+  if (!name || !phone || !properties || properties.length === 0) {
     return { code: -1, message: "请填写完整信息" };
   }
 
@@ -74,20 +73,6 @@ async function handleOwnerCertification(openid, event) {
   if (!phoneRegex.test(phone)) {
     return { code: -1, message: "手机号格式不正确" };
   }
-
-  // 查询小区信息获取communityId
-  const communityRes = await db
-    .collection("communities")
-    .where({ name: communityName })
-    .limit(1)
-    .get();
-
-  if (!communityRes.data || communityRes.data.length === 0) {
-    return { code: -1, message: "未找到该小区" };
-  }
-
-  const community = communityRes.data[0];
-  const communityId = community._id;
 
   // 检查该openid是否已有待审核或已通过的申请
   const existingRes = await db
@@ -108,48 +93,76 @@ async function handleOwnerCertification(openid, event) {
     }
   }
 
-  // 检查该房号是否已被认证
-  const houseRes = await db
-    .collection("certification_applications")
-    .where({
+  // 处理每个房产
+  const now = new Date().toISOString();
+  const applications = [];
+
+  for (const property of properties) {
+    const { communityName, building, unit, room } = property;
+
+    // 查询小区信息获取communityId
+    const communityRes = await db
+      .collection("communities")
+      .where({ name: communityName })
+      .limit(1)
+      .get();
+
+    if (!communityRes.data || communityRes.data.length === 0) {
+      return { code: -1, message: `未找到小区：${communityName}` };
+    }
+
+    const community = communityRes.data[0];
+    const communityId = community._id;
+
+    // 检查该房号是否已被认证
+    const houseRes = await db
+      .collection("certification_applications")
+      .where({
+        communityId,
+        building,
+        unit,
+        room,
+        status: "approved",
+        type: "owner",
+      })
+      .limit(1)
+      .get();
+
+    if (houseRes.data && houseRes.data.length > 0) {
+      return {
+        code: -1,
+        message: `${building}栋${unit}单元${room}室已有户主认证`,
+      };
+    }
+
+    applications.push({
+      openid,
+      type: "owner",
+      name,
+      phone,
+      region: region || [],
       communityId,
+      communityName,
       building,
       unit,
       room,
-      status: "approved",
-      type: "owner",
-    })
-    .limit(1)
-    .get();
-
-  if (houseRes.data && houseRes.data.length > 0) {
-    return { code: -1, message: "该房号已有户主认证" };
+      status: "pending",
+      createdAt: now,
+      updatedAt: now,
+    });
   }
 
-  // 创建认证申请
-  const now = new Date().toISOString();
-  const application = {
-    openid,
-    type: "owner",
-    name,
-    phone,
-    region: region || [],
-    communityId,
-    communityName,
-    district: district || "",
-    building,
-    unit,
-    room,
-    status: "pending",
-    createdAt: now,
-    updatedAt: now,
+  // 批量创建认证申请
+  for (const application of applications) {
+    await db.collection("certification_applications").add({
+      data: application,
+    });
+  }
+
+  return {
+    code: 0,
+    message: `已提交${applications.length}套房产的认证申请，请等待审核`,
   };
-
-  await db.collection("certification_applications").add({
-    data: application,
-  });
-
-  return { code: 0, message: "提交成功，请等待审核" };
 }
 
 /**

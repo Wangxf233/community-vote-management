@@ -21,7 +21,7 @@ exports.main = async (event, context) => {
 
     console.log("Vote communityId:", vote.communityId);
 
-    // 获取该小区的户主名单总数
+    // 获取该小区的户主名单
     const ownerListRes = await db
       .collection("owner_list")
       .where({
@@ -31,9 +31,26 @@ exports.main = async (event, context) => {
       .get();
 
     console.log("Owner list count:", ownerListRes.data.length);
-    console.log("Sample owner:", ownerListRes.data[0]);
 
-    const totalCount = ownerListRes.data.length;
+    // 计算总户主数（按openid去重）
+    const uniqueOwners = new Set();
+    let totalAreaSum = 0;
+
+    ownerListRes.data.forEach((owner) => {
+      const openid = owner.openid;
+      if (openid && openid.trim() !== "") {
+        uniqueOwners.add(openid);
+      }
+      // 累加所有房产的专有面积
+      const area = parseFloat(owner.area) || 0;
+      totalAreaSum += area;
+    });
+
+    const totalCount = uniqueOwners.size;
+    const totalArea = parseFloat(totalAreaSum.toFixed(2));
+
+    console.log("总户主数（去重后）:", totalCount);
+    console.log("总专有面积:", totalArea);
 
     // 获取投票记录
     const recordsRes = await db
@@ -45,115 +62,130 @@ exports.main = async (event, context) => {
       .get();
 
     const records = recordsRes.data;
+    const participantCount = records.length;
 
-    console.log("Vote records:", JSON.stringify(records));
+    console.log("Vote records:", participantCount);
 
-    // 统计参与人数和各选项人数（按openid分组，记录optionId和area）
-    const participantMap = new Map(); // key: openid, value: {optionId, areas: []}
-
-    for (const record of records) {
-      const openid = record.openid;
-      if (!openid) continue;
-
-      if (!participantMap.has(openid)) {
-        participantMap.set(openid, {
-          optionId: record.optionId || record.choice,
-          areas: [],
-        });
-      }
-
-      // 收集该openid的所有area（可能一个业主有多条投票记录对应多套房产）
-      if (record.area) {
-        participantMap.get(openid).areas.push(parseFloat(record.area) || 0);
-      }
-    }
-
-    console.log("Participant map:", Array.from(participantMap.entries()));
-
-    const participantCount = participantMap.size;
+    // 统计各选项人数
     let agreeCount = 0;
     let disagreeCount = 0;
     let abstainCount = 0;
 
-    // 统计专有面积（仅投票表决需要）
-    let agreeArea = 0;
-    let disagreeArea = 0;
-    let abstainArea = 0;
+    // 收集参与投票的openid用于计算面积
+    const voterOpenids = new Set();
 
-    // 遍历每个参与者统计
-    for (const [openid, data] of participantMap) {
-      const optionId = data.optionId;
-      const ownerTotalArea = data.areas.reduce((sum, area) => sum + area, 0);
+    records.forEach((record) => {
+      const optionId = record.optionId || record.choice;
+      const openid = record.openid;
 
-      console.log(
-        `Processing openid: ${openid}, optionId: ${optionId}, totalArea: ${ownerTotalArea}`
-      );
+      if (openid && openid.trim() !== "") {
+        voterOpenids.add(openid);
+      }
 
       // 统计人数（option1=同意, option2=不同意, option3=弃权）
       if (optionId === "option1") {
         agreeCount++;
-        if (vote.type === "vote") {
-          agreeArea += ownerTotalArea;
-        }
       } else if (optionId === "option2") {
         disagreeCount++;
-        if (vote.type === "vote") {
-          disagreeArea += ownerTotalArea;
-        }
       } else if (optionId === "option3") {
         abstainCount++;
-        if (vote.type === "vote") {
-          abstainArea += ownerTotalArea;
-        }
       }
-    }
+    });
 
-    // 计算百分比（基于参与人数）
+    // 计算人数百分比（基于参与人数）
     const agreePercent =
       participantCount > 0
-        ? ((agreeCount / participantCount) * 100).toFixed(2)
-        : 0;
+        ? ((agreeCount / participantCount) * 100).toFixed(1)
+        : "0.0";
     const disagreePercent =
       participantCount > 0
-        ? ((disagreeCount / participantCount) * 100).toFixed(2)
-        : 0;
+        ? ((disagreeCount / participantCount) * 100).toFixed(1)
+        : "0.0";
     const abstainPercent =
       participantCount > 0
-        ? ((abstainCount / participantCount) * 100).toFixed(2)
-        : 0;
+        ? ((abstainCount / participantCount) * 100).toFixed(1)
+        : "0.0";
 
-    // 计算专有面积百分比
-    const totalArea = agreeArea + disagreeArea + abstainArea;
+    // 计算参与人数比例
+    const participantRatio =
+      totalCount > 0
+        ? ((participantCount / totalCount) * 100).toFixed(1)
+        : "0.0";
+
+    // 计算参与专有面积和各选项专有面积
+    let participantAreaSum = 0;
+    let agreeArea = 0;
+    let disagreeArea = 0;
+    let abstainArea = 0;
+
+    if (vote.type === "vote") {
+      // 建立openid到选项的映射
+      const openidToOption = {};
+      records.forEach((record) => {
+        openidToOption[record.openid] = record.optionId || record.choice;
+      });
+
+      // 遍历owner_list计算面积
+      ownerListRes.data.forEach((owner) => {
+        const openid = owner.openid;
+        if (openid && openid.trim() !== "" && voterOpenids.has(openid)) {
+          const area = parseFloat(owner.area) || 0;
+          participantAreaSum += area;
+
+          // 根据选项累加面积
+          const optionId = openidToOption[openid];
+          if (optionId === "option1") {
+            agreeArea += area;
+          } else if (optionId === "option2") {
+            disagreeArea += area;
+          } else if (optionId === "option3") {
+            abstainArea += area;
+          }
+        }
+      });
+    }
+
+    const participantArea = parseFloat(participantAreaSum.toFixed(2));
+
+    // 计算参与面积比例
+    const participantAreaRatio =
+      totalArea > 0 ? ((participantArea / totalArea) * 100).toFixed(1) : "0.0";
+
+    // 计算专有面积百分比（基于参与面积）
     const agreeAreaPercent =
-      totalArea > 0 ? ((agreeArea / totalArea) * 100).toFixed(2) : 0;
+      participantArea > 0
+        ? ((agreeArea / participantArea) * 100).toFixed(1)
+        : "0.0";
     const disagreeAreaPercent =
-      totalArea > 0 ? ((disagreeArea / totalArea) * 100).toFixed(2) : 0;
+      participantArea > 0
+        ? ((disagreeArea / participantArea) * 100).toFixed(1)
+        : "0.0";
     const abstainAreaPercent =
-      totalArea > 0 ? ((abstainArea / totalArea) * 100).toFixed(2) : 0;
+      participantArea > 0
+        ? ((abstainArea / participantArea) * 100).toFixed(1)
+        : "0.0";
 
     return {
       success: true,
       data: {
         totalCount,
         participantCount,
+        participantRatio,
         agreeCount,
         disagreeCount,
         abstainCount,
         agreePercent,
         disagreePercent,
         abstainPercent,
+        totalArea,
+        participantArea,
+        participantAreaRatio,
         agreeArea: agreeArea.toFixed(2),
         disagreeArea: disagreeArea.toFixed(2),
         abstainArea: abstainArea.toFixed(2),
         agreeAreaPercent,
         disagreeAreaPercent,
         abstainAreaPercent,
-      },
-      // 调试信息
-      debug: {
-        recordsCount: records.length,
-        sampleRecord: records[0],
-        participantMapEntries: Array.from(participantMap.entries()),
       },
     };
   } catch (err) {

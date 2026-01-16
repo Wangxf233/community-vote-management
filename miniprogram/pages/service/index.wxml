@@ -1,6 +1,6 @@
 <view class="service-container">
   <view class="header">
-    <text class="title">物业服务</text>
+    <text class="title">{{propertyName}}</text>
     <text class="subtitle">竭诚为您服务</text>
   </view>
 
@@ -19,7 +19,14 @@
       <view class="icon-wrapper vote-icon">
         <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/vote.png" class="service-icon"></image>
       </view>
-      <text class="service-text">投票</text>
+      <text class="service-text">投票表决</text>
+    </view>
+
+    <view class="service-item" bindtap="navigateToSurvey">
+      <view class="icon-wrapper survey-icon">
+        <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/survey.png" class="service-icon"></image>
+      </view>
+      <text class="service-text">问卷调查</text>
     </view>
 
     <view class="service-item" bindtap="navigateToEvaluation">

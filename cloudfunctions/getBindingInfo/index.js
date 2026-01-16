@@ -1,6 +1,7 @@
 const cloud = require("wx-server-sdk");
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
+const _ = db.command;
 
 /**
  * getBindingInfo
@@ -65,10 +66,13 @@ exports.main = async (event, context) => {
       return { success: false, error: "no_openid" };
     }
 
-    // 优先查询新的认证申请表
+    // 查询认证申请表（排除已移出的记录）
     const certRes = await db
       .collection("certification_applications")
-      .where({ openid })
+      .where({
+        openid: openid,
+        status: _.neq("removed"), // 排除已移出的记录
+      })
       .orderBy("createdAt", "desc")
       .limit(1)
       .get();
@@ -100,42 +104,8 @@ exports.main = async (event, context) => {
       };
     }
 
-    // 兼容旧的绑定记录
-    const q = await db
-      .collection("bindings")
-      .where({ openid })
-      .orderBy("createdAt", "desc")
-      .limit(1)
-      .get();
-
-    if (!q || !q.data || q.data.length === 0) {
-      return { success: true, binding: null };
-    }
-
-    const binding = q.data[0];
-
-    return {
-      success: true,
-      binding: {
-        _id: binding._id,
-        type: "owner",
-        phone: binding.phone,
-        name: binding.name,
-        communityName: binding.communityName,
-        region: binding.region || [],
-        building: binding.building || "",
-        block: binding.block || "",
-        room: binding.room || "",
-        residentialArea: binding.residentialArea || 0,
-        commercialArea: binding.commercialArea || 0,
-        parkingArea: binding.parkingArea || 0,
-        carNumber: binding.carNumber || "",
-        status: binding.status || "pending",
-        rejectReason: binding.rejectReason || null,
-        createdAt: binding.createdAt,
-        updatedAt: binding.updatedAt,
-      },
-    };
+    // 没有找到认证记录
+    return { success: true, binding: null };
   } catch (err) {
     console.error("getBindingInfo error", err);
     return { success: false, error: err.message };

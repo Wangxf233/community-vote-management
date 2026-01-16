@@ -35,7 +35,32 @@
     </view>
 
     <view class="form-item">
-      <input class="input" placeholder="请输入小区名称" value="{{formData.communityName}}" bindinput="onCommunityInput" bindblur="onCommunityBlur" />
+      <input 
+        class="input" 
+        placeholder="请输入小区名称" 
+        value="{{formData.communityName}}" 
+        bindinput="onCommunityInput" 
+        bindfocus="onCommunityFocus"
+        bindblur="onCommunityInputBlur" 
+      />
+      <!-- 小区列表下拉框 -->
+      <view class="community-list" wx:if="{{showCommunityList && communityList.length > 0}}">
+        <scroll-view scroll-y class="community-scroll">
+          <view 
+            class="community-item" 
+            wx:for="{{communityList}}" 
+            wx:key="name"
+            data-name="{{item.name}}"
+            bindtap="onSelectCommunity"
+          >
+            <text class="community-name">{{item.name}}</text>
+            <text class="community-address" wx:if="{{item.address}}">{{item.address}}</text>
+          </view>
+        </scroll-view>
+      </view>
+      <view class="community-list-empty" wx:if="{{showCommunityList && communityList.length === 0}}">
+        <text>该区域暂无已注册小区</text>
+      </view>
     </view>
 
     <view class="form-item" wx:if="{{communityNotFound}}">
@@ -59,14 +84,6 @@
           <text>商铺</text>
         </label>
       </radio-group>
-    </view>
-
-    <view class="form-item">
-      <view class="label">
-        <text class="required">*</text>
-        <text>区/期号</text>
-      </view>
-      <input class="input" placeholder="例如：1" value="{{formData.district}}" bindinput="onDistrictInput" disabled="{{communityNotFound}}" />
     </view>
 
     <view class="form-item">
@@ -106,6 +123,29 @@
           <text wx:else class="placeholder">请选择{{formData.propertyType === 'shop' ? '门牌号' : '房号'}}</text>
         </view>
       </picker>
+    </view>
+
+    <!-- 添加房产按钮 -->
+    <view class="form-item" wx:if="{{!communityNotFound && formData.communityName}}">
+      <button class="add-property-btn" bindtap="addProperty">
+        <text class="add-icon">+</text> 添加房产
+      </button>
+    </view>
+
+    <!-- 已添加的房产列表 -->
+    <view class="properties-list" wx:if="{{properties.length > 0}}">
+      <view class="list-header">
+        <text class="list-title">已添加房产（{{properties.length}}套）</text>
+      </view>
+      <view class="property-item" wx:for="{{properties}}" wx:key="index">
+        <view class="property-info">
+          <text class="property-type-badge">{{item.propertyType === 'house' ? '房' : '铺'}}</text>
+          <text class="property-address">{{item.building}}栋 {{item.unit}}单元 {{item.room}}室</text>
+        </view>
+        <view class="property-actions">
+          <text class="delete-btn" bindtap="deleteProperty" data-index="{{index}}">删除</text>
+        </view>
+      </view>
     </view>
 
     <view class="tips">

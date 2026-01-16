@@ -95,11 +95,19 @@
   background: transparent;
 }
 
+.survey-icon {
+  background: transparent;
+}
+
 .evaluation-icon {
   background: transparent;
 }
 
 .repair-icon {
+  background: transparent;
+}
+
+.information-icon {
   background: transparent;
 }
 

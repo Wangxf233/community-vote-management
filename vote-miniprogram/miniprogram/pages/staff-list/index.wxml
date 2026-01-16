@@ -1,0 +1,57 @@
+<view class="staff-list-container">
+  <!-- 状态栏占位 -->
+  <view class="status-bar" style="height: {{statusBarHeight}}px;"></view>
+  
+  <!-- 顶部搜索栏（保留取消和标题，移除确认按钮）-->
+  <view class="search-header">
+    <view class="header-left">
+      <text class="cancel-btn" bindtap="goBack">取消</text>
+    </view>
+    <view class="header-center">
+      <text class="header-title">选择物业服务人员</text>
+    </view>
+    <view class="header-right">
+      <!-- 确认按钮已移除，点击后立即返回行为由列表项处理 -->
+    </view>
+  </view>
+
+  <!-- 搜索框 -->
+  <view class="search-box">
+    <view class="search-input-container">
+      <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/search-icon.png" class="search-icon"></image>
+      <input class="search-input" placeholder="请输入姓名或者岗位搜索" 
+             value="{{searchKeyword}}" 
+             bindinput="onSearchInput"
+             bindconfirm="onSearchConfirm" />
+      <text class="clear-btn" wx:if="{{searchKeyword}}" bindtap="clearSearch">×</text>
+    </view>
+  </view>
+
+  <!-- 人员列表：点击列表项会立即选择并返回上一页（不再显示右侧勾选按钮） -->
+  <scroll-view class="staff-list" scroll-y>
+    <view class="list-content">
+      <view class="staff-item" 
+            wx:for="{{filteredStaffList}}" 
+            wx:key="id"
+            bindtap="selectStaff"
+            data-staff="{{item}}">
+        <view class="staff-avatar">
+          <image src="{{item.avatar || '/images/default-avatar.png'}}" class="avatar-img"></image>
+        </view>
+        <view class="staff-info">
+          <view class="staff-basic">
+            <text class="staff-name">{{item.name}}</text>
+            <text class="staff-position">{{item.position}}</text>
+          </view>
+          <text class="staff-desc">{{item.description}}</text>
+        </view>
+        <!-- 已移除 selection-indicator，界面右侧不再显示勾选圈 -->
+      </view>
+
+      <view class="no-result" wx:if="{{filteredStaffList.length === 0}}">
+        <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/no-data.png" class="no-data-img"></image>
+        <text class="no-result-text">暂无相关人员</text>
+      </view>
+    </view>
+  </scroll-view>
+</view>

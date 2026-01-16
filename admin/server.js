@@ -31,6 +31,7 @@ const repairRoutes = require("./routes/repair");
 const reportRoutes = require("./routes/report");
 const evaluationRoutes = require("./routes/evaluation");
 const announcementRoutes = require("./routes/announcement");
+const communityInfoRoutes = require("./routes/communityInfo");
 
 const app = express();
 app.use(bodyParser.json());
@@ -78,6 +79,7 @@ app.use("/api/reports", reportRoutes);
 app.use("/api/evaluation", evaluationRoutes);
 app.use("/api/announcements", announcementRoutes);
 app.use("/api/notifications", announcementRoutes); // 通知公告使用相同的路由
+app.use("/api/community-info", communityInfoRoutes);
 
 // Helper to extract Bearer token or query token (保留用于未迁移的路由)
 function getTokenFromReq(req) {
@@ -2431,7 +2433,236 @@ const server = app.listen(PORT, () => {
   console.log(`📅 启动时间: ${new Date().toLocaleString("zh-CN")}`);
   console.log(`🔧 Node 版本: ${process.version}`);
   console.log(`📁 工作目录: ${process.cwd()}`);
+
+  // 启动自动审核定时任务
+  startAutoReviewScheduler();
 });
+
+// 自动审核定时任务
+function startAutoReviewScheduler() {
+  const { db } = require("./config/db");
+
+  console.log("🤖 启动自动审核定时任务（每1分钟执行一次）");
+
+  setInterval(async () => {
+    try {
+      // 获取所有启用了自动审核的社区
+      const configRes = await db
+        .collection("auto_review_config")
+        .where({ enabled: true })
+        .get();
+
+      if (!configRes.data || configRes.data.length === 0) {
+        return; // 没有启用自动审核的社区
+      }
+
+      console.log(
+        `⏰ 开始执行自动审核任务，共 ${configRes.data.length} 个社区`
+      );
+
+      // 为每个社区执行自动审核
+      for (const config of configRes.data) {
+        try {
+          // 动态加载 certification 路由模块中的执行函数
+          const certRoutes = require("./routes/certification");
+          const result = await executeAutoReviewForCommunity(
+            config.communityId
+          );
+
+          if (result.approvedCount > 0) {
+            console.log(
+              `✅ 社区 ${config.communityId} 自动审核: ${result.message}`
+            );
+          }
+        } catch (err) {
+          console.error(
+            `❌ 社区 ${config.communityId} 自动审核失败:`,
+            err.message
+          );
+        }
+      }
+    } catch (err) {
+      console.error("❌ 自动审核定时任务执行失败:", err);
+    }
+  }, 60000); // 每60秒（1分钟）执行一次
+}
+
+// 自动审核执行函数（从 certification.js 复制）
+async function executeAutoReviewForCommunity(communityId) {
+  const { db } = require("./config/db");
+  const {
+    normalizeBuilding,
+    normalizeUnit,
+    normalizeRoom,
+  } = require("./utils/helpers");
+
+  // 1. 获取所有待审核的认证申请
+  const pendingAppsRes = await db
+    .collection("certification_applications")
+    .where({
+      communityId: communityId,
+      type: "owner",
+      status: "pending",
+    })
+    .get();
+
+  if (!pendingAppsRes.data || pendingAppsRes.data.length === 0) {
+    return { message: "没有待审核的申请", approvedCount: 0 };
+  }
+
+  // 2. 获取业主名册数据
+  const ownerRegistryRes = await db
+    .collection("owner_registry")
+    .where({
+      communityId: communityId,
+    })
+    .get();
+
+  if (!ownerRegistryRes.data || ownerRegistryRes.data.length === 0) {
+    return { message: "业主名册为空", approvedCount: 0 };
+  }
+
+  const ownerRegistry = ownerRegistryRes.data;
+  let approvedCount = 0;
+  const now = new Date().toISOString();
+
+  // 3. 按姓名和手机号分组待审核申请
+  const appsByUser = {};
+  for (const app of pendingAppsRes.data) {
+    const key = `${app.name}_${app.phone}`;
+    if (!appsByUser[key]) {
+      appsByUser[key] = [];
+    }
+    appsByUser[key].push(app);
+  }
+
+  // 4. 遍历每个用户的申请组
+  for (const userKey in appsByUser) {
+    const userApps = appsByUser[userKey];
+    const userName = userApps[0].name;
+
+    try {
+      // 获取该用户在业主名册中的所有房产
+      const userProperties = ownerRegistry.filter(
+        (owner) => owner.ownerName1 === userName
+      );
+
+      if (userProperties.length === 0) {
+        continue; // 该用户不在业主名册中，跳过
+      }
+
+      // 规范化业主名册中的房产
+      const normalizedRegistry = userProperties.map((prop) => ({
+        original: prop,
+        normalized: {
+          building: normalizeBuilding(prop.building),
+          unit: normalizeUnit(prop.unit),
+          room: normalizeRoom(prop.room),
+        },
+      }));
+
+      // 检查用户申请的每套房产是否都能在名册中找到匹配
+      let allMatched = true;
+      const matchedApps = [];
+
+      for (const app of userApps) {
+        const normalizedApp = {
+          building: normalizeBuilding(app.building),
+          unit: normalizeUnit(app.unit),
+          room: normalizeRoom(app.room),
+        };
+
+        // 在业主名册中查找匹配项
+        const matched = normalizedRegistry.find(
+          (reg) =>
+            reg.normalized.building === normalizedApp.building &&
+            reg.normalized.unit === normalizedApp.unit &&
+            reg.normalized.room === normalizedApp.room
+        );
+
+        if (matched) {
+          matchedApps.push({ app, matched: matched.original });
+        } else {
+          allMatched = false;
+          break; // 有一套房产不匹配，整体不通过
+        }
+      }
+
+      // 如果所有申请的房产都匹配，则自动通过
+      if (allMatched && matchedApps.length > 0) {
+        // 先获取该用户的openid和基本信息
+        const firstApp = matchedApps[0].app;
+
+        // 遍历业主名册中该用户的所有房产，全部添加到户主名单
+        for (const registryItem of normalizedRegistry) {
+          const prop = registryItem.original;
+
+          // 检查该房产是否已存在于owner_list中
+          const existingOwner = await db
+            .collection("owner_list")
+            .where({
+              communityId: firstApp.communityId,
+              name: firstApp.name,
+              building: prop.building,
+              unit: prop.unit,
+              room: prop.room,
+            })
+            .limit(1)
+            .get();
+
+          if (existingOwner.data && existingOwner.data.length > 0) {
+            // 该房产已存在，跳过
+            continue;
+          }
+
+          // 添加到户主名单
+          const ownerListData = {
+            openid: firstApp.openid || null,
+            communityId: firstApp.communityId,
+            name: firstApp.name,
+            phone: firstApp.phone,
+            building: prop.building,
+            unit: prop.unit,
+            room: prop.room,
+            area: prop.area || 0,
+            carNumber: prop.carNumber || "",
+            realNameStatus: "unverified",
+            createdAt: now,
+            updatedAt: now,
+          };
+
+          await db.collection("owner_list").add({ data: ownerListData });
+
+          console.log(
+            `✅ 添加到户主名单: ${firstApp.name} - ${prop.building}栋${prop.unit}单元${prop.room}室`
+          );
+          approvedCount++;
+        }
+
+        // 更新所有申请的状态为已通过
+        for (const { app } of matchedApps) {
+          await db
+            .collection("certification_applications")
+            .doc(app._id)
+            .update({
+              status: "approved",
+              approvedAt: now,
+              updatedAt: now,
+              autoReviewed: true,
+            });
+        }
+      }
+    } catch (err) {
+      console.error(`自动审核用户 ${userName} 失败:`, err);
+      // 继续处理其他用户
+    }
+  }
+
+  return {
+    message: `自动审核完成，通过 ${approvedCount} 条申请`,
+    approvedCount,
+  };
+}
 
 // 服务器错误处理
 server.on("error", (err) => {

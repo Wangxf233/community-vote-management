@@ -1,0 +1,88 @@
+<view class="repair-container">
+  <!-- 头部 -->
+  <view class="content-section">
+    <view class="page-header">
+      <text class="page-title">{{detail.type === 'report' ? '报事' : '报修'}}详情</text>
+      <view class="status-wrapper">
+        <text class="status-tag {{detail.statusClass}}">{{detail.statusText}}</text>
+        <text class="urgency-tag" wx:if="{{detail.isUrgent}}">紧急</text>
+      </view>
+    </view>
+
+    <!-- 报事标题 -->
+    <view class="form-item" wx:if="{{detail.type === 'report' && detail.title}}">
+      <text class="form-label">事项</text>
+      <view class="form-value">{{detail.title}}</view>
+    </view>
+
+    <!-- 设备（仅报修） -->
+    <view class="form-item" wx:if="{{detail.type !== 'report' && detail.equipment}}">
+      <text class="form-label">设备</text>
+      <view class="form-value">{{detail.equipment}}</view>
+    </view>
+
+    <!-- 地点（仅报修） -->
+    <view class="form-item" wx:if="{{detail.type !== 'report' && detail.location}}">
+      <text class="form-label">地点</text>
+      <view class="form-value">{{detail.location}}</view>
+    </view>
+
+    <!-- 描述 -->
+    <view class="form-item">
+      <text class="form-label">描述</text>
+      <view class="form-value description">{{detail.description || '未填写'}}</view>
+    </view>
+
+    <view class="divider"></view>
+
+    <!-- 图片 -->
+    <view class="upload-section" wx:if="{{detail.images && detail.images.length > 0}}">
+      <text class="section-title">图片</text>
+      <view class="image-uploader">
+        <view wx:for="{{detail.images}}" wx:key="index" class="image-item">
+          <image src="{{item}}" class="uploaded-image" mode="aspectFill" bindtap="previewImage" data-url="{{item}}"></image>
+        </view>
+      </view>
+    </view>
+
+    <view class="divider" wx:if="{{detail.images && detail.images.length > 0}}"></view>
+
+    <!-- 视频 -->
+    <view class="upload-section" wx:if="{{detail.video}}">
+      <text class="section-title">视频</text>
+      <view class="video-uploader">
+        <view class="video-item-full">
+          <video src="{{detail.video}}" class="uploaded-video" controls></video>
+        </view>
+      </view>
+    </view>
+
+    <view class="divider" wx:if="{{detail.video}}"></view>
+
+    <!-- 提交信息 -->
+    <view class="info-section">
+      <view class="info-row">
+        <text class="info-label">提交人：</text>
+        <text class="info-value">{{detail.userName || '未知'}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">提交时间：</text>
+        <text class="info-value">{{detail.submitTimeFormatted}}</text>
+      </view>
+      <view class="info-row" wx:if="{{detail.updatedAt && detail.status !== 'pending'}}">
+        <text class="info-label">更新时间：</text>
+        <text class="info-value">{{detail.updatedAtFormatted}}</text>
+      </view>
+    </view>
+
+    <!-- 处理备注 -->
+    <view class="remark-section" wx:if="{{detail.remark}}">
+      <view class="divider"></view>
+      <text class="section-title">处理备注</text>
+      <view class="remark-content">{{detail.remark}}</view>
+    </view>
+
+    <!-- 底部按钮 -->
+    <button class="cancel-btn" wx:if="{{detail.status === 'pending'}}" bindtap="cancelRepair">撤销{{detail.type === 'report' ? '报事' : '报修'}}</button>
+  </view>
+</view>

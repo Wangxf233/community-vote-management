@@ -216,49 +216,106 @@
                               }}（共 {{ unit.rooms.length }} 个）
                               <span class="edit-hint">双击房号可修改</span>
                             </div>
-                            <div class="room-tags">
-                              <div
-                                v-for="(room, roomIndex) in unit.rooms"
-                                :key="roomIndex"
-                                class="room-tag-wrapper"
-                              >
-                                <el-input
-                                  v-if="
-                                    editingRoom ===
-                                    `${bIndex}-${uIndex}-${roomIndex}`
-                                  "
-                                  v-model="unit.rooms[roomIndex]"
-                                  size="small"
-                                  maxlength="10"
-                                  style="width: 100px"
-                                  @blur="editingRoom = null"
-                                  @keyup.enter="editingRoom = null"
-                                  autofocus
-                                />
-                                <el-tag
-                                  v-else
-                                  size="small"
-                                  closable
-                                  @close="removeRoom(unit, roomIndex)"
-                                  @dblclick="
-                                    editingRoom = `${bIndex}-${uIndex}-${roomIndex}`
-                                  "
-                                  style="cursor: pointer; margin: 2px"
-                                  :title="'双击编辑'"
-                                >
-                                  {{ room }}
-                                </el-tag>
+                            <div class="room-table-wrapper">
+                              <div class="room-table-container">
+                                <table class="room-table">
+                                  <thead>
+                                    <tr>
+                                      <th class="floor-header diagonal-header">
+                                        <span class="diagonal-text-bottom"
+                                          >楼层</span
+                                        >
+                                        <span class="diagonal-text-top"
+                                          >户号</span
+                                        >
+                                      </th>
+                                      <th
+                                        v-for="houseNum in getHouseNumList(
+                                          unit,
+                                          bIndex,
+                                          uIndex
+                                        )"
+                                        :key="houseNum"
+                                        class="house-header"
+                                      >
+                                        {{ houseNum }}
+                                      </th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    <tr
+                                      v-for="floor in Array.from(
+                                        { length: unit.floors },
+                                        (_, i) => unit.floors - i
+                                      )"
+                                      :key="floor"
+                                    >
+                                      <td class="floor-cell">{{ floor }}</td>
+                                      <td
+                                        v-for="houseNum in getHouseNumList(
+                                          unit,
+                                          bIndex,
+                                          uIndex
+                                        )"
+                                        :key="`${floor}-${houseNum}`"
+                                        class="room-cell"
+                                      >
+                                        <el-input
+                                          v-if="
+                                            editingRoom ===
+                                            `${bIndex}-${uIndex}-${getRoomIndex(
+                                              unit,
+                                              floor,
+                                              houseNum
+                                            )}`
+                                          "
+                                          v-model="
+                                            unit.rooms[
+                                              getRoomIndex(
+                                                unit,
+                                                floor,
+                                                houseNum
+                                              )
+                                            ]
+                                          "
+                                          size="small"
+                                          maxlength="10"
+                                          style="width: 100%"
+                                          @blur="editingRoom = null"
+                                          @keyup.enter="editingRoom = null"
+                                        />
+                                        <span
+                                          v-else
+                                          class="room-number"
+                                          @dblclick="
+                                            editingRoom = `${bIndex}-${uIndex}-${getRoomIndex(
+                                              unit,
+                                              floor,
+                                              houseNum
+                                            )}`
+                                          "
+                                        >
+                                          {{
+                                            getRoomByPosition(
+                                              unit,
+                                              floor,
+                                              houseNum
+                                            )
+                                          }}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  </tbody>
+                                </table>
                               </div>
                               <el-button
+                                class="reverse-btn"
                                 size="small"
                                 type="primary"
                                 plain
-                                @click="addNewRoom(unit)"
-                                style="margin: 2px"
+                                @click="toggleHouseNumOrder(bIndex, uIndex)"
                               >
-                                + 添加{{
-                                  configType === "house" ? "房号" : "门牌号"
-                                }}
+                                户号逆序
                               </el-button>
                             </div>
                           </div>
@@ -419,6 +476,7 @@ const templates = ref<Building[]>([]);
 const templateDialog = ref(false);
 const selectedTemplate = ref<number | null>(null);
 const editingRoom = ref<string | null>(null); // 当前正在编辑的房号，格式：buildingIndex-unitIndex-roomIndex
+const reverseHouseNum = ref<{ [key: string]: boolean }>({}); // 记录每个单元的户号是否逆序，key格式：buildingIndex-unitIndex
 let currentBuildingIndex = -1;
 
 // 格式化房号为4位数
@@ -537,6 +595,41 @@ function updateBuildingUnits(buildingIndex: number) {
 // 预览生成的房号
 function previewRooms(unit: Unit) {
   unit.rooms = generateRoomsFromRule(unit);
+}
+
+// 切换户号逆序
+function toggleHouseNumOrder(bIndex: number, uIndex: number) {
+  const key = `${bIndex}-${uIndex}`;
+  reverseHouseNum.value[key] = !reverseHouseNum.value[key];
+}
+
+// 获取户号列表（根据逆序状态）
+function getHouseNumList(unit: Unit, bIndex: number, uIndex: number): number[] {
+  const startHouse = parseInt(unit.startRoom.substring(2, 4), 10);
+  const endHouse = parseInt(unit.endRoom.substring(2, 4), 10);
+  const list: number[] = [];
+  for (let i = startHouse; i <= endHouse; i++) {
+    list.push(i);
+  }
+  const key = `${bIndex}-${uIndex}`;
+  return reverseHouseNum.value[key] ? list.reverse() : list;
+}
+
+// 根据楼层和户号获取房号在数组中的索引
+function getRoomIndex(unit: Unit, floor: number, houseNum: number): number {
+  const startHouse = parseInt(unit.startRoom.substring(2, 4), 10);
+  return (floor - 1) * unit.roomsPerFloor + (houseNum - startHouse);
+}
+
+// 根据楼层和户号获取房号
+function getRoomByPosition(
+  unit: Unit,
+  floor: number,
+  houseNum: number
+): string {
+  if (!unit.rooms) return "";
+  const index = getRoomIndex(unit, floor, houseNum);
+  return unit.rooms[index] || "";
 }
 
 // 删除房号
@@ -831,17 +924,23 @@ watch(configType, () => {
 }
 
 .preview-title {
-  font-size: 12px;
-  color: #606266;
-  margin-bottom: 8px;
-  font-weight: 500;
+  font-size: 13px;
+  color: #303133;
+  margin-bottom: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .edit-hint {
-  font-size: 11px;
-  color: #909399;
-  font-weight: normal;
-  margin-left: 8px;
+  font-size: 12px;
+  color: #f56c6c;
+  font-weight: 600;
+  background: #fef0f0;
+  padding: 2px 8px;
+  border-radius: 3px;
+  border: 1px solid #fbc4c4;
 }
 
 .config-card :deep(.el-card__body) {
@@ -905,6 +1004,153 @@ watch(configType, () => {
   background: #f5f7fa;
   border-radius: 4px;
   min-height: 40px;
+}
+
+.room-table-wrapper {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.room-table-container {
+  flex: 1;
+}
+
+.reverse-btn {
+  flex-shrink: 0;
+  margin-top: 0;
+}
+
+.room-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.room-table th,
+.room-table td {
+  border: 1px solid #e4e7ed;
+  padding: 8px;
+  text-align: center;
+}
+
+.room-table thead th {
+  background: #409eff;
+  color: white;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.floor-header,
+.house-header {
+  min-width: 60px;
+}
+
+.diagonal-header {
+  position: relative;
+  padding: 8px;
+  overflow: hidden;
+}
+
+.diagonal-header::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-bottom: 2px solid white;
+  transform-origin: bottom left;
+  transform: rotate(26deg);
+  pointer-events: none;
+}
+
+.diagonal-text-bottom {
+  position: absolute;
+  bottom: 4px;
+  left: 6px;
+  font-size: 12px;
+  z-index: 1;
+}
+
+.diagonal-text-top {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  font-size: 12px;
+  z-index: 1;
+}
+
+.floor-cell {
+  background: #ecf5ff;
+  color: #409eff;
+  font-weight: 600;
+  font-size: 13px;
+  min-width: 50px;
+  max-width: 50px;
+  width: 50px;
+}
+
+.room-cell {
+  min-width: 70px;
+  max-width: 70px;
+  width: 70px;
+  padding: 0;
+  text-align: center;
+  vertical-align: middle;
+  box-sizing: border-box;
+}
+
+.room-cell :deep(.el-input) {
+  width: 100% !important;
+  max-width: 100%;
+  display: block;
+}
+
+.room-cell :deep(.el-input__wrapper) {
+  padding: 0 !important;
+  margin: 0 !important;
+  box-sizing: border-box;
+  box-shadow: none !important;
+  background: transparent !important;
+  border: none !important;
+  width: 100% !important;
+}
+
+.room-cell :deep(.el-input__inner) {
+  padding: 4px 8px !important;
+  margin: 0 !important;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+  height: 100% !important;
+  line-height: normal;
+  border: none !important;
+  box-sizing: border-box;
+  width: 100% !important;
+}
+
+.room-number {
+  display: block;
+  width: 100%;
+  padding: 4px 8px;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.2s;
+  font-size: 13px;
+  font-weight: 500;
+  box-sizing: border-box;
+  text-align: center;
+  line-height: normal;
+  margin: 0;
+}
+
+.room-number:hover {
+  background: #ecf5ff;
+  color: #409eff;
 }
 
 .room-tags {

@@ -116,7 +116,7 @@
       </el-table-column>
       <el-table-column label="参与人数" width="100">
         <template #default="{ row }">
-          {{ row.participantCount || 0 }}/{{ row.totalUsers || 0 }}
+          {{ row.participantCount || 0 }}
         </template>
       </el-table-column>
     </el-table>

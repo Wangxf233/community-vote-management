@@ -16,13 +16,6 @@
             clearable
           />
         </el-form-item>
-        <el-form-item label="区/期号">
-          <el-input
-            v-model="searchForm.district"
-            placeholder="请输入区/期号"
-            clearable
-          />
-        </el-form-item>
         <el-form-item label="楼栋">
           <el-input
             v-model="searchForm.building"
@@ -88,6 +81,7 @@
         style="width: 100%"
         @selection-change="handleSelectionChange"
         row-key="_id"
+        :row-class-name="getRowClassName"
       >
         <el-table-column type="selection" width="55" />
         <el-table-column type="expand" v-if="hasMultipleProperties">
@@ -97,11 +91,6 @@
               style="padding: 0 50px"
             >
               <el-table :data="row.properties" :show-header="true" size="small">
-                <el-table-column
-                  prop="district"
-                  label="区/期号"
-                  min-width="100"
-                />
                 <el-table-column
                   prop="building"
                   label="楼栋号"
@@ -124,7 +113,6 @@
         </el-table-column>
         <el-table-column prop="name" label="户主姓名" min-width="100" />
         <el-table-column prop="phone" label="手机号" min-width="120" />
-        <el-table-column prop="district" label="区/期号" min-width="100" />
         <el-table-column prop="building" label="楼栋号" min-width="80" />
         <el-table-column prop="unit" label="单元号" min-width="80" />
         <el-table-column prop="room" label="房号" min-width="80">
@@ -209,7 +197,7 @@
               查看认证
             </el-button>
             <el-button type="primary" size="small" @click="handleEdit(row)">
-              修改
+              编辑
             </el-button>
           </template>
         </el-table-column>
@@ -229,34 +217,178 @@
     </el-card>
 
     <!-- 编辑对话框 -->
-    <el-dialog v-model="editDialog" title="修改户主信息" width="500px">
-      <el-form :model="editForm" label-width="100px" ref="formRef">
-        <el-form-item label="户主姓名">
-          <el-input v-model="editForm.name" />
+    <el-dialog v-model="editDialog" title="修改户主信息" width="700px">
+      <el-form
+        :model="editForm"
+        label-width="100px"
+        ref="formRef"
+        :rules="formRules"
+      >
+        <el-form-item label="户主姓名" prop="name">
+          <el-input v-model="editForm.name" placeholder="必填" />
         </el-form-item>
-        <el-form-item label="手机号">
-          <el-input v-model="editForm.phone" />
+        <el-form-item label="手机号" prop="phone">
+          <el-input v-model="editForm.phone" placeholder="必填" />
         </el-form-item>
-        <el-form-item label="区/期号">
-          <el-input v-model="editForm.district" />
-        </el-form-item>
-        <el-form-item label="楼栋号">
-          <el-input v-model="editForm.building" />
-        </el-form-item>
-        <el-form-item label="单元号">
-          <el-input v-model="editForm.unit" />
-        </el-form-item>
-        <el-form-item label="房号">
-          <el-input v-model="editForm.room" />
-        </el-form-item>
-        <el-form-item label="备注">
-          <el-input
-            v-model="editForm.remark"
-            type="textarea"
-            :rows="3"
-            placeholder="请输入备注（如无，留空）"
-          />
-        </el-form-item>
+
+        <el-divider content-position="left">房产信息</el-divider>
+        <div
+          v-for="(property, index) in editForm.properties"
+          :key="index"
+          style="
+            border: 1px solid #eee;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-radius: 4px;
+            position: relative;
+          "
+        >
+          <div
+            style="
+              position: absolute;
+              top: 8px;
+              right: 8px;
+              display: flex;
+              gap: 8px;
+            "
+          >
+            <el-button
+              v-if="editForm.properties.length > 1"
+              type="danger"
+              size="small"
+              text
+              @click="removeProperty(index)"
+            >
+              删除此房产
+            </el-button>
+          </div>
+          <div style="font-weight: bold; margin-bottom: 12px">
+            房产 {{ index + 1 }}
+          </div>
+          <el-row :gutter="12">
+            <el-col :span="8">
+              <el-form-item
+                :label="'楼栋号'"
+                :prop="`properties.${index}.building`"
+                :rules="[
+                  { required: true, message: '请输入楼栋号', trigger: 'blur' },
+                ]"
+              >
+                <el-input
+                  v-model="property.building"
+                  placeholder="例如：1"
+                  style="width: 100%"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="12">
+            <el-col :span="8">
+              <el-form-item
+                :label="'单元号'"
+                :prop="`properties.${index}.unit`"
+                :rules="[
+                  { required: true, message: '请输入单元号', trigger: 'blur' },
+                ]"
+              >
+                <el-input
+                  v-model="property.unit"
+                  placeholder="例如：1"
+                  style="width: 100%"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item
+                :label="'房号'"
+                :prop="`properties.${index}.room`"
+                :rules="[
+                  { required: true, message: '请输入房号', trigger: 'blur' },
+                ]"
+              >
+                <el-input
+                  v-model="property.room"
+                  placeholder="例如：0101（四位数）"
+                  style="width: 100%"
+                  @blur="property.room = formatRoom(property.room)"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item
+                :label="'专有面积'"
+                :prop="`properties.${index}.area`"
+                :rules="[
+                  { required: true, message: '请输入面积', trigger: 'blur' },
+                ]"
+              >
+                <el-input
+                  v-model="property.area"
+                  placeholder="例如：100"
+                  style="width: 100%"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="12">
+            <el-col :span="24">
+              <el-form-item
+                :label="'备注'"
+                :prop="`properties.${index}.remark`"
+              >
+                <el-input
+                  v-model="property.remark"
+                  placeholder="例如：商户（如无则留空）"
+                  style="width: 100%"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </div>
+        <el-button
+          type="primary"
+          plain
+          @click="addProperty"
+          style="width: 100%; margin-bottom: 16px"
+        >
+          + 添加房产
+        </el-button>
+
+        <el-divider content-position="left">车牌号</el-divider>
+        <div
+          v-for="(carNumber, index) in editForm.carNumbers"
+          :key="'car-' + index"
+          style="margin-bottom: 12px"
+        >
+          <el-form-item
+            :label="'车牌号 ' + (index + 1)"
+            :prop="`carNumbers.${index}`"
+          >
+            <div style="display: flex; gap: 8px; width: 100%">
+              <el-input
+                v-model="editForm.carNumbers[index]"
+                placeholder="例如：粤B12345（如无则留空）"
+                style="flex: 1"
+              />
+              <el-button
+                v-if="editForm.carNumbers.length > 1"
+                type="danger"
+                text
+                @click="removeCarNumber(index)"
+              >
+                删除
+              </el-button>
+            </div>
+          </el-form-item>
+        </div>
+        <el-button
+          type="primary"
+          plain
+          @click="addCarNumber"
+          style="width: 100%; margin-bottom: 16px"
+        >
+          + 添加车牌号
+        </el-button>
       </el-form>
       <template #footer>
         <el-button @click="editDialog = false">取消</el-button>
@@ -441,7 +573,6 @@ const hasMultipleProperties = computed(() => {
 
 const searchForm = reactive({
   name: "",
-  district: "",
   building: "",
   unit: "",
   room: "",
@@ -454,12 +585,24 @@ const editForm = reactive({
   id: "",
   name: "",
   phone: "",
-  district: "",
-  building: "",
-  unit: "",
-  room: "",
-  remark: "",
+  properties: [
+    {
+      building: "",
+      unit: "",
+      room: "",
+      area: "",
+      remark: "",
+    },
+  ] as any[],
+  carNumbers: [""] as string[],
 });
+
+const formRules = {
+  name: [{ required: true, message: "请输入户主姓名", trigger: "blur" }],
+  phone: [{ required: true, message: "请输入手机号", trigger: "blur" }],
+};
+
+const formRef = ref();
 
 const verifyDialog = ref(false);
 const isViewMode = ref(false);
@@ -489,7 +632,43 @@ async function loadList() {
     };
 
     const data = await request.get("/owner-list", { params });
-    ownerList.value = data.data || [];
+    const rawList = data.data || [];
+
+    // 合并同一户主的多套房产
+    const ownerMap = new Map();
+
+    rawList.forEach((item: any) => {
+      const key = `${item.name}_${item.phone}`;
+
+      if (ownerMap.has(key)) {
+        // 已存在该户主，将当前房产添加到 properties
+        const owner = ownerMap.get(key);
+        if (!owner.properties) {
+          owner.properties = [];
+        }
+        owner.properties.push({
+          building: item.building,
+          unit: item.unit,
+          room: item.room,
+          area: item.area,
+          remark: item.remark,
+          _id: item._id,
+        });
+        // 合并车牌号
+        if (item.carNumber && !owner.carNumber.includes(item.carNumber)) {
+          owner.carNumber = owner.carNumber
+            ? `${owner.carNumber},${item.carNumber}`
+            : item.carNumber;
+        }
+      } else {
+        // 新户主记录 - 不初始化 properties 数组
+        ownerMap.set(key, {
+          ...item,
+        });
+      }
+    });
+
+    ownerList.value = Array.from(ownerMap.values());
     total.value = data.total || 0;
   } catch (err) {
     console.error("加载户主名单失败:", err);
@@ -504,7 +683,6 @@ function search() {
 
 function resetSearch() {
   searchForm.name = "";
-  searchForm.district = "";
   searchForm.building = "";
   searchForm.unit = "";
   searchForm.room = "";
@@ -517,24 +695,89 @@ function handleEdit(row: any) {
   editForm.id = row._id;
   editForm.name = row.name;
   editForm.phone = row.phone;
-  editForm.district = row.district || "";
-  editForm.building = row.building;
-  editForm.unit = row.unit;
-  editForm.room = row.room;
-  editForm.remark = row.remark || "";
+
+  // 处理多房产
+  if (row.properties && row.properties.length > 0) {
+    // 有多套房产，第一套使用主记录的数据
+    editForm.properties = [
+      {
+        building: row.building,
+        unit: row.unit,
+        room: row.room,
+        area: row.area || "",
+        remark: row.remark || "",
+      },
+      ...row.properties,
+    ];
+  } else {
+    // 只有一套房产
+    editForm.properties = [
+      {
+        building: row.building,
+        unit: row.unit,
+        room: row.room,
+        area: row.area || "",
+        remark: row.remark || "",
+      },
+    ];
+  }
+
+  // 处理多车牌号
+  if (row.carNumber) {
+    editForm.carNumbers = row.carNumber.split(",").map((c: string) => c.trim());
+  } else {
+    editForm.carNumbers = [""];
+  }
+
   editDialog.value = true;
 }
 
 async function submitEdit() {
   try {
-    await request.put(`/owner-list/${editForm.id}`, editForm);
+    await formRef.value.validate();
+
+    // 准备提交数据
+    const submitData = {
+      id: editForm.id,
+      name: editForm.name,
+      phone: editForm.phone,
+      properties: editForm.properties,
+      carNumber: editForm.carNumbers
+        .filter((c) => c && c.trim())
+        .map((c) => c.trim())
+        .join(","),
+    };
+
+    await request.put(`/owner-list/${editForm.id}`, submitData);
     ElMessage.success("修改成功");
     editDialog.value = false;
     loadList();
   } catch (err) {
     console.error("修改失败:", err);
-    ElMessage.error("修改失败");
+    // 验证失败或请求失败
   }
+}
+
+function addProperty() {
+  editForm.properties.push({
+    building: "",
+    unit: "",
+    room: "",
+    area: "",
+    remark: "",
+  });
+}
+
+function removeProperty(index: number) {
+  editForm.properties.splice(index, 1);
+}
+
+function addCarNumber() {
+  editForm.carNumbers.push("");
+}
+
+function removeCarNumber(index: number) {
+  editForm.carNumbers.splice(index, 1);
 }
 
 function handleSelectionChange(selection: any[]) {
@@ -698,6 +941,11 @@ function refresh() {
   loadList();
 }
 
+function getRowClassName({ row }: { row: any }) {
+  // 只有一套房产的行添加 no-expand 类名
+  return !row.properties || row.properties.length === 0 ? "no-expand" : "";
+}
+
 onMounted(() => {
   loadList();
 });
@@ -752,5 +1000,11 @@ onMounted(() => {
 
 .cert-image :deep(.el-image__inner) {
   object-fit: contain;
+}
+
+/* 隐藏只有一套房产的行的展开图标 */
+:deep(.no-expand .el-table__expand-icon) {
+  visibility: hidden;
+  cursor: default;
 }
 </style>

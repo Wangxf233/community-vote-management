@@ -1,0 +1,54 @@
+<view class="my-votes-page">
+  <view class="header">
+    <text class="title">我的投票</text>
+    <text class="subtitle">共参与 {{voteList.length}} 次投票</text>
+  </view>
+
+  <!-- 投票记录列表 -->
+  <view class="vote-list">
+    <view class="vote-card" wx:for="{{voteList}}" wx:key="_id" bindtap="viewVoteDetail" data-id="{{item.voteId}}">
+      <view class="card-header">
+        <view class="vote-title-row">
+          <text class="vote-title">{{item.voteTitle}}</text>
+          <text class="vote-type-tag {{item.voteType}}">{{item.voteType === 'vote' ? '投票表决' : '问卷调查'}}</text>
+        </view>
+        <view class="vote-meta">
+          <text class="vote-time">投票时间：{{item.createdAt}}</text>
+        </view>
+      </view>
+      
+      <view class="card-body">
+        <view class="choice-row">
+          <text class="label">我的选择：</text>
+          <text class="choice-value {{item.optionId}}">{{item.optionText}}</text>
+        </view>
+        
+        <view class="info-row" wx:if="{{item.area}}">
+          <text class="label">专有面积：</text>
+          <text class="value">{{item.area}} ㎡</text>
+        </view>
+        
+        <view class="info-row" wx:if="{{item.voteDeadline}}">
+          <text class="label">截止时间：</text>
+          <text class="value">{{item.voteDeadline}}</text>
+        </view>
+      </view>
+
+      <view class="card-footer">
+        <text class="view-detail-btn">查看详情 ></text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{voteList.length === 0 && !loading}}">
+    <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/icon-empty.png" mode="aspectFit" class="empty-icon"/>
+    <text class="empty-text">暂无投票记录</text>
+    <text class="empty-hint">您还没有参与过任何投票</text>
+  </view>
+
+  <!-- 加载状态 -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <text>加载中...</text>
+  </view>
+</view>

@@ -34,13 +34,6 @@
             clearable
           />
         </el-form-item>
-        <el-form-item label="区/期号">
-          <el-input
-            v-model="searchForm.district"
-            placeholder="请输入区/期号"
-            clearable
-          />
-        </el-form-item>
         <el-form-item label="楼栋">
           <el-input
             v-model="searchForm.building"
@@ -139,15 +132,6 @@
               </div>
               <el-table :data="row.properties" border size="small">
                 <el-table-column
-                  prop="district"
-                  label="区/期号"
-                  min-width="100"
-                >
-                  <template #default="{ row }">
-                    {{ row.district || "-" }}
-                  </template>
-                </el-table-column>
-                <el-table-column
                   prop="building"
                   label="楼栋号"
                   min-width="100"
@@ -174,7 +158,6 @@
         </el-table-column>
         <el-table-column prop="ownerName1" label="户主姓名1" min-width="120" />
         <el-table-column prop="ownerName2" label="户主姓名2" min-width="120" />
-        <el-table-column prop="district" label="区/期号" min-width="100" />
         <el-table-column prop="building" label="楼栋号" min-width="80" />
         <el-table-column prop="unit" label="单元号" min-width="80" />
         <el-table-column prop="room" label="房号" min-width="80">
@@ -347,19 +330,7 @@
             房产 {{ index + 1 }}
           </div>
           <el-row :gutter="12">
-            <el-col :span="12">
-              <el-form-item
-                :label="'区/期号'"
-                :prop="`properties.${index}.district`"
-              >
-                <el-input
-                  v-model="property.district"
-                  placeholder="例如：1"
-                  style="width: 100%"
-                />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
+            <el-col :span="8">
               <el-form-item
                 :label="'楼栋号'"
                 :prop="`properties.${index}.building`"
@@ -667,7 +638,6 @@ const hasMultipleProperties = computed(() => {
 
 const searchForm = reactive({
   name: "",
-  district: "",
   building: "",
   unit: "",
   room: "",
@@ -683,7 +653,6 @@ const editForm = reactive({
   ownerName2: "",
   properties: [
     {
-      district: "",
       building: "",
       unit: "",
       room: "",
@@ -696,7 +665,6 @@ const editForm = reactive({
 
 const formRules = {
   ownerName1: [{ required: true, message: "请输入户主姓名1", trigger: "blur" }],
-  district: [{ required: true, message: "请输入区/期号", trigger: "blur" }],
   building: [{ required: true, message: "请输入楼栋号", trigger: "blur" }],
   unit: [{ required: true, message: "请输入单元号", trigger: "blur" }],
   room: [{ required: true, message: "请输入房号", trigger: "blur" }],
@@ -759,7 +727,6 @@ async function loadList() {
           owner.properties = [];
         }
         owner.properties.push({
-          district: item.district,
           building: item.building,
           unit: item.unit,
           room: item.room,
@@ -795,7 +762,6 @@ function search() {
 
 function resetSearch() {
   searchForm.name = "";
-  searchForm.district = "";
   searchForm.building = "";
   searchForm.unit = "";
   searchForm.room = "";
@@ -811,14 +777,13 @@ function downloadTemplate() {
     ["【提示：以下示例说明和示例数据不会被导入，无需删除】"],
     ["示例说明："],
     [
-      "1. 一个户主多套房：第一行填完整信息，后续房产只填区/期号、楼栋号、单元号、房号、专有面积，户主姓名留空",
+      "1. 一个户主多套房：第一行填完整信息，后续房产只填楼栋号、单元号、房号、专有面积，户主姓名留空",
     ],
     ["2. 一个户主多辆车：在车牌号单元格用逗号分隔，如：粤B12345,粤B67890"],
     [""],
     [
       "户主姓名1（必填）",
       "户主姓名2（如无，留空）",
-      "区/期号（如无，留空）",
       "楼栋号（必填）",
       "单元号（必填）",
       "房号（必填）",
@@ -826,9 +791,9 @@ function downloadTemplate() {
       "专有面积（必填）",
       "备注（如无，留空）",
     ],
-    ["张三", "李四", "1", "1", "1", "101", "粤B12345,粤B67890", "100", "商户"],
-    ["", "", "1", "1", "2", "201", "", "120", ""],
-    ["王五", "", "2", "3", "1", "102", "粤A88888", "95", ""],
+    ["张三", "李四", "1", "1", "101", "粤B12345,粤B67890", "100", "商户"],
+    ["", "", "1", "2", "201", "", "120", ""],
+    ["王五", "", "3", "1", "102", "粤A88888", "95", ""],
   ];
 
   const ws = XLSX.utils.aoa_to_sheet(template);
@@ -837,7 +802,6 @@ function downloadTemplate() {
   const colWidths = [
     { wch: 20 }, // 户主姓名1
     { wch: 22 }, // 户主姓名2
-    { wch: 20 }, // 区/期号
     { wch: 15 }, // 楼栋号
     { wch: 15 }, // 单元号
     { wch: 15 }, // 房号
@@ -884,13 +848,12 @@ async function handleImport(file: File) {
         const rowData = {
           ownerName1,
           ownerName2: row[1]?.toString() || "",
-          district: row[2]?.toString() || "",
-          building: row[3]?.toString() || "",
-          unit: row[4]?.toString() || "",
-          room: row[5]?.toString() || "",
-          carNumber: row[6]?.toString() || "",
-          area: row[7]?.toString() || "",
-          remark: row[8]?.toString() || "",
+          building: row[2]?.toString() || "",
+          unit: row[3]?.toString() || "",
+          room: row[4]?.toString() || "",
+          carNumber: row[5]?.toString() || "",
+          area: row[6]?.toString() || "",
+          remark: row[7]?.toString() || "",
           rowNumber: index + 10,
         };
 
@@ -904,7 +867,6 @@ async function handleImport(file: File) {
         } else if (currentOwner) {
           // 户主姓名为空，作为当前户主的额外房产
           currentOwner.properties.push({
-            district: rowData.district,
             building: rowData.building,
             unit: rowData.unit,
             room: rowData.room,
@@ -960,7 +922,6 @@ function showAddDialog() {
   editForm.ownerName2 = "";
   editForm.properties = [
     {
-      district: "",
       building: "",
       unit: "",
       room: "",
@@ -975,7 +936,6 @@ function showAddDialog() {
 
 function addProperty() {
   editForm.properties.push({
-    district: "",
     building: "",
     unit: "",
     room: "",
@@ -1006,7 +966,6 @@ function handleEdit(row: any) {
     // 有多套房产，第一套使用主记录的数据
     editForm.properties = [
       {
-        district: row.district || "",
         building: row.building,
         unit: row.unit,
         room: row.room,
@@ -1019,7 +978,6 @@ function handleEdit(row: any) {
     // 只有一套房产
     editForm.properties = [
       {
-        district: row.district || "",
         building: row.building,
         unit: row.unit,
         room: row.room,
@@ -1066,8 +1024,15 @@ async function submitEdit() {
     ElMessage.success(editForm.id ? "修改成功" : "添加成功");
     editDialog.value = false;
     loadList();
-  } catch (err) {
-    // 验证失败
+  } catch (err: any) {
+    // 显示错误信息
+    if (err.response && err.response.data && err.response.data.error) {
+      ElMessage.error(err.response.data.error);
+    } else if (err.message) {
+      ElMessage.error(err.message);
+    } else {
+      ElMessage.error(editForm.id ? "修改失败" : "添加失败");
+    }
   }
 }
 

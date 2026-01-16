@@ -187,9 +187,11 @@
           <el-descriptions-item label="总人数">{{
             statistics.totalCount
           }}</el-descriptions-item>
-          <el-descriptions-item label="参与人数">{{
-            statistics.participantCount
-          }}</el-descriptions-item>
+          <el-descriptions-item label="参与人数">
+            {{ statistics.participantCount }} ({{
+              statistics.participantRatio
+            }}%)
+          </el-descriptions-item>
           <el-descriptions-item label="同意人数">
             {{ statistics.agreeCount }} ({{ statistics.agreePercent }}%)
           </el-descriptions-item>
@@ -204,6 +206,14 @@
         <el-divider v-if="activeTab === 'vote'" />
 
         <el-descriptions v-if="activeTab === 'vote'" :column="2" border>
+          <el-descriptions-item label="总专有面积">
+            {{ statistics.totalArea }}㎡
+          </el-descriptions-item>
+          <el-descriptions-item label="参与专有面积">
+            {{ statistics.participantArea }}㎡ ({{
+              statistics.participantAreaRatio
+            }}%)
+          </el-descriptions-item>
           <el-descriptions-item label="同意专有面积">
             {{ statistics.agreeArea }}㎡ ({{ statistics.agreeAreaPercent }}%)
           </el-descriptions-item>
@@ -291,12 +301,16 @@ const filters = reactive({
 const statistics = reactive({
   totalCount: 0,
   participantCount: 0,
+  participantRatio: 0,
   agreeCount: 0,
   disagreeCount: 0,
   abstainCount: 0,
   agreePercent: 0,
   disagreePercent: 0,
   abstainPercent: 0,
+  totalArea: 0,
+  participantArea: 0,
+  participantAreaRatio: 0,
   agreeArea: 0,
   disagreeArea: 0,
   abstainArea: 0,

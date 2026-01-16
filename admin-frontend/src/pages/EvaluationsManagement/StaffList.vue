@@ -28,7 +28,7 @@
       <el-table-column label="状态" width="100">
         <template #default="{ row }">
           <el-tag :type="row.status === 'active' ? 'success' : 'info'">
-            {{ row.status === "active" ? "在职" : "停用" }}
+            {{ row.status === "active" ? "在职" : "离职" }}
           </el-tag>
         </template>
       </el-table-column>

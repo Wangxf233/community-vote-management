@@ -99,6 +99,19 @@
         <view class="total-votes">
           总投票数：{{voteDetail.totalVotes}}票
         </view>
+        <!-- 参与统计信息 -->
+        <view class="participant-stats" wx:if="{{voteDetail.participantStats}}">
+          <view class="stats-item">
+            <text class="stats-label">参与人数：</text>
+            <text class="stats-value">{{voteDetail.participantStats.participantCount}}人</text>
+            <text class="stats-ratio">（占比{{voteDetail.participantStats.participantRatio}}%，总户主{{voteDetail.participantStats.totalOwners}}人）</text>
+          </view>
+          <view class="stats-item">
+            <text class="stats-label">参与面积：</text>
+            <text class="stats-value">{{voteDetail.participantStats.participantArea}}㎡</text>
+            <text class="stats-ratio">（占比{{voteDetail.participantStats.areaRatio}}%，总面积{{voteDetail.participantStats.totalArea}}㎡）</text>
+          </view>
+        </view>
       </view>
     </view>
 

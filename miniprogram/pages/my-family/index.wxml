@@ -12,6 +12,7 @@
         <view class="code-box">
           <text class="code">{{inviteCode}}</text>
           <button class="copy-btn" size="mini" bindtap="copyInviteCode">复制</button>
+          <button class="share-btn" size="mini" open-type="share">分享</button>
         </view>
         <text class="expires-text">有效期至：{{expiresAt}}</text>
       </view>
@@ -50,7 +51,12 @@
           </view>
         </view>
         <view class="item-right">
-          <text class="phone">{{item.phone}}</text>
+          <view class="phone-info">
+            <text class="phone">{{item.phone}}</text>
+          </view>
+          <button class="remove-btn" size="mini" bindtap="removeMember" data-id="{{item._id}}" data-name="{{item.name}}">
+            移出
+          </button>
         </view>
       </view>
     </view>

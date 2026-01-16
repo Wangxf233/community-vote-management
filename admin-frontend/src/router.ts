@@ -27,6 +27,10 @@ const routes = [
     children: [
       { path: "", redirect: "/community-admin/house-config" },
       {
+        path: "community-info",
+        component: () => import("./pages/CommunityInfo.vue"),
+      },
+      {
         path: "house-config",
         component: () => import("./pages/HouseConfig.vue"),
       },

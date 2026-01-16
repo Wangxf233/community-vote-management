@@ -1,14 +1,4 @@
 <view class="vote-container">
-  <!-- 选项卡 -->
-  <view class="tab-container">
-    <view class="tab-item {{currentTab === 0 ? 'active' : ''}}" bindtap="switchTab" data-tab="0">
-      投票表决
-    </view>
-    <view class="tab-item {{currentTab === 1 ? 'active' : ''}}" bindtap="switchTab" data-tab="1">
-      问卷调查
-    </view>
-  </view>
-
   <!-- 投票列表 -->
   <scroll-view class="vote-list" scroll-y>
     <block wx:for="{{voteList}}" wx:key="id">
@@ -31,7 +21,7 @@
     </view>
     
     <view class="no-data" wx:if="{{voteList.length === 0 && !loading}}">
-      <text>暂无{{currentTab === 0 ? '投票' : '问卷'}}</text>
+      <text>暂无投票</text>
     </view>
     
     <view class="loading" wx:if="{{loading}}">

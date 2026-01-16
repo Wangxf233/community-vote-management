@@ -7,6 +7,25 @@ const db = cloud.database();
 const _ = db.command;
 
 /**
+ * 计算有效期截止时间
+ */
+function calculateExpiryTime(announcement) {
+  if (announcement.expiryTime) {
+    return new Date(announcement.expiryTime);
+  }
+
+  if (announcement.expiryDays && announcement.publishTime) {
+    const publishTime = new Date(announcement.publishTime);
+    const expiryTime = new Date(
+      publishTime.getTime() + announcement.expiryDays * 24 * 60 * 60 * 1000
+    );
+    return expiryTime;
+  }
+
+  return null;
+}
+
+/**
  * 获取公告列表
  * 用于小程序展示信息公示
  */
@@ -78,17 +97,23 @@ exports.main = async (event, context) => {
       readMap[record.announcementId] = true;
     });
 
-    // 标记已读状态
-    const announcements = result.data.map((item) => ({
-      ...item,
-      isRead: !!readMap[item._id],
-    }));
+    // 过滤掉已过期的通知，并标记已读状态
+    const announcements = result.data
+      .filter((item) => {
+        const expiryTime = calculateExpiryTime(item);
+        if (!expiryTime) return true; // 没有设置有效期的通知始终显示
+        return now <= expiryTime; // 只显示未过期的通知
+      })
+      .map((item) => ({
+        ...item,
+        isRead: !!readMap[item._id],
+      }));
 
     return {
       success: true,
       data: {
         list: announcements,
-        total: countResult.total,
+        total: announcements.length, // 返回过滤后的总数
       },
     };
   } catch (error) {

@@ -41,6 +41,23 @@
         />
       </el-form-item>
 
+      <el-form-item label="有效期时间" prop="expiryTime">
+        <el-radio-group v-model="expiryType" @change="handleExpiryTypeChange">
+          <el-radio label="1day">1天</el-radio>
+          <el-radio label="3days">3天</el-radio>
+          <el-radio label="7days">7天</el-radio>
+          <el-radio label="custom">自定义</el-radio>
+        </el-radio-group>
+        <el-date-picker
+          v-if="expiryType === 'custom'"
+          v-model="form.expiryTime"
+          type="datetime"
+          placeholder="选择有效期截止时间"
+          style="width: 100%; margin-top: 10px"
+          :disabled-date="disabledExpiryDate"
+        />
+      </el-form-item>
+
       <el-form-item label="详情" prop="content">
         <el-input
           v-model="form.content"
@@ -91,6 +108,7 @@ const formRef = ref<FormInstance>();
 const submitting = ref(false);
 const isEdit = ref(false);
 const publishTimeType = ref("now");
+const expiryType = ref("3days"); // 有效期类型：1day/3days/7days/custom
 const form = reactive({
   title: "",
   publisher: "",
@@ -98,6 +116,8 @@ const form = reactive({
   content: "",
   attachments: [] as any[],
   type: "notification",
+  expiryDays: 3, // 有效期天数
+  expiryTime: null as Date | null, // 自定义有效期时间
 });
 
 const fileList = ref<any[]>([]);
@@ -138,12 +158,36 @@ const disabledDate = (time: Date) => {
   return time.getTime() < Date.now() - 8.64e7; // 禁用昨天之前的日期
 };
 
+// 禁用有效期的过去日期（必须晚于发布时间）
+const disabledExpiryDate = (time: Date) => {
+  const publishTime = form.publishTime || new Date();
+  return time.getTime() < publishTime.getTime();
+};
+
 // 发布时间类型改变
 const handlePublishTimeTypeChange = (value: string) => {
   if (value === "now") {
     form.publishTime = null;
   } else {
     form.publishTime = new Date();
+  }
+};
+
+// 有效期类型改变
+const handleExpiryTypeChange = (value: string) => {
+  if (value === "custom") {
+    const baseTime = form.publishTime || new Date();
+    form.expiryTime = new Date(baseTime.getTime() + 3 * 24 * 60 * 60 * 1000);
+    form.expiryDays = 0;
+  } else {
+    form.expiryTime = null;
+    if (value === "1day") {
+      form.expiryDays = 1;
+    } else if (value === "3days") {
+      form.expiryDays = 3;
+    } else if (value === "7days") {
+      form.expiryDays = 7;
+    }
   }
 };
 
@@ -207,6 +251,8 @@ const handleSubmit = async () => {
         ...form,
         communityId,
         publishNow: publishTimeType.value === "now",
+        expiryDays: expiryType.value === "custom" ? 0 : form.expiryDays,
+        expiryTime: expiryType.value === "custom" ? form.expiryTime : null,
       };
 
       if (isEdit.value) {
@@ -258,6 +304,28 @@ const loadData = async () => {
       form.publishTime = publishTime;
     } else {
       publishTimeType.value = "now";
+    }
+
+    // 设置有效期
+    if (data.expiryTime) {
+      expiryType.value = "custom";
+      form.expiryTime = new Date(data.expiryTime);
+      form.expiryDays = 0;
+    } else if (data.expiryDays) {
+      form.expiryDays = data.expiryDays;
+      if (data.expiryDays === 1) {
+        expiryType.value = "1day";
+      } else if (data.expiryDays === 3) {
+        expiryType.value = "3days";
+      } else if (data.expiryDays === 7) {
+        expiryType.value = "7days";
+      } else {
+        expiryType.value = "3days";
+        form.expiryDays = 3;
+      }
+    } else {
+      expiryType.value = "3days";
+      form.expiryDays = 3;
     }
   } catch (error: any) {
     ElMessage.error(error.response?.data?.error || "加载失败");
