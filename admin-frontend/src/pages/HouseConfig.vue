@@ -71,10 +71,17 @@
               >
                 <template #title>
                   <span class="building-title">
-                    第 {{ building.name }} 栋
-                    <el-tag size="small" style="margin-left: 10px">
-                      {{ building.units.length }} 个单元
-                    </el-tag>
+                    {{ building.name }} 栋
+                    <template v-if="building.units.length > 0">
+                      <el-tag
+                        v-for="unit in building.units"
+                        :key="unit.name"
+                        size="small"
+                        style="margin-left: 8px"
+                      >
+                        {{ unit.name }}单元
+                      </el-tag>
+                    </template>
                   </span>
                 </template>
 
@@ -167,7 +174,7 @@
                               @input="
                                 unit.startRoom = unit.startRoom.replace(
                                   /\D/g,
-                                  ''
+                                  '',
                                 )
                               "
                             />
@@ -233,7 +240,7 @@
                                         v-for="houseNum in getHouseNumList(
                                           unit,
                                           bIndex,
-                                          uIndex
+                                          uIndex,
                                         )"
                                         :key="houseNum"
                                         class="house-header"
@@ -246,7 +253,7 @@
                                     <tr
                                       v-for="floor in Array.from(
                                         { length: unit.floors },
-                                        (_, i) => unit.floors - i
+                                        (_, i) => unit.floors - i,
                                       )"
                                       :key="floor"
                                     >
@@ -255,7 +262,7 @@
                                         v-for="houseNum in getHouseNumList(
                                           unit,
                                           bIndex,
-                                          uIndex
+                                          uIndex,
                                         )"
                                         :key="`${floor}-${houseNum}`"
                                         class="room-cell"
@@ -266,7 +273,7 @@
                                             `${bIndex}-${uIndex}-${getRoomIndex(
                                               unit,
                                               floor,
-                                              houseNum
+                                              houseNum,
                                             )}`
                                           "
                                           v-model="
@@ -274,7 +281,7 @@
                                               getRoomIndex(
                                                 unit,
                                                 floor,
-                                                houseNum
+                                                houseNum,
                                               )
                                             ]
                                           "
@@ -291,7 +298,7 @@
                                             editingRoom = `${bIndex}-${uIndex}-${getRoomIndex(
                                               unit,
                                               floor,
-                                              houseNum
+                                              houseNum,
                                             )}`
                                           "
                                         >
@@ -299,7 +306,7 @@
                                             getRoomByPosition(
                                               unit,
                                               floor,
-                                              houseNum
+                                              houseNum,
                                             )
                                           }}
                                         </span>
@@ -584,7 +591,7 @@ function updateBuildingUnits(buildingIndex: number) {
         startRoom: "0101",
         endRoom: "0606",
         rooms: [],
-      }
+      },
     );
   }
 
@@ -625,7 +632,7 @@ function getRoomIndex(unit: Unit, floor: number, houseNum: number): number {
 function getRoomByPosition(
   unit: Unit,
   floor: number,
-  houseNum: number
+  houseNum: number,
 ): string {
   if (!unit.rooms) return "";
   const index = getRoomIndex(unit, floor, houseNum);
@@ -651,7 +658,7 @@ async function addNewRoom(unit: Unit) {
         inputPattern: /^[a-zA-Z0-9]{1,10}$/,
         inputErrorMessage: "请输入1-10位字母或数字",
         inputValue: "",
-      }
+      },
     );
 
     if (newRoom) {
@@ -695,7 +702,7 @@ async function saveAsTemplate(buildingIndex: number) {
         inputPattern: /.+/,
         inputErrorMessage: "模版名称不能为空",
         inputValue: `模版 ${templates.value.length + 1}`,
-      }
+      },
     );
 
     // 深拷贝楼栋配置（不包括楼栋名称）
@@ -787,7 +794,7 @@ async function editTemplateName(index: number) {
         inputPattern: /.+/,
         inputErrorMessage: "模版名称不能为空",
         inputValue: template.templateName || `模版 ${index + 1}`,
-      }
+      },
     );
 
     template.templateName = newName;
@@ -809,7 +816,7 @@ async function deleteTemplate(index: number) {
         confirmButtonText: "删除",
         cancelButtonText: "取消",
         type: "warning",
-      }
+      },
     );
 
     templates.value.splice(index, 1);
