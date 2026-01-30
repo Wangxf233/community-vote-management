@@ -77,7 +77,7 @@ Page({
         });
       } else {
         wx.showToast({
-          title: res.result?.message || "加载失败",
+          title: (res.result && res.result.message) || "加载失败",
           icon: "none",
         });
       }

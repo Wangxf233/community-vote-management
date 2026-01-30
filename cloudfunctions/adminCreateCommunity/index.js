@@ -59,6 +59,8 @@ exports.main = async (event, context) => {
         adminPasswordPlain: plainPassword || null, // 明文初始密码（仅用于首次查看/回显）
         ownerName: community.ownerName || null,
         ownerPhone: community.ownerPhone || null,
+        deleted: false,
+        deletedAt: null,
         meta: community.meta || {},
         createdAt: now,
         updatedAt: now,

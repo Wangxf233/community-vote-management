@@ -42,6 +42,8 @@ exports.main = async (event, context) => {
 
     // build base where
     const baseWhere = buildWhere(db, query);
+    // 过滤已删除的记录
+    baseWhere.deleted = db.command.neq(true);
 
     // convert date filters
     let dateFilters = {};

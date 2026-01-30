@@ -1,5 +1,16 @@
-import axios from "axios";
+import axios, {
+  AxiosInstance,
+  InternalAxiosRequestConfig,
+  AxiosResponse,
+} from "axios";
 import { ElMessage } from "element-plus";
+
+// 定义响应数据类型
+interface ApiResponse<T = any> {
+  data?: T;
+  total?: number;
+  [key: string]: any;
+}
 
 // 创建axios实例
 const instance = axios.create({
@@ -9,7 +20,12 @@ const instance = axios.create({
     ? "https://admin-213370-7-1325504194.sh.run.tcloudbase.com/api" // 生产环境：云托管域名/api
     : "/api", // 开发环境：相对路径，由 Vite proxy 处理
   timeout: 30000,
-});
+}) as AxiosInstance & {
+  get<T = any>(url: string, config?: any): Promise<T>;
+  post<T = any>(url: string, data?: any, config?: any): Promise<T>;
+  put<T = any>(url: string, data?: any, config?: any): Promise<T>;
+  delete<T = any>(url: string, config?: any): Promise<T>;
+};
 
 // 请求拦截器
 instance.interceptors.request.use(
@@ -24,7 +40,7 @@ instance.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 // 响应拦截器
@@ -68,7 +84,7 @@ instance.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 export default instance;

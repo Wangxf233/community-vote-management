@@ -27,7 +27,7 @@ exports.main = async (event, context) => {
       };
     }
 
-    // 查询小区列表 - region字段是数组，需要匹配
+    // 查询小区列表 - region字段是数组，精确匹配
     const result = await db
       .collection("communities")
       .where({

@@ -56,18 +56,9 @@
       </view>
       
       <!-- 建筑面积 -->
-      <view class="table-row nested">
+      <view class="table-row">
         <text class="table-label">建筑面积</text>
-        <view class="nested-content">
-          <view class="nested-row">
-            <text class="nested-label">住宅面积</text>
-            <text class="nested-value">{{communityInfo.buildingArea.residential}}㎡</text>
-          </view>
-          <view class="nested-row">
-            <text class="nested-label">商户面积</text>
-            <text class="nested-value">{{communityInfo.buildingArea.commercial}}㎡</text>
-          </view>
-        </view>
+        <text class="table-value">{{communityInfo.buildingArea}}㎡</text>
       </view>
       
       <!-- 专有面积 -->
@@ -79,15 +70,19 @@
             <text class="nested-value">{{communityInfo.exclusiveArea.residential}}㎡</text>
           </view>
           <view class="nested-row">
-            <text class="nested-label">商户面积</text>
-            <text class="nested-value">{{communityInfo.exclusiveArea.commercial}}㎡</text>
+            <text class="nested-label">商铺面积</text>
+            <text class="nested-value">{{communityInfo.exclusiveArea.shop}}㎡</text>
+          </view>
+          <view class="nested-row">
+            <text class="nested-label">其它面积</text>
+            <text class="nested-value">{{communityInfo.exclusiveArea.other}}㎡</text>
           </view>
         </view>
       </view>
       
       <view class="table-row">
-        <text class="table-label">地下车库面积</text>
-        <text class="table-value">{{communityInfo.undergroundParkingArea}}㎡</text>
+        <text class="table-label">车库面积</text>
+        <text class="table-value">{{communityInfo.parkingArea}}㎡</text>
       </view>
       <view class="table-row">
         <text class="table-label">地面车位数量</text>

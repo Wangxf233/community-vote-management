@@ -49,7 +49,7 @@ Page({
           that.filterList();
         } else {
           wx.showToast({
-            title: res.result?.error || "加载失败",
+            title: (res.result && res.result.error) || "加载失败",
             icon: "none",
           });
           that.setData({ loading: false });

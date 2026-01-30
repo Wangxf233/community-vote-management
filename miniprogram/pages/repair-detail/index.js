@@ -53,7 +53,7 @@ Page({
           that.setData({ detail });
         } else {
           wx.showToast({
-            title: res.result?.error || "记录不存在",
+            title: (res.result && res.result.error) || "记录不存在",
             icon: "none",
           });
           setTimeout(() => {
@@ -112,7 +112,7 @@ Page({
                 }, 1500);
               } else {
                 wx.showToast({
-                  title: result.result?.error || "操作失败",
+                  title: (result.result && result.result.error) || "操作失败",
                   icon: "none",
                 });
               }

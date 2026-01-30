@@ -58,36 +58,27 @@ exports.main = async (event, context) => {
       };
     }
 
-    let communityInfo = infoResult.data[0];
+    const communityInfo = infoResult.data[0];
 
-    // 如果数据被包裹在data字段中，提取出来
-    if (communityInfo.data && typeof communityInfo.data === "object") {
-      communityInfo = communityInfo.data;
-    }
-
-    // 3. 返回小区基本情况
+    // 3. 返回小区基本情况（字段已经在文档顶层，不需要提取）
     return {
       success: true,
       communityName: communityName,
       data: {
-        propertyName:
-          communityInfo.propertyName || communityInfo.data?.propertyName || "",
-        buildingCount:
-          communityInfo.buildingCount || communityInfo.data?.buildingCount || 0,
+        propertyName: communityInfo.propertyName || "",
+        buildingCount: communityInfo.buildingCount || 0,
         unitCount: communityInfo.unitCount || 0,
         residentialCount: communityInfo.residentialCount || 0,
         shopCount: communityInfo.shopCount || 0,
         ownerCount: communityInfo.ownerCount || 0,
         landArea: communityInfo.landArea || 0,
-        buildingArea: communityInfo.buildingArea || {
-          residential: 0,
-          commercial: 0,
-        },
+        buildingArea: communityInfo.buildingArea || 0,
         exclusiveArea: communityInfo.exclusiveArea || {
           residential: 0,
-          commercial: 0,
+          shop: 0,
+          other: 0,
         },
-        undergroundParkingArea: communityInfo.undergroundParkingArea || 0,
+        parkingArea: communityInfo.parkingArea || 0,
         surfaceParkingCount: communityInfo.surfaceParkingCount || 0,
         undergroundParkingCount: communityInfo.undergroundParkingCount || 0,
         vehicleCount: communityInfo.vehicleCount || 0,

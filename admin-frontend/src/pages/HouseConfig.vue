@@ -26,69 +26,93 @@
         </el-alert>
 
         <el-form :model="configForm" label-width="120px" class="config-form">
-          <el-form-item label="小区期/区号">
-            <el-input
-              v-model="configForm.district"
-              placeholder="例如：1"
-              style="width: 200px"
-            />
-            <span class="tip" style="margin-left: 8px"
-              >若小区只有1期/区，填1即可</span
+          <!-- 配置楼栋按钮 -->
+          <div class="config-button-wrapper">
+            <el-button
+              type="primary"
+              @click="showBuildingConfig = !showBuildingConfig"
             >
-          </el-form-item>
+              {{ showBuildingConfig ? "收起配置" : "配置楼栋" }}
+            </el-button>
+          </div>
 
-          <el-form-item label="楼栋配置">
-            <div class="building-config">
-              <el-input-number
-                v-model="configForm.buildingCount"
-                :min="1"
-                :max="100"
-                placeholder="楼栋数量"
+          <!-- 楼栋配置区域 -->
+          <div v-if="showBuildingConfig" class="building-setup-area">
+            <el-form-item label="小区期/区号">
+              <el-input
+                v-model="configForm.district"
+                placeholder="例如：1"
+                style="width: 200px"
               />
-              <span class="tip">栋</span>
-              <el-button
-                type="primary"
-                size="small"
-                @click="generateBuildings"
-                style="margin-left: 10px"
+              <span class="tip" style="margin-left: 8px"
+                >若小区只有1期/区，填1即可</span
               >
-                生成楼栋
-              </el-button>
-            </div>
-          </el-form-item>
+            </el-form-item>
 
-          <el-divider />
+            <el-form-item label="楼栋配置">
+              <div class="building-config">
+                <el-input-number
+                  v-model="configForm.buildingCount"
+                  :min="1"
+                  :max="100"
+                  placeholder="楼栋数量"
+                />
+                <span class="tip">栋</span>
+                <el-button
+                  type="primary"
+                  size="small"
+                  @click="generateBuildings"
+                  style="margin-left: 10px"
+                >
+                  生成楼栋
+                </el-button>
+              </div>
+            </el-form-item>
+          </div>
 
+          <el-divider v-if="configForm.buildings.length > 0" />
+
+          <!-- 楼栋列表 -->
           <div v-if="configForm.buildings.length > 0" class="buildings-list">
-            <h3>
-              {{ configType === "house" ? "楼栋详细配置" : "商铺详细配置" }}
-            </h3>
-            <el-collapse accordion :key="`collapse-${configType}`">
-              <el-collapse-item
+            <div class="buildings-grid">
+              <div
                 v-for="(building, bIndex) in configForm.buildings"
                 :key="`building-${configType}-${bIndex}`"
-                :name="String(bIndex)"
+                class="building-item"
+                :class="{ active: expandedBuilding === bIndex }"
+                @click="toggleBuilding(bIndex)"
               >
-                <template #title>
-                  <span class="building-title">
-                    {{ building.name }} 栋
-                    <template v-if="building.units.length > 0">
-                      <el-tag
-                        v-for="unit in building.units"
-                        :key="unit.name"
-                        size="small"
-                        style="margin-left: 8px"
-                      >
-                        {{ unit.name }}单元
-                      </el-tag>
-                    </template>
-                  </span>
-                </template>
+                <div class="building-number">{{ bIndex + 1 }}</div>
+                <div class="building-name">{{ building.name }}栋</div>
+              </div>
+            </div>
 
-                <div class="building-detail">
+            <!-- 选中楼栋的配置区域 -->
+            <div v-if="expandedBuilding !== null" class="building-config-area">
+              <div class="config-header">
+                <div class="header-left">
+                  <h4>
+                    {{ configForm.buildings[expandedBuilding].name }}栋 配置
+                  </h4>
+                  <el-button
+                    type="primary"
+                    size="small"
+                    @click="showUnitConfig = !showUnitConfig"
+                  >
+                    {{ showUnitConfig ? "收起配置" : "配置单元" }}
+                  </el-button>
+                </div>
+                <el-button size="small" @click="expandedBuilding = null">
+                  收起
+                </el-button>
+              </div>
+
+              <div class="building-detail">
+                <!-- 单元配置区域 -->
+                <div v-if="showUnitConfig" class="unit-setup-area">
                   <el-form-item label="楼栋名称">
                     <el-input
-                      v-model="building.name"
+                      v-model="configForm.buildings[expandedBuilding].name"
                       placeholder="例如：1"
                       style="width: 200px"
                     />
@@ -96,262 +120,351 @@
 
                   <el-form-item label="单元数量">
                     <el-input-number
-                      v-model="building.unitCount"
+                      v-model="configForm.buildings[expandedBuilding].unitCount"
                       :min="1"
                       :max="20"
-                      @change="updateBuildingUnits(bIndex)"
+                      @change="updateBuildingUnits(expandedBuilding)"
                     />
                     <span class="tip">个</span>
                     <el-button
                       type="primary"
                       size="small"
-                      @click="updateBuildingUnits(bIndex)"
+                      @click="updateBuildingUnits(expandedBuilding)"
                       style="margin-left: 10px"
                     >
                       应用
                     </el-button>
                   </el-form-item>
+                </div>
 
-                  <el-divider />
+                <el-divider
+                  v-if="configForm.buildings[expandedBuilding].units.length > 0"
+                />
 
-                  <div v-if="building.units.length > 0" class="units-list">
-                    <h4>单元配置</h4>
-                    <el-row :gutter="20">
-                      <el-col
-                        v-for="(unit, uIndex) in building.units"
-                        :key="uIndex"
-                        :span="12"
+                <!-- 单元列表 -->
+                <div
+                  v-if="configForm.buildings[expandedBuilding].units.length > 0"
+                  class="units-list"
+                >
+                  <div class="config-header">
+                    <div class="header-left">
+                      <h4>单元配置</h4>
+                      <el-button
+                        type="primary"
+                        size="small"
+                        @click="showRoomConfig = !showRoomConfig"
+                        :disabled="expandedUnit === null"
                       >
-                        <el-card class="unit-card" shadow="hover">
-                          <template #header>
-                            <span>第 {{ unit.name }} 单元</span>
-                          </template>
-                          <el-form-item label="单元名称" label-width="100px">
-                            <el-input
-                              v-model="unit.name"
-                              placeholder="例如：1"
-                              size="small"
-                              style="width: 150px"
-                            />
-                          </el-form-item>
-
-                          <el-divider content-position="left"
-                            >房号生成规则</el-divider
-                          >
-
-                          <el-form-item label="层数" label-width="100px">
-                            <el-input-number
-                              v-model="unit.floors"
-                              :min="1"
-                              :max="100"
-                              size="small"
-                              style="width: 150px"
-                            />
-                          </el-form-item>
-
-                          <el-form-item label="一层几户" label-width="100px">
-                            <el-input-number
-                              v-model="unit.roomsPerFloor"
-                              :min="1"
-                              :max="20"
-                              size="small"
-                              style="width: 150px"
-                            />
-                          </el-form-item>
-
-                          <el-form-item
-                            :label="
-                              configType === 'house' ? '起始户号' : '起始门牌号'
-                            "
-                            label-width="100px"
-                          >
-                            <el-input
-                              v-model="unit.startRoom"
-                              placeholder="例如：0101"
-                              size="small"
-                              style="width: 150px"
-                              maxlength="4"
-                              @input="
-                                unit.startRoom = unit.startRoom.replace(
-                                  /\D/g,
-                                  '',
-                                )
-                              "
-                            />
-                            <span class="tip" style="margin-left: 8px"
-                              >四位数字，例如：0101</span
-                            >
-                          </el-form-item>
-
-                          <el-form-item
-                            :label="
-                              configType === 'house' ? '结束户号' : '结束门牌号'
-                            "
-                            label-width="100px"
-                          >
-                            <el-input
-                              v-model="unit.endRoom"
-                              placeholder="例如：0606"
-                              size="small"
-                              style="width: 150px"
-                              maxlength="4"
-                              @input="
-                                unit.endRoom = unit.endRoom.replace(/\D/g, '')
-                              "
-                            />
-                            <span class="tip" style="margin-left: 8px"
-                              >四位数字，例如：0606</span
-                            >
-                          </el-form-item>
-
-                          <el-button
-                            type="primary"
-                            size="small"
-                            @click="previewRooms(unit)"
-                            style="margin-bottom: 10px"
-                          >
-                            生成预览
-                          </el-button>
-
-                          <div
-                            class="room-preview"
-                            v-if="unit.rooms && unit.rooms.length > 0"
-                          >
-                            <div class="preview-title">
-                              生成的{{
-                                configType === "house" ? "房号" : "门牌号"
-                              }}（共 {{ unit.rooms.length }} 个）
-                              <span class="edit-hint">双击房号可修改</span>
-                            </div>
-                            <div class="room-table-wrapper">
-                              <div class="room-table-container">
-                                <table class="room-table">
-                                  <thead>
-                                    <tr>
-                                      <th class="floor-header diagonal-header">
-                                        <span class="diagonal-text-bottom"
-                                          >楼层</span
-                                        >
-                                        <span class="diagonal-text-top"
-                                          >户号</span
-                                        >
-                                      </th>
-                                      <th
-                                        v-for="houseNum in getHouseNumList(
-                                          unit,
-                                          bIndex,
-                                          uIndex,
-                                        )"
-                                        :key="houseNum"
-                                        class="house-header"
-                                      >
-                                        {{ houseNum }}
-                                      </th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    <tr
-                                      v-for="floor in Array.from(
-                                        { length: unit.floors },
-                                        (_, i) => unit.floors - i,
-                                      )"
-                                      :key="floor"
-                                    >
-                                      <td class="floor-cell">{{ floor }}</td>
-                                      <td
-                                        v-for="houseNum in getHouseNumList(
-                                          unit,
-                                          bIndex,
-                                          uIndex,
-                                        )"
-                                        :key="`${floor}-${houseNum}`"
-                                        class="room-cell"
-                                      >
-                                        <el-input
-                                          v-if="
-                                            editingRoom ===
-                                            `${bIndex}-${uIndex}-${getRoomIndex(
-                                              unit,
-                                              floor,
-                                              houseNum,
-                                            )}`
-                                          "
-                                          v-model="
-                                            unit.rooms[
-                                              getRoomIndex(
-                                                unit,
-                                                floor,
-                                                houseNum,
-                                              )
-                                            ]
-                                          "
-                                          size="small"
-                                          maxlength="10"
-                                          style="width: 100%"
-                                          @blur="editingRoom = null"
-                                          @keyup.enter="editingRoom = null"
-                                        />
-                                        <span
-                                          v-else
-                                          class="room-number"
-                                          @dblclick="
-                                            editingRoom = `${bIndex}-${uIndex}-${getRoomIndex(
-                                              unit,
-                                              floor,
-                                              houseNum,
-                                            )}`
-                                          "
-                                        >
-                                          {{
-                                            getRoomByPosition(
-                                              unit,
-                                              floor,
-                                              houseNum,
-                                            )
-                                          }}
-                                        </span>
-                                      </td>
-                                    </tr>
-                                  </tbody>
-                                </table>
-                              </div>
-                              <el-button
-                                class="reverse-btn"
-                                size="small"
-                                type="primary"
-                                plain
-                                @click="toggleHouseNumOrder(bIndex, uIndex)"
-                              >
-                                户号逆序
-                              </el-button>
-                            </div>
-                          </div>
-                        </el-card>
-                      </el-col>
-                    </el-row>
+                        {{ showRoomConfig ? "收起配置" : "配置房号" }}
+                      </el-button>
+                    </div>
                   </div>
 
-                  <el-divider />
+                  <!-- 单元网格展示 -->
+                  <div class="units-grid">
+                    <div
+                      v-for="(unit, uIndex) in configForm.buildings[
+                        expandedBuilding
+                      ].units"
+                      :key="uIndex"
+                      class="unit-item"
+                      :class="{ active: expandedUnit === uIndex }"
+                      @click="toggleUnit(uIndex)"
+                    >
+                      <div class="unit-name">{{ unit.name }}单元</div>
+                      <div v-if="unit.rooms" class="unit-info">
+                        {{ unit.rooms.length }}个房间
+                      </div>
+                    </div>
+                  </div>
 
-                  <div class="template-actions">
-                    <el-button
-                      type="success"
-                      size="small"
-                      @click="saveAsTemplate(bIndex)"
+                  <!-- 展开的单元配置 -->
+                  <div v-if="expandedUnit !== null" class="unit-config-area">
+                    <!-- 配置表单（只有点击配置房号按钮才显示） -->
+                    <div v-if="showRoomConfig">
+                      <el-form-item label="单元名称" label-width="100px">
+                        <el-input
+                          v-model="
+                            configForm.buildings[expandedBuilding].units[
+                              expandedUnit
+                            ].name
+                          "
+                          placeholder="例如：1"
+                          size="small"
+                          style="width: 150px"
+                        />
+                      </el-form-item>
+
+                      <el-divider content-position="left"
+                        >房号生成规则</el-divider
+                      >
+
+                      <el-form-item label="层数" label-width="100px">
+                        <el-input-number
+                          v-model="
+                            configForm.buildings[expandedBuilding].units[
+                              expandedUnit
+                            ].floors
+                          "
+                          :min="1"
+                          :max="100"
+                          size="small"
+                          style="width: 150px"
+                        />
+                      </el-form-item>
+
+                      <el-form-item label="一层几户" label-width="100px">
+                        <el-input-number
+                          v-model="
+                            configForm.buildings[expandedBuilding].units[
+                              expandedUnit
+                            ].roomsPerFloor
+                          "
+                          :min="1"
+                          :max="20"
+                          size="small"
+                          style="width: 150px"
+                        />
+                      </el-form-item>
+
+                      <el-form-item
+                        :label="
+                          configType === 'house' ? '起始户号' : '起始门牌号'
+                        "
+                        label-width="100px"
+                      >
+                        <el-input
+                          v-model="
+                            configForm.buildings[expandedBuilding].units[
+                              expandedUnit
+                            ].startRoom
+                          "
+                          placeholder="例如：0101"
+                          size="small"
+                          style="width: 150px"
+                          maxlength="4"
+                          @input="
+                            configForm.buildings[expandedBuilding].units[
+                              expandedUnit
+                            ].startRoom = configForm.buildings[
+                              expandedBuilding
+                            ].units[expandedUnit].startRoom.replace(/\D/g, '')
+                          "
+                        />
+                        <span class="tip" style="margin-left: 8px"
+                          >四位数字，例如：0101</span
+                        >
+                      </el-form-item>
+
+                      <el-form-item
+                        :label="
+                          configType === 'house' ? '结束户号' : '结束门牌号'
+                        "
+                        label-width="100px"
+                      >
+                        <el-input
+                          v-model="
+                            configForm.buildings[expandedBuilding].units[
+                              expandedUnit
+                            ].endRoom
+                          "
+                          placeholder="例如：0606"
+                          size="small"
+                          style="width: 150px"
+                          maxlength="4"
+                          @input="
+                            configForm.buildings[expandedBuilding].units[
+                              expandedUnit
+                            ].endRoom = configForm.buildings[
+                              expandedBuilding
+                            ].units[expandedUnit].endRoom.replace(/\D/g, '')
+                          "
+                        />
+                        <span class="tip" style="margin-left: 8px"
+                          >四位数字，例如：0606</span
+                        >
+                      </el-form-item>
+
+                      <el-button
+                        type="primary"
+                        size="small"
+                        @click="
+                          previewRooms(
+                            configForm.buildings[expandedBuilding].units[
+                              expandedUnit
+                            ],
+                          )
+                        "
+                        style="margin-bottom: 10px"
+                      >
+                        生成预览
+                      </el-button>
+                    </div>
+
+                    <!-- 房号列表（始终显示） -->
+                    <div
+                      class="room-preview"
+                      v-if="
+                        expandedBuilding !== null &&
+                        expandedUnit !== null &&
+                        configForm.buildings[expandedBuilding]?.units[
+                          expandedUnit
+                        ]?.rooms &&
+                        configForm.buildings[expandedBuilding].units[
+                          expandedUnit
+                        ].rooms!.length > 0
+                      "
                     >
-                      保存为模版
-                    </el-button>
-                    <el-button
-                      type="primary"
-                      size="small"
-                      @click="applyTemplate(bIndex)"
-                    >
-                      应用模版
-                    </el-button>
+                      <div class="preview-title">
+                        生成的{{
+                          configType === "house" ? "房号" : "门牌号"
+                        }}（共
+                        {{
+                          configForm.buildings[expandedBuilding!].units[
+                            expandedUnit!
+                          ].rooms!.length
+                        }}
+                        个）
+                        <span class="edit-hint">双击房号可修改</span>
+                      </div>
+                      <div class="room-table-wrapper">
+                        <div class="room-table-container">
+                          <table class="room-table">
+                            <thead>
+                              <tr>
+                                <th class="floor-header diagonal-header">
+                                  <span class="diagonal-text-bottom">楼层</span>
+                                  <span class="diagonal-text-top">户号</span>
+                                </th>
+                                <th
+                                  v-for="houseNum in getHouseNumList(
+                                    configForm.buildings[expandedBuilding]
+                                      .units[expandedUnit],
+                                    expandedBuilding,
+                                    expandedUnit,
+                                  )"
+                                  :key="houseNum"
+                                  class="house-header"
+                                >
+                                  {{ houseNum }}
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr
+                                v-for="floor in Array.from(
+                                  {
+                                    length:
+                                      configForm.buildings[expandedBuilding!]
+                                        .units[expandedUnit!].floors,
+                                  },
+                                  (_, i) =>
+                                    configForm.buildings[expandedBuilding!]
+                                      .units[expandedUnit!].floors - i,
+                                )"
+                                :key="floor"
+                              >
+                                <td class="floor-cell">{{ floor }}</td>
+                                <td
+                                  v-for="houseNum in getHouseNumList(
+                                    configForm.buildings[expandedBuilding]
+                                      .units[expandedUnit],
+                                    expandedBuilding,
+                                    expandedUnit,
+                                  )"
+                                  :key="`${floor}-${houseNum}`"
+                                  class="room-cell"
+                                >
+                                  <el-input
+                                    v-if="
+                                      editingRoom ===
+                                      `${expandedBuilding}-${expandedUnit}-${getRoomIndex(
+                                        configForm.buildings[expandedBuilding!]
+                                          .units[expandedUnit!],
+                                        floor,
+                                        houseNum,
+                                      )}`
+                                    "
+                                    v-model="
+                                      configForm.buildings[expandedBuilding!]
+                                        .units[expandedUnit!].rooms![
+                                        getRoomIndex(
+                                          configForm.buildings[
+                                            expandedBuilding!
+                                          ].units[expandedUnit!],
+                                          floor,
+                                          houseNum,
+                                        )
+                                      ]
+                                    "
+                                    size="small"
+                                    maxlength="10"
+                                    style="width: 100%"
+                                    @blur="editingRoom = null"
+                                    @keyup.enter="editingRoom = null"
+                                  />
+                                  <span
+                                    v-else
+                                    class="room-number"
+                                    @dblclick="
+                                      editingRoom = `${expandedBuilding}-${expandedUnit}-${getRoomIndex(
+                                        configForm.buildings[expandedBuilding!]
+                                          .units[expandedUnit!],
+                                        floor,
+                                        houseNum,
+                                      )}`
+                                    "
+                                  >
+                                    {{
+                                      getRoomByPosition(
+                                        configForm.buildings[expandedBuilding!]
+                                          .units[expandedUnit!],
+                                        floor,
+                                        houseNum,
+                                      )
+                                    }}
+                                  </span>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                        <el-button
+                          class="reverse-btn"
+                          size="small"
+                          type="primary"
+                          plain
+                          @click="
+                            toggleHouseNumOrder(expandedBuilding, expandedUnit)
+                          "
+                        >
+                          户号逆序
+                        </el-button>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </el-collapse-item>
-            </el-collapse>
+
+                <el-divider />
+
+                <div class="template-actions">
+                  <el-button
+                    type="success"
+                    size="small"
+                    @click="saveAsTemplate(expandedBuilding)"
+                  >
+                    保存为楼栋模版
+                  </el-button>
+                  <el-button
+                    type="primary"
+                    size="small"
+                    @click="applyTemplate(expandedBuilding)"
+                  >
+                    应用楼栋模版
+                  </el-button>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div
@@ -485,6 +598,41 @@ const selectedTemplate = ref<number | null>(null);
 const editingRoom = ref<string | null>(null); // 当前正在编辑的房号，格式：buildingIndex-unitIndex-roomIndex
 const reverseHouseNum = ref<{ [key: string]: boolean }>({}); // 记录每个单元的户号是否逆序，key格式：buildingIndex-unitIndex
 let currentBuildingIndex = -1;
+
+// 展开状态
+const expandedBuilding = ref<number | null>(null); // 当前展开的楼栋索引
+const expandedUnit = ref<number | null>(null); // 当前展开的单元索引
+
+// 配置显示状态
+const showBuildingConfig = ref(false); // 是否显示楼栋配置区域
+const showUnitConfig = ref(false); // 是否显示单元配置区域
+const showRoomConfig = ref(false); // 是否显示房号配置区域
+
+// 切换楼栋展开状态
+function toggleBuilding(index: number) {
+  if (expandedBuilding.value === index) {
+    expandedBuilding.value = null;
+    expandedUnit.value = null;
+    showUnitConfig.value = false;
+    showRoomConfig.value = false;
+  } else {
+    expandedBuilding.value = index;
+    expandedUnit.value = null; // 切换楼栋时收起单元
+    showUnitConfig.value = false;
+    showRoomConfig.value = false;
+  }
+}
+
+// 切换单元展开状态
+function toggleUnit(index: number) {
+  if (expandedUnit.value === index) {
+    expandedUnit.value = null;
+    showRoomConfig.value = false;
+  } else {
+    expandedUnit.value = index;
+    showRoomConfig.value = false; // 默认不展开房号配置
+  }
+}
 
 // 格式化房号为4位数
 function formatRoomNumber(room: string | number | undefined): string {
@@ -760,8 +908,14 @@ function confirmApplyTemplate() {
     rooms: u.rooms ? [...u.rooms] : [], // 深拷贝rooms数组
   }));
 
+  // 收起当前展开的单元，让用户看到更新效果
+  expandedUnit.value = null;
+  showRoomConfig.value = false;
+
   templateDialog.value = false;
-  ElMessage.success(`已应用模版到第 ${building.name} 栋`);
+  ElMessage.success(
+    `已应用模版到第 ${building.name} 栋，共 ${building.unitCount} 个单元`,
+  );
 }
 
 // 清空所有模版
@@ -863,7 +1017,9 @@ async function saveConfig() {
     };
 
     await request.post("/house-config", config);
-    ElMessage.success("保存成功");
+    ElMessage.success(
+      `${configType.value === "house" ? "房屋" : "商铺"}配置保存成功`,
+    );
     loadConfig();
   } catch (err) {
     console.error("保存配置失败:", err);
@@ -874,9 +1030,9 @@ async function saveConfig() {
 async function loadConfig() {
   try {
     const params = { type: configType.value };
-    const data = await request.get("/house-config", { params });
+    const data: any = await request.get("/house-config", { params });
     if (data.config) {
-      const config = data.config;
+      const config: any = data.config;
       configForm.district = config.district || "1";
       configForm.buildingCount = config.buildings?.length || 0;
       configForm.buildings =
@@ -914,6 +1070,11 @@ onMounted(() => {
 
 // 监听配置类型变化，重新加载配置
 watch(configType, () => {
+  expandedBuilding.value = null;
+  expandedUnit.value = null;
+  showBuildingConfig.value = false;
+  showUnitConfig.value = false;
+  showRoomConfig.value = false;
   loadConfig();
 });
 </script>
@@ -988,6 +1149,103 @@ watch(configType, () => {
   margin-top: 20px;
 }
 
+.buildings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.building-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  border: 2px solid #e4e7ed;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+  background: white;
+}
+
+.building-item:hover {
+  border-color: #409eff;
+  box-shadow: 0 2px 12px rgba(64, 158, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.building-item.active {
+  border-color: #409eff;
+  background: #ecf5ff;
+}
+
+.building-number {
+  font-size: 28px;
+  font-weight: bold;
+  color: #409eff;
+  margin-bottom: 8px;
+}
+
+.building-name {
+  font-size: 14px;
+  color: #606266;
+  font-weight: 500;
+}
+
+.building-config-area {
+  margin-top: 20px;
+  padding: 20px;
+  border: 2px solid #e4e7ed;
+  border-radius: 8px;
+  background: #f5f7fa;
+}
+
+.config-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.config-header h4 {
+  margin: 0;
+  color: #409eff;
+  font-size: 16px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.config-button-wrapper {
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.building-setup-area {
+  padding: 20px;
+  background: #f5f7fa;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border: 1px solid #e4e7ed;
+}
+
+.unit-setup-area {
+  padding: 15px;
+  background: #fafafa;
+  border-radius: 6px;
+  margin-bottom: 15px;
+  border: 1px solid #e4e7ed;
+}
+
 .building-title {
   font-weight: 600;
   font-size: 15px;
@@ -995,14 +1253,68 @@ watch(configType, () => {
 
 .building-detail {
   padding: 20px;
+  background: white;
+  border-radius: 6px;
 }
 
 .units-list {
   margin-top: 20px;
 }
 
+.units-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.unit-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 15px;
+  border: 2px solid #e4e7ed;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s;
+  background: white;
+}
+
+.unit-item:hover {
+  border-color: #67c23a;
+  box-shadow: 0 2px 8px rgba(103, 194, 58, 0.2);
+  transform: translateY(-2px);
+}
+
+.unit-item.active {
+  border-color: #67c23a;
+  background: #f0f9ff;
+}
+
+.unit-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 4px;
+}
+
+.unit-info {
+  font-size: 12px;
+  color: #909399;
+}
+
+.unit-config-area {
+  margin-top: 15px;
+  padding: 15px;
+  border: 2px solid #e4e7ed;
+  border-radius: 6px;
+  background: white;
+}
+
 .unit-card {
   margin-bottom: 15px;
+  box-shadow: none;
 }
 
 .room-preview {

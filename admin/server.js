@@ -32,6 +32,7 @@ const reportRoutes = require("./routes/report");
 const evaluationRoutes = require("./routes/evaluation");
 const announcementRoutes = require("./routes/announcement");
 const communityInfoRoutes = require("./routes/communityInfo");
+const regionRoutes = require("./routes/region");
 
 const app = express();
 app.use(bodyParser.json());
@@ -44,11 +45,11 @@ app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", origin);
   res.header(
     "Access-Control-Allow-Methods",
-    "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+    "GET,POST,PUT,PATCH,DELETE,OPTIONS",
   );
   res.header(
     "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, X-Requested-With"
+    "Content-Type, Authorization, X-Requested-With",
   );
   if (req.method === "OPTIONS") return res.sendStatus(200);
   next();
@@ -80,6 +81,7 @@ app.use("/api/evaluation", evaluationRoutes);
 app.use("/api/announcements", announcementRoutes);
 app.use("/api/notifications", announcementRoutes); // 通知公告使用相同的路由
 app.use("/api/community-info", communityInfoRoutes);
+app.use("/api", regionRoutes);
 
 // Helper to extract Bearer token or query token (保留用于未迁移的路由)
 function getTokenFromReq(req) {
@@ -2457,7 +2459,7 @@ function startAutoReviewScheduler() {
       }
 
       console.log(
-        `⏰ 开始执行自动审核任务，共 ${configRes.data.length} 个社区`
+        `⏰ 开始执行自动审核任务，共 ${configRes.data.length} 个社区`,
       );
 
       // 为每个社区执行自动审核
@@ -2466,18 +2468,18 @@ function startAutoReviewScheduler() {
           // 动态加载 certification 路由模块中的执行函数
           const certRoutes = require("./routes/certification");
           const result = await executeAutoReviewForCommunity(
-            config.communityId
+            config.communityId,
           );
 
           if (result.approvedCount > 0) {
             console.log(
-              `✅ 社区 ${config.communityId} 自动审核: ${result.message}`
+              `✅ 社区 ${config.communityId} 自动审核: ${result.message}`,
             );
           }
         } catch (err) {
           console.error(
             `❌ 社区 ${config.communityId} 自动审核失败:`,
-            err.message
+            err.message,
           );
         }
       }
@@ -2544,7 +2546,7 @@ async function executeAutoReviewForCommunity(communityId) {
     try {
       // 获取该用户在业主名册中的所有房产
       const userProperties = ownerRegistry.filter(
-        (owner) => owner.ownerName1 === userName
+        (owner) => owner.ownerName1 === userName,
       );
 
       if (userProperties.length === 0) {
@@ -2577,7 +2579,7 @@ async function executeAutoReviewForCommunity(communityId) {
           (reg) =>
             reg.normalized.building === normalizedApp.building &&
             reg.normalized.unit === normalizedApp.unit &&
-            reg.normalized.room === normalizedApp.room
+            reg.normalized.room === normalizedApp.room,
         );
 
         if (matched) {
@@ -2634,7 +2636,7 @@ async function executeAutoReviewForCommunity(communityId) {
           await db.collection("owner_list").add({ data: ownerListData });
 
           console.log(
-            `✅ 添加到户主名单: ${firstApp.name} - ${prop.building}栋${prop.unit}单元${prop.room}室`
+            `✅ 添加到户主名单: ${firstApp.name} - ${prop.building}栋${prop.unit}单元${prop.room}室`,
           );
           approvedCount++;
         }

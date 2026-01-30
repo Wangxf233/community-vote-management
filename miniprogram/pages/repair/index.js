@@ -285,7 +285,7 @@ Page({
         // 重新加载进度
         this.loadProgressData();
       } else {
-        const errorMsg = res.result?.error || "提交失败";
+        const errorMsg = (res.result && res.result.error) || "提交失败";
         throw new Error(errorMsg);
       }
     } catch (err) {
@@ -354,7 +354,7 @@ Page({
         // 重新加载进度
         this.loadProgressData();
       } else {
-        throw new Error(res.result?.error || "提交失败");
+        throw new Error((res.result && res.result.error) || "提交失败");
       }
     } catch (err) {
       wx.hideLoading();

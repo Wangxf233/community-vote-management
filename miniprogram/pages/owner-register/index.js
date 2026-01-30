@@ -73,7 +73,13 @@ Page({
   // 加载指定区域的小区列表
   async loadCommunitiesByRegion() {
     try {
-      const [province, city, district] = this.data.region;
+      let [province, city, district] = this.data.region;
+
+      // 处理直辖市：如果city和province相同，说明picker返回了重复的省名，需要转换为"市辖区"
+      const municipalities = ["北京市", "天津市", "上海市", "重庆市"];
+      if (municipalities.includes(province) && city === province) {
+        city = "市辖区";
+      }
 
       const result = await wx.cloud.callFunction({
         name: "listCommunitiesByRegion",
@@ -190,12 +196,19 @@ Page({
     try {
       wx.showLoading({ title: "验证中...", mask: true });
 
+      // 处理直辖市region数据
+      let [province, city, district] = this.data.region;
+      const municipalities = ["北京市", "天津市", "上海市", "重庆市"];
+      if (municipalities.includes(province) && city === province) {
+        city = "市辖区";
+      }
+
       // 传递region参数以进行更精确的匹配
       const result = await wx.cloud.callFunction({
         name: "checkCommunity",
         data: {
           communityName,
-          region: this.data.region, // 传递省市区信息
+          region: [province, city, district], // 传递处理后的省市区信息
         },
       });
 
@@ -285,7 +298,7 @@ Page({
       } else {
         this.setData({ buildings: [] });
         wx.showToast({
-          title: result.result?.message || "获取房屋配置失败",
+          title: (result.result && result.result.message) || "获取房屋配置失败",
           icon: "none",
           duration: 2000,
         });
@@ -396,7 +409,7 @@ Page({
         p.building === building &&
         p.unit === unit &&
         p.room === room &&
-        p.propertyType === propertyType
+        p.propertyType === propertyType,
     );
 
     if (duplicate) {
@@ -467,7 +480,7 @@ Page({
             p.building === building &&
             p.unit === unit &&
             p.room === room &&
-            p.propertyType === propertyType
+            p.propertyType === propertyType,
         );
 
         if (!exists) {

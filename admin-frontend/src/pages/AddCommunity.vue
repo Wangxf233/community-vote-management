@@ -57,6 +57,12 @@
             clearable
           />
         </el-form-item>
+        <el-form-item label="详细地址">
+          <el-input
+            v-model="form.address"
+            placeholder="输入街道等详细地址信息"
+          />
+        </el-form-item>
         <el-form-item label="小区名称">
           <el-input v-model="form.name" />
         </el-form-item>
@@ -171,6 +177,7 @@ const showPassword = ref(false);
 const today = new Date();
 const form = reactive({
   region: [] as string[],
+  address: "",
   name: "",
   ownerName: "",
   ownerPhone: "",
@@ -203,7 +210,7 @@ const rules = reactive({
           return cb(new Error("密码需为8-32位"));
         const cat = [/[a-z]/, /[A-Z]/, /\d/, /[^A-Za-z0-9]/].reduce(
           (acc, r) => acc + (r.test(val) ? 1 : 0),
-          0
+          0,
         );
         if (cat < 2)
           return cb(new Error("需至少包含两类字符(大小写/数字/符号)"));
@@ -214,22 +221,7 @@ const rules = reactive({
   ],
 });
 
-const regionOptions = ref([
-  {
-    value: "广东省",
-    label: "广东省",
-    children: [
-      {
-        value: "深圳市",
-        label: "深圳市",
-        children: [
-          { value: "南山区", label: "南山区" },
-          { value: "福田区", label: "福田区" },
-        ],
-      },
-    ],
-  },
-] as any);
+const regionOptions = ref([]);
 
 function computeEndDate() {
   const s = form.startDate ? new Date(form.startDate) : new Date();
@@ -310,18 +302,17 @@ async function onCreate() {
     ElMessageBox.alert(
       "尚未检测到登录凭证，请先登录。点击确定跳转到登录页。",
       "未登录",
-      { confirmButtonText: "去登录" }
+      { confirmButtonText: "去登录" },
     ).then(() => {
       window.location.href = "/#/login";
     });
     return;
   }
   try {
-    console.debug("Using admin-token for create:", token);
     const payload: any = {
       name: form.name,
       region: form.region,
-      address: "",
+      address: form.address || "",
       ownerName: form.ownerName,
       ownerPhone: form.ownerPhone,
       startDate: form.startDate
@@ -337,15 +328,13 @@ async function onCreate() {
           : undefined,
     };
 
-    console.debug("Creating community payload:", payload);
-
     const body = await request.post("/communities", payload);
     ElMessage.success("创建成功");
     onReset();
   } catch (e) {
     console.error(e);
     ElMessage.error(
-      "创建失败: " + (e && (e as any).message ? (e as any).message : e)
+      "创建失败: " + (e && (e as any).message ? (e as any).message : e),
     );
   }
 }
@@ -353,6 +342,7 @@ async function onCreate() {
 function onReset() {
   form.name = "";
   form.region = [];
+  form.address = "";
   form.ownerName = "";
   form.ownerPhone = "";
   form.startDate = new Date();
@@ -406,6 +396,17 @@ function applyDark(v: boolean) {
 function toggleDark() {
   applyDark(!isDark.value);
 }
+
+async function loadRegions() {
+  try {
+    const data: any = await request.get("/regions");
+    regionOptions.value = data || [];
+  } catch (e) {
+    console.error("加载省市区数据失败:", e);
+    regionOptions.value = [];
+  }
+}
+
 function initUser() {
   try {
     const raw = localStorage.getItem("admin-user");
@@ -417,6 +418,7 @@ function initUser() {
   } catch (_) {}
   const dark = localStorage.getItem("admin-dark") === "1";
   applyDark(dark);
+  loadRegions();
   refreshExpiring();
 }
 function logout() {

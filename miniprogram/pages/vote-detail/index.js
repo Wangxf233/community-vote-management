@@ -334,9 +334,11 @@ Page({
             this.setData({
               myVoteRecord: {
                 optionText:
-                  (this.data.voteDetail.options || []).find(
-                    (o) => o.id === res.result.myVoteRecord.optionId
-                  )?.text || "",
+                  (
+                    (this.data.voteDetail.options || []).find(
+                      (o) => o.id === res.result.myVoteRecord.optionId
+                    ) || {}
+                  ).text || "",
                 voteTime: new Date().toLocaleString(),
               },
             });
@@ -384,7 +386,7 @@ Page({
         });
       } else {
         wx.showToast({
-          title: res.result?.error || "投票失败",
+          title: (res.result && res.result.error) || "投票失败",
           icon: "none",
         });
       }

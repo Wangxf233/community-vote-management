@@ -95,10 +95,13 @@
               {{ formatDate(row.createdAt) }}
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="200" align="center">
+          <el-table-column label="操作" width="280" align="center">
             <template #default="{ row }">
               <el-button type="primary" size="small" @click="onViewAccount(row)"
                 >查看账号</el-button
+              >
+              <el-button type="warning" size="small" @click="onEdit(row)"
+                >编辑</el-button
               >
               <el-button type="danger" size="small" @click="onDelete(row)"
                 >删除</el-button
@@ -146,6 +149,35 @@
       <template #footer>
         <el-button @click="addDialog = false">取消</el-button>
         <el-button type="primary" @click="onAddMember">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 编辑成员弹窗 -->
+    <el-dialog v-model="editDialog" title="编辑成员" width="520px">
+      <el-form :model="editForm" label-width="100px">
+        <el-form-item label="所属部门">
+          <el-select
+            v-model="editForm.department"
+            placeholder="请选择所属部门"
+            style="width: 100%"
+          >
+            <el-option label="业委会" value="业委会" />
+            <el-option label="物业公司" value="物业公司" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="职位">
+          <el-input v-model="editForm.position" placeholder="如：物业经理" />
+        </el-form-item>
+        <el-form-item label="姓名">
+          <el-input v-model="editForm.name" placeholder="请输入姓名" />
+        </el-form-item>
+        <el-form-item label="手机号">
+          <el-input v-model="editForm.phone" placeholder="请输入手机号" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="editDialog = false">取消</el-button>
+        <el-button type="primary" @click="onSaveEdit">保存</el-button>
       </template>
     </el-dialog>
 
@@ -197,9 +229,11 @@ import request from "@/utils/axios";
 const members = ref<any[]>([]);
 const total = ref(0);
 const addDialog = ref(false);
+const editDialog = ref(false);
 const accountDialog = ref(false);
 const tempNewPassword = ref<string | null>(null);
 let currentMemberId: string | null = null;
+let editingMemberId: string | null = null;
 
 const filters = reactive({
   department: "",
@@ -216,6 +250,13 @@ const addForm = reactive({
   phone: "",
   username: "",
   password: "",
+});
+
+const editForm = reactive({
+  department: "",
+  position: "",
+  name: "",
+  phone: "",
 });
 
 const accountForm = reactive({
@@ -253,7 +294,7 @@ async function loadMembers() {
     if (filters.phone) params.phone = filters.phone;
     if (filters.username) params.username = filters.username;
 
-    const body = await request.get("/community-admins", { params });
+    const body: any = await request.get("/community-admins", { params });
 
     members.value = body.data || [];
     total.value = body.total || 0;
@@ -315,11 +356,44 @@ async function onAddMember() {
   }
 }
 
+function onEdit(row: any) {
+  editingMemberId = row._id;
+  editForm.department = row.department || "";
+  editForm.position = row.position || "";
+  editForm.name = row.name || "";
+  editForm.phone = row.phone || "";
+  editDialog.value = true;
+}
+
+async function onSaveEdit() {
+  if (!editingMemberId) return;
+  if (!editForm.name || !editForm.phone) {
+    ElMessage.warning("请填写姓名和手机号");
+    return;
+  }
+
+  try {
+    await request.put(`/community-admins/${editingMemberId}`, {
+      department: editForm.department,
+      position: editForm.position,
+      name: editForm.name,
+      phone: editForm.phone,
+    });
+
+    ElMessage.success("保存成功");
+    editDialog.value = false;
+    loadMembers();
+  } catch (e) {
+    console.error(e);
+    ElMessage.error("保存失败");
+  }
+}
+
 async function onViewAccount(row: any) {
   try {
     currentMemberId = row._id;
 
-    const body = await request.get(`/community-admins/${row._id}/account`);
+    const body: any = await request.get(`/community-admins/${row._id}/account`);
 
     accountForm.department = body.department || "";
     accountForm.position = body.position || "";
@@ -342,14 +416,14 @@ async function onSaveAccount() {
   }
 
   try {
-    const body = await request.put(
+    const body: any = await request.put(
       `/community-admins/${currentMemberId}/account`,
       {
         username: accountForm.username.trim(),
         ...(tempNewPassword.value
           ? { newPassword: tempNewPassword.value }
           : {}),
-      }
+      },
     );
 
     if (body.newPassword) {
@@ -371,7 +445,7 @@ async function onResetPassword() {
     await ElMessageBox.confirm(
       "将为该成员生成一个新密码。本次重置后无需强制修改密码。是否继续？",
       "重置密码确认",
-      { type: "warning" }
+      { type: "warning" },
     );
   } catch {
     return;
@@ -382,7 +456,7 @@ async function onResetPassword() {
       String(Math.floor(10000000 + Math.random() * 90000000));
     const nextPwd = gen8Digit();
 
-    const body = await request.put(
+    const body: any = await request.put(
       `/community-admins/${currentMemberId}/account`,
       {
         ...(accountForm.username
@@ -390,7 +464,7 @@ async function onResetPassword() {
           : {}),
         reset: true,
         newPassword: nextPwd,
-      }
+      },
     );
 
     tempNewPassword.value = body.newPassword || nextPwd;
@@ -411,7 +485,7 @@ async function onDelete(row: any) {
         type: "warning",
         confirmButtonText: "确认删除",
         cancelButtonText: "取消",
-      }
+      },
     );
   } catch {
     return;

@@ -12,10 +12,12 @@ router.get("/house-config", authMiddleware, async (req, res) => {
     const user = req.user;
     const { type } = req.query; // house 或 shop
 
-    const whereCondition = { communityId: user.communityId };
-    if (type) {
-      whereCondition.type = type;
-    }
+    // type 是必需的，确保房屋和商铺配置分开
+    const configType = type || "house";
+    const whereCondition = {
+      communityId: user.communityId,
+      type: configType,
+    };
 
     const configRes = await db
       .collection("house_config")
@@ -28,7 +30,11 @@ router.get("/house-config", authMiddleware, async (req, res) => {
 
     return res.json({
       success: true,
-      config: config || { buildings: [], type: type || "house", district: "1" },
+      config: config || {
+        buildings: [],
+        type: configType,
+        district: "1",
+      },
     });
   } catch (e) {
     console.error("获取房屋配置失败:", e);
@@ -48,11 +54,14 @@ router.post("/house-config", authMiddleware, async (req, res) => {
       return res.status(400).json({ success: false, error: "invalid_data" });
     }
 
+    // type 是必需的，确保房屋和商铺配置分开
+    const configType = type || "house";
+
     // 检查是否已存在配置（根据类型）
-    const whereCondition = { communityId: user.communityId };
-    if (type) {
-      whereCondition.type = type;
-    }
+    const whereCondition = {
+      communityId: user.communityId,
+      type: configType,
+    };
 
     const existingRes = await db
       .collection("house_config")
@@ -63,7 +72,7 @@ router.post("/house-config", authMiddleware, async (req, res) => {
     const now = new Date().toISOString();
     const configData = {
       communityId: user.communityId,
-      type: type || "house", // 默认house
+      type: configType,
       district: district || "1", // 默认1
       buildings,
       updatedAt: now,

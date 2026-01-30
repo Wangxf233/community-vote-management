@@ -388,7 +388,7 @@ Page({
           app.globalData.bindingStatus = "pending";
         } else {
           wx.showToast({
-            title: res.result?.error || "提交失败",
+            title: (res.result && res.result.error) || "提交失败",
             icon: "none",
           });
         }

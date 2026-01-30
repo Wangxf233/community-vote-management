@@ -4,17 +4,9 @@
       <template #header>
         <div class="card-header">
           <span>小区基本情况</span>
-          <div class="button-group">
-            <el-button v-if="!isEditing" type="primary" @click="startEdit">
-              编辑
-            </el-button>
-            <template v-else>
-              <el-button @click="cancelEdit">取消</el-button>
-              <el-button type="primary" @click="handleSave" :loading="loading">
-                保存
-              </el-button>
-            </template>
-          </div>
+          <el-button v-if="!isEditing" type="primary" @click="startEdit">
+            编辑
+          </el-button>
         </div>
       </template>
 
@@ -118,48 +110,26 @@
               :precision="2"
               :controls="true"
             />
-            <span class="unit">亩</span>
+            <span class="unit">平方米</span>
           </template>
-          <span v-else class="display-value">{{ formData.landArea }} 亩</span>
+          <span v-else class="display-value"
+            >{{ formData.landArea }} 平方米</span
+          >
         </el-form-item>
 
         <el-form-item label="建筑面积">
-          <div class="nested-fields" v-if="isEditing">
-            <div class="nested-item">
-              <span class="nested-label">住宅面积</span>
-              <el-input-number
-                v-model="formData.buildingArea.residential"
-                :min="0"
-                :precision="2"
-                :controls="true"
-              />
-              <span class="unit">平方米</span>
-            </div>
-            <div class="nested-item">
-              <span class="nested-label">商户面积</span>
-              <el-input-number
-                v-model="formData.buildingArea.commercial"
-                :min="0"
-                :precision="2"
-                :controls="true"
-              />
-              <span class="unit">平方米</span>
-            </div>
-          </div>
-          <div v-else class="nested-display">
-            <div class="nested-item-display">
-              <span class="nested-label">住宅面积</span>
-              <span class="display-value"
-                >{{ formData.buildingArea.residential }} 平方米</span
-              >
-            </div>
-            <div class="nested-item-display">
-              <span class="nested-label">商户面积</span>
-              <span class="display-value"
-                >{{ formData.buildingArea.commercial }} 平方米</span
-              >
-            </div>
-          </div>
+          <template v-if="isEditing">
+            <el-input-number
+              v-model="formData.buildingArea"
+              :min="0"
+              :precision="2"
+              :controls="true"
+            />
+            <span class="unit">平方米</span>
+          </template>
+          <span v-else class="display-value">
+            {{ formData.buildingArea }} 平方米
+          </span>
         </el-form-item>
 
         <el-form-item label="专有面积">
@@ -175,9 +145,19 @@
               <span class="unit">平方米</span>
             </div>
             <div class="nested-item">
-              <span class="nested-label">商户面积</span>
+              <span class="nested-label">商铺面积</span>
               <el-input-number
-                v-model="formData.exclusiveArea.commercial"
+                v-model="formData.exclusiveArea.shop"
+                :min="0"
+                :precision="2"
+                :controls="true"
+              />
+              <span class="unit">平方米</span>
+            </div>
+            <div class="nested-item">
+              <span class="nested-label">其它面积</span>
+              <el-input-number
+                v-model="formData.exclusiveArea.other"
                 :min="0"
                 :precision="2"
                 :controls="true"
@@ -193,18 +173,24 @@
               >
             </div>
             <div class="nested-item-display">
-              <span class="nested-label">商户面积</span>
+              <span class="nested-label">商铺面积</span>
               <span class="display-value"
-                >{{ formData.exclusiveArea.commercial }} 平方米</span
+                >{{ formData.exclusiveArea.shop }} 平方米</span
+              >
+            </div>
+            <div class="nested-item-display">
+              <span class="nested-label">其它面积</span>
+              <span class="display-value"
+                >{{ formData.exclusiveArea.other }} 平方米</span
               >
             </div>
           </div>
         </el-form-item>
 
-        <el-form-item label="地下车库面积">
+        <el-form-item label="车库面积">
           <template v-if="isEditing">
             <el-input-number
-              v-model="formData.undergroundParkingArea"
+              v-model="formData.parkingArea"
               :min="0"
               :precision="2"
               :controls="true"
@@ -212,7 +198,7 @@
             <span class="unit">平方米</span>
           </template>
           <span v-else class="display-value"
-            >{{ formData.undergroundParkingArea }} 平方米</span
+            >{{ formData.parkingArea }} 平方米</span
           >
         </el-form-item>
 
@@ -263,63 +249,89 @@
         <el-divider content-position="left">图片资料</el-divider>
 
         <el-form-item label="小区平面图">
-          <el-upload
-            class="image-uploader"
-            :action="uploadAction"
-            :headers="uploadHeaders"
-            :show-file-list="false"
-            :on-success="(res) => handleImageSuccess(res, 'planImage')"
-            :on-progress="(evt) => handleUploadProgress(evt, 'plan')"
-            :before-upload="beforeImageUpload"
-            :disabled="!isEditing"
-          >
-            <img
-              v-if="formData.planImage"
-              :src="formData.planImage"
-              class="uploaded-image"
-            />
-            <el-icon v-else class="uploader-icon"><Plus /></el-icon>
+          <div style="position: relative">
+            <el-upload
+              class="image-uploader"
+              :action="uploadAction"
+              :headers="uploadHeaders"
+              :show-file-list="false"
+              :on-success="(res) => handleImageSuccess(res, 'planImage')"
+              :on-progress="(evt) => handleUploadProgress(evt, 'plan')"
+              :before-upload="beforeImageUpload"
+              :disabled="!isEditing"
+            >
+              <img
+                v-if="formData.planImage"
+                :src="formData.planImage"
+                class="uploaded-image"
+              />
+              <el-icon v-else class="uploader-icon"><Plus /></el-icon>
+            </el-upload>
             <div
               v-if="uploadProgress.plan > 0 && uploadProgress.plan < 100"
-              class="upload-progress"
+              class="upload-progress-overlay"
             >
-              <el-progress
-                :percentage="uploadProgress.plan"
-                :stroke-width="6"
-              />
+              <div class="progress-content">
+                <el-progress
+                  type="circle"
+                  :percentage="uploadProgress.plan"
+                  :width="80"
+                />
+                <div class="progress-text">上传中...</div>
+              </div>
             </div>
-          </el-upload>
+          </div>
           <div class="upload-tip">建议上传小区平面布局图</div>
         </el-form-item>
 
         <el-form-item label="小区效果图">
-          <el-upload
-            class="image-uploader"
-            :action="uploadAction"
-            :headers="uploadHeaders"
-            :show-file-list="false"
-            :on-success="(res) => handleImageSuccess(res, 'effectImage')"
-            :on-progress="(evt) => handleUploadProgress(evt, 'effect')"
-            :before-upload="beforeImageUpload"
-            :disabled="!isEditing"
-          >
-            <img
-              v-if="formData.effectImage"
-              :src="formData.effectImage"
-              class="uploaded-image"
-            />
-            <el-icon v-else class="uploader-icon"><Plus /></el-icon>
+          <div style="position: relative">
+            <el-upload
+              class="image-uploader"
+              :action="uploadAction"
+              :headers="uploadHeaders"
+              :show-file-list="false"
+              :on-success="(res) => handleImageSuccess(res, 'effectImage')"
+              :on-progress="(evt) => handleUploadProgress(evt, 'effect')"
+              :before-upload="beforeImageUpload"
+              :disabled="!isEditing"
+            >
+              <img
+                v-if="formData.effectImage"
+                :src="formData.effectImage"
+                class="uploaded-image"
+              />
+              <el-icon v-else class="uploader-icon"><Plus /></el-icon>
+            </el-upload>
             <div
               v-if="uploadProgress.effect > 0 && uploadProgress.effect < 100"
-              class="upload-progress"
+              class="upload-progress-overlay"
             >
-              <el-progress
-                :percentage="uploadProgress.effect"
-                :stroke-width="6"
-              />
+              <div class="progress-content">
+                <el-progress
+                  type="circle"
+                  :percentage="uploadProgress.effect"
+                  :width="80"
+                />
+                <div class="progress-text">上传中...</div>
+              </div>
             </div>
-          </el-upload>
+          </div>
           <div class="upload-tip">建议上传小区外观效果图</div>
+        </el-form-item>
+
+        <el-form-item v-if="isEditing">
+          <div class="form-actions">
+            <el-button @click="cancelEdit" size="large">取消</el-button>
+            <el-button
+              type="primary"
+              @click="handleSave"
+              :loading="loading"
+              size="large"
+            >
+              保存
+            </el-button>
+          </div>
         </el-form-item>
       </el-form>
     </el-card>
@@ -349,15 +361,13 @@ interface CommunityInfo {
   shopCount: number;
   ownerCount: number;
   landArea: number;
-  buildingArea: {
-    residential: number;
-    commercial: number;
-  };
+  buildingArea: number;
   exclusiveArea: {
     residential: number;
-    commercial: number;
+    shop: number;
+    other: number;
   };
-  undergroundParkingArea: number;
+  parkingArea: number;
   surfaceParkingCount: number;
   undergroundParkingCount: number;
   vehicleCount: number;
@@ -373,15 +383,13 @@ const formData = ref<CommunityInfo>({
   shopCount: 0,
   ownerCount: 0,
   landArea: 0,
-  buildingArea: {
-    residential: 0,
-    commercial: 0,
-  },
+  buildingArea: 0,
   exclusiveArea: {
     residential: 0,
-    commercial: 0,
+    shop: 0,
+    other: 0,
   },
-  undergroundParkingArea: 0,
+  parkingArea: 0,
   surfaceParkingCount: 0,
   undergroundParkingCount: 0,
   vehicleCount: 0,
@@ -390,7 +398,7 @@ const formData = ref<CommunityInfo>({
 });
 
 const uploadAction = ref(
-  `${import.meta.env.VITE_API_BASE_URL || "http://localhost:3000"}/api/upload`
+  `${import.meta.env.VITE_API_BASE_URL || "http://localhost:3000"}/api/upload`,
 );
 
 const uploadHeaders = ref({
@@ -401,7 +409,9 @@ async function loadData() {
   try {
     loading.value = true;
     const userData = await request.get("/me");
+    console.log("用户数据:", userData);
     const communityId = userData.user?.communityId;
+    console.log("当前用户的communityId:", communityId);
 
     if (!communityId) {
       ElMessage.warning("未找到小区信息");
@@ -409,11 +419,13 @@ async function loadData() {
     }
 
     const res = await request.get(`/community-info/${communityId}`);
-    if (res.data) {
+    console.log("API返回的完整数据:", res);
+    if (res) {
       formData.value = {
         ...formData.value,
-        ...res.data,
+        ...res,
       };
+      console.log("formData更新后:", formData.value);
       // 保存原始数据用于取消编辑时恢复
       originalData.value = JSON.parse(JSON.stringify(formData.value));
     }
@@ -556,13 +568,31 @@ onMounted(() => {
   border-color: var(--el-color-primary);
 }
 
-.upload-progress {
+.upload-progress-overlay {
   position: absolute;
-  bottom: 0;
+  top: 0;
   left: 0;
   right: 0;
-  padding: 10px;
-  background: rgba(255, 255, 255, 0.9);
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  z-index: 10;
+}
+
+.progress-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.progress-text {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .uploader-icon {
@@ -602,5 +632,12 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  padding-top: 20px;
 }
 </style>

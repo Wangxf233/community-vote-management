@@ -12,7 +12,11 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "lib": ["ESNext", "DOM"],
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
-  "include": ["src/**/*", "env.d.ts"]
+  "include": ["src/**/*", "src/**/*.vue", "env.d.ts"],
+  "exclude": ["node_modules", "dist"]
 }

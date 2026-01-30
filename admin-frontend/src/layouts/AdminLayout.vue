@@ -8,8 +8,14 @@
           class="el-menu-vertical-demo"
           @select="onSelect"
         >
-          <el-menu-item index="/admin/add">添加小区</el-menu-item>
-          <el-menu-item index="/admin/list">小区列表</el-menu-item>
+          <el-menu-item index="/admin/add">
+            <el-icon><CirclePlus /></el-icon>
+            <span>添加小区</span>
+          </el-menu-item>
+          <el-menu-item index="/admin/list">
+            <el-icon><List /></el-icon>
+            <span>小区列表</span>
+          </el-menu-item>
         </el-menu>
       </el-aside>
       <el-container>
@@ -37,12 +43,18 @@
             </el-badge>
 
             <el-tooltip
-              :content="isDark ? '切换到日间模式' : '切换到夜间模式'"
+              :content="isLargeFont ? '切换到标准字号' : '切换到大字号'"
               placement="bottom"
             >
-              <el-button text circle @click="toggleDark" class="topbar-item">
-                <el-icon v-if="!isDark"><Moon /></el-icon>
-                <el-icon v-else><Sunny /></el-icon>
+              <el-button
+                text
+                circle
+                @click="toggleFontSize"
+                class="topbar-item"
+              >
+                <span style="font-size: 16px; font-weight: bold">{{
+                  isLargeFont ? "A-" : "A+"
+                }}</span>
               </el-button>
             </el-tooltip>
 
@@ -80,7 +92,7 @@
             <el-table-column label="到期时间" width="160">
               <template #default="{ row }">{{
                 formatDate(
-                  row.productEnd || row.endDate || row.product_end || row.end
+                  row.productEnd || row.endDate || row.product_end || row.end,
                 )
               }}</template>
             </el-table-column>
@@ -128,7 +140,7 @@ import { computed, ref, reactive, computed as vComputed, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { ElMessage } from "element-plus";
 import request from "../utils/axios";
-import { Refresh, Bell, Moon, Sunny, User } from "@element-plus/icons-vue";
+import { Refresh, Bell, User, CirclePlus, List } from "@element-plus/icons-vue";
 const router = useRouter();
 const route = useRoute();
 const active = computed(() => route.path);
@@ -149,6 +161,19 @@ function toggleDark() {
   applyDark(!isDark.value);
 }
 
+// 顶部栏：字号切换
+const isLargeFont = ref(false);
+function applyFontSize(v: boolean) {
+  const root = document.documentElement;
+  if (v) root.classList.add("large-font");
+  else root.classList.remove("large-font");
+  localStorage.setItem("admin-large-font", v ? "1" : "0");
+  isLargeFont.value = v;
+}
+function toggleFontSize() {
+  applyFontSize(!isLargeFont.value);
+}
+
 // 顶部栏：账号
 const username = ref("");
 const account = ref("");
@@ -162,6 +187,7 @@ function initUser() {
     }
   } catch {}
   applyDark(localStorage.getItem("admin-dark") === "1");
+  applyFontSize(localStorage.getItem("admin-large-font") === "1");
 }
 function logout() {
   localStorage.removeItem("admin-token");
@@ -186,6 +212,7 @@ function emitRefresh() {
 // 顶部栏：到期提醒
 const communities = ref<any[]>([]);
 const expiringDialog = ref(false);
+const hasReadExpiring = ref(false); // 是否已查看过提醒
 const expiringList = vComputed(() => {
   return (communities.value || []).filter((c) => {
     const d = computeDays(c);
@@ -193,7 +220,11 @@ const expiringList = vComputed(() => {
     return n <= 30;
   });
 });
-const expiringCount = vComputed(() => expiringList.value.length);
+const expiringCount = vComputed(() => {
+  // 如果已读且列表没有变化，不显示红点
+  if (hasReadExpiring.value) return 0;
+  return expiringList.value.length;
+});
 
 function toTimestamp(val: any): number | null {
   if (!val) return null;
@@ -219,15 +250,20 @@ function formatDate(v: any) {
   const d = new Date(ts);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
     2,
-    "0"
+    "0",
   )}-${String(d.getDate()).padStart(2, "0")}`;
 }
 function computeDays(r: any) {
-  const s = toTimestamp(getStart(r));
   const e = toTimestamp(getEnd(r));
-  if (!s || !e) return "-";
-  const d = Math.ceil((e - s) / 86400000);
-  return d <= 0 ? "已到期" : d;
+  if (!e) return "-";
+  try {
+    const now = Date.now();
+    const days = Math.ceil((e - now) / (24 * 3600 * 1000));
+    if (days <= 0) return "已到期";
+    return days;
+  } catch {
+    return "-";
+  }
 }
 
 async function loadExpiring() {
@@ -236,16 +272,33 @@ async function loadExpiring() {
       params: { page: 1, pageSize: 1000 },
     });
     communities.value = body.data || body || [];
+
+    // 检查已读状态
+    const savedHash = localStorage.getItem("admin-expiring-read");
+    const currentHash = JSON.stringify(
+      expiringList.value.map((c: any) => c._id).sort(),
+    );
+    // 如果列表发生变化（有新的即将到期小区），重置已读状态
+    if (savedHash !== currentHash) {
+      hasReadExpiring.value = false;
+    } else {
+      hasReadExpiring.value = true;
+    }
   } catch (e) {
     communities.value = [];
   }
 }
 function openExpiringDialog() {
-  if (expiringCount.value === 0) {
+  if (expiringList.value.length === 0) {
     ElMessage.info("暂无即将到期的小区");
     return;
   }
   expiringDialog.value = true;
+  // 标记为已读，红点消失
+  hasReadExpiring.value = true;
+  // 保存已读状态到 localStorage，包含当前数据的哈希值
+  const hash = JSON.stringify(expiringList.value.map((c: any) => c._id).sort());
+  localStorage.setItem("admin-expiring-read", hash);
 }
 
 // 强制修改密码弹窗
@@ -368,5 +421,37 @@ onMounted(() => {
 .el-menu-vertical-demo .el-menu-item.is-active,
 .el-menu-vertical-demo .el-menu-item.is-active .el-menu-item__content {
   color: #1890ff !important;
+}
+</style>
+
+<style>
+/* 大字号模式 - 全局样式 */
+html.large-font {
+  font-size: 18px;
+}
+html.large-font .el-table {
+  font-size: 17px !important;
+}
+html.large-font .el-button {
+  font-size: 17px !important;
+}
+html.large-font .el-form-item__label {
+  font-size: 17px !important;
+}
+html.large-font .el-input__inner {
+  font-size: 17px !important;
+}
+html.large-font .el-menu-item {
+  font-size: 17px !important;
+}
+html.large-font .el-table__header th,
+html.large-font .el-table__body td {
+  font-size: 17px !important;
+}
+html.large-font .el-dialog__title {
+  font-size: 21px !important;
+}
+html.large-font .el-card__header {
+  font-size: 18px !important;
 }
 </style>

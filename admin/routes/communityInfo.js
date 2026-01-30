@@ -8,15 +8,21 @@ const _ = db.command;
 router.get("/:communityId", authMiddleware, async (req, res) => {
   try {
     const { communityId } = req.params;
+    console.log("查询小区信息，communityId:", communityId);
 
     const info = await db
       .collection("community_info")
       .where({ communityId })
       .get();
 
+    console.log("数据库查询结果:", JSON.stringify(info, null, 2));
+
     if (info.data && info.data.length > 0) {
-      res.json({ data: info.data[0] });
+      console.log("找到数据，返回第一条");
+      // 直接返回文档数据，不包装在data里
+      res.json(info.data[0]);
     } else {
+      console.log("未找到数据，返回404");
       res.status(404).json({ error: "未找到小区信息" });
     }
   } catch (err) {
@@ -37,23 +43,20 @@ router.put("/:communityId", authMiddleware, async (req, res) => {
     const existing = await collection.where({ communityId }).get();
 
     if (existing.data && existing.data.length > 0) {
-      // 更新现有记录
+      // 更新现有记录 - 直接更新顶层字段
       const docId = existing.data[0]._id;
       await collection.doc(docId).update({
-        data: {
-          ...updateData,
-          updatedAt: new Date(),
-        },
+        ...updateData,
+        communityId,
+        updatedAt: new Date(),
       });
     } else {
-      // 创建新记录
+      // 创建新记录 - 直接在顶层存储
       await collection.add({
-        data: {
-          communityId,
-          ...updateData,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
+        communityId,
+        ...updateData,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       });
     }
 

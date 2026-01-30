@@ -1,0 +1,9 @@
+{
+  "name": "migrateCommunityFields",
+  "version": "1.0.0",
+  "description": "数据库迁移 - 为现有小区数据添加新字段",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

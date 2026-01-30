@@ -1,0 +1,9 @@
+{
+  "name": "cleanupDeletedCommunities",
+  "version": "1.0.0",
+  "description": "定时清理已删除超过30天的小区数据",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

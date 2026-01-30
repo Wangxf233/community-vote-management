@@ -90,6 +90,22 @@
               </el-button>
             </el-tooltip>
 
+            <el-tooltip
+              :content="isLargeFont ? '切换到标准字号' : '切换到大字号'"
+              placement="bottom"
+            >
+              <el-button
+                text
+                circle
+                @click="toggleFontSize"
+                class="topbar-item"
+              >
+                <span style="font-size: 16px; font-weight: bold">{{
+                  isLargeFont ? "A-" : "A+"
+                }}</span>
+              </el-button>
+            </el-tooltip>
+
             <el-popover placement="bottom-end" trigger="hover" width="240">
               <template #reference>
                 <el-button text circle>
@@ -120,6 +136,15 @@
             </el-popover>
           </div>
         </el-header>
+        <!-- 到期提醒条 -->
+        <el-alert
+          v-if="showExpiryAlert"
+          :title="expiryAlertMessage"
+          :type="expiryAlertType"
+          :closable="false"
+          show-icon
+          style="margin: 0; border-radius: 0"
+        />
         <el-main style="padding: 16px; overflow: hidden">
           <router-view />
         </el-main>
@@ -189,6 +214,26 @@ const userName = ref("");
 const communityName = ref("");
 const isPrimaryAdmin = ref(false);
 
+// 到期提醒相关
+const communityExpiry = ref<Date | null>(null);
+const remainingDays = ref<number | null>(null);
+const showExpiryAlert = computed(() => {
+  return remainingDays.value !== null && remainingDays.value < 15;
+});
+const expiryAlertType = computed(() => {
+  if (remainingDays.value === null) return "info";
+  if (remainingDays.value <= 0) return "error";
+  if (remainingDays.value < 7) return "error";
+  return "warning";
+});
+const expiryAlertMessage = computed(() => {
+  if (remainingDays.value === null) return "";
+  if (remainingDays.value <= 0) {
+    return `小区服务已到期 - 您的小区服务已于 ${communityExpiry.value ? new Date(communityExpiry.value).toLocaleDateString() : ""} 到期，请尽快联系管理员续费以继续使用。`;
+  }
+  return `小区服务即将到期 - 您的小区服务将在 ${remainingDays.value} 天后到期（${communityExpiry.value ? new Date(communityExpiry.value).toLocaleDateString() : ""}），请及时联系管理员续费。`;
+});
+
 function applyDark(v: boolean) {
   const root = document.documentElement;
   if (v) root.classList.add("dark");
@@ -201,13 +246,26 @@ function toggleDark() {
   applyDark(!isDark.value);
 }
 
+// 字号切换
+const isLargeFont = ref(false);
+function applyFontSize(v: boolean) {
+  const root = document.documentElement;
+  if (v) root.classList.add("large-font");
+  else root.classList.remove("large-font");
+  localStorage.setItem("admin-large-font", v ? "1" : "0");
+  isLargeFont.value = v;
+}
+function toggleFontSize() {
+  applyFontSize(!isLargeFont.value);
+}
+
 async function loadCommunityInfo() {
   try {
     const token = localStorage.getItem("admin-token") || "";
     if (!token) return;
 
     // 从服务器获取最新的用户信息（包含 communityId）
-    const userData = await request.get("/me");
+    const userData: any = await request.get("/me");
 
     if (!userData.user) return;
 
@@ -234,10 +292,41 @@ async function loadCommunityInfo() {
 
     if (myCommunity && myCommunity.name) {
       communityName.value = myCommunity.name;
+
+      // 计算到期时间和剩余天数
+      const endDate =
+        myCommunity.endDate ||
+        myCommunity.productEnd ||
+        myCommunity.product_end ||
+        myCommunity.end;
+      if (endDate) {
+        const endTs = toTimestamp(endDate);
+        if (endTs) {
+          communityExpiry.value = new Date(endTs);
+          const now = Date.now();
+          const days = Math.ceil((endTs - now) / (24 * 3600 * 1000));
+          remainingDays.value = days;
+        }
+      }
     }
   } catch (e) {
     console.error("加载小区信息失败:", e);
   }
+}
+
+// 日期转换工具函数
+function toTimestamp(val: any): number | null {
+  if (!val) return null;
+  try {
+    if (val instanceof Date) return val.getTime();
+    if (typeof val === "number") return val < 1e12 ? val * 1000 : val;
+    if (typeof val === "string") return new Date(val).getTime();
+    if (val && typeof val === "object" && (val.$date || val.date)) {
+      const v = val.$date || val.date;
+      return toTimestamp(v);
+    }
+  } catch (_) {}
+  return null;
 }
 function initUser() {
   try {
@@ -250,6 +339,7 @@ function initUser() {
     }
   } catch {}
   applyDark(localStorage.getItem("admin-dark") === "1");
+  applyFontSize(localStorage.getItem("admin-large-font") === "1");
 }
 
 // 权限相关
@@ -416,5 +506,37 @@ onMounted(() => {
 .el-menu-vertical-demo :deep(.el-menu .el-menu-item.is-active) {
   background: rgba(255, 255, 255, 0.1) !important;
   color: #1890ff !important;
+}
+</style>
+
+<style>
+/* 大字号模式 - 全局样式 */
+html.large-font {
+  font-size: 18px;
+}
+html.large-font .el-table {
+  font-size: 17px !important;
+}
+html.large-font .el-button {
+  font-size: 17px !important;
+}
+html.large-font .el-form-item__label {
+  font-size: 17px !important;
+}
+html.large-font .el-input__inner {
+  font-size: 17px !important;
+}
+html.large-font .el-menu-item {
+  font-size: 17px !important;
+}
+html.large-font .el-table__header th,
+html.large-font .el-table__body td {
+  font-size: 17px !important;
+}
+html.large-font .el-dialog__title {
+  font-size: 21px !important;
+}
+html.large-font .el-card__header {
+  font-size: 18px !important;
 }
 </style>

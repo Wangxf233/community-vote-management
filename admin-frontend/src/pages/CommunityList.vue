@@ -135,6 +135,13 @@
             }}</template></el-table-column
           >
           <el-table-column
+            label="详细地址"
+            prop="address"
+            min-width="180"
+            align="center"
+            show-overflow-tooltip
+          />
+          <el-table-column
             label="负责人"
             prop="ownerName"
             width="130"
@@ -210,12 +217,22 @@
             </template>
             <template #default="{ row }">{{ computeDays(row) }}</template>
           </el-table-column>
-          <el-table-column label="操作" width="240" align="center">
+          <el-table-column label="状态" width="120" align="center">
             <template #default="{ row }">
-              <el-button type="primary" size="mini" @click="onViewAdmin(row)"
+              <el-tag :type="getStatusType(row)" size="small">{{
+                getStatusText(row)
+              }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="300" align="center">
+            <template #default="{ row }">
+              <el-button type="primary" size="small" @click="onViewAdmin(row)"
                 >查看账号</el-button
               >
-              <el-button type="danger" size="mini" @click="onDelete(row)"
+              <el-button type="warning" size="small" @click="onEdit(row)"
+                >编辑</el-button
+              >
+              <el-button type="danger" size="small" @click="onDelete(row)"
                 >删除</el-button
               >
             </template>
@@ -272,6 +289,83 @@
         </el-space>
       </template>
     </el-dialog>
+
+    <!-- 编辑小区对话框 -->
+    <el-dialog
+      v-model="editDialog"
+      title="编辑小区信息"
+      width="800px"
+      :lock-scroll="false"
+    >
+      <el-form :model="editForm" label-width="140px">
+        <el-form-item label="小区名称">
+          <el-input v-model="editForm.name" />
+        </el-form-item>
+        <el-form-item label="省/市/区">
+          <el-cascader
+            v-model="editForm.region"
+            :options="regionOptions"
+            clearable
+          />
+        </el-form-item>
+        <el-form-item label="详细地址">
+          <el-input
+            v-model="editForm.address"
+            placeholder="输入街道等详细地址信息"
+          />
+        </el-form-item>
+        <el-form-item label="负责人">
+          <el-input v-model="editForm.ownerName" />
+        </el-form-item>
+        <el-form-item label="联系方式">
+          <el-input v-model="editForm.ownerPhone" />
+        </el-form-item>
+        <el-form-item label="开通时间">
+          <el-date-picker
+            v-model="editForm.startDate"
+            type="date"
+            placeholder="开通日期"
+          />
+        </el-form-item>
+        <el-form-item label="有效期/到期时间">
+          <div
+            style="
+              display: flex;
+              flex-direction: column;
+              gap: 12px;
+              width: 100%;
+            "
+          >
+            <div style="display: flex; align-items: center; gap: 12px">
+              <el-select
+                v-model="editPeriod"
+                placeholder="选择年限"
+                style="width: 160px"
+                @change="onEditPeriodChange"
+              >
+                <el-option label="1年" :value="1" />
+                <el-option label="2年" :value="2" />
+                <el-option label="3年" :value="3" />
+              </el-select>
+              <div style="display: flex; align-items: center; gap: 8px">
+                <div>或直接选择到期时间：</div>
+                <el-date-picker
+                  v-model="editForm.endDate"
+                  type="date"
+                  placeholder="到期日期"
+                  @change="onEditEndDatePick"
+                />
+              </div>
+            </div>
+            <div>当前到期时间：{{ editEndDateDisplay }}</div>
+          </div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="editDialog = false">取消</el-button>
+        <el-button type="primary" @click="onSaveEdit">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -280,6 +374,7 @@ import { reactive, ref, onMounted, computed } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Refresh, Bell, Moon, Sunny, User } from "@element-plus/icons-vue";
 import request from "@/utils/axios";
+
 const filters = reactive({
   region: [] as string[],
   name: "",
@@ -287,22 +382,7 @@ const filters = reactive({
   ownerPhone: "",
   startRange: [] as any[],
 });
-const regionOptions = ref([
-  {
-    value: "广东省",
-    label: "广东省",
-    children: [
-      {
-        value: "深圳市",
-        label: "深圳市",
-        children: [
-          { value: "南山区", label: "南山区" },
-          { value: "福田区", label: "福田区" },
-        ],
-      },
-    ],
-  },
-] as any);
+const regionOptions = ref([]);
 
 const communities = ref<any[]>([]);
 const total = ref(0);
@@ -310,6 +390,25 @@ const adminDialog = ref(false);
 const adminForm = reactive({ username: "" });
 const tempNewPassword = ref<string | null>(null);
 let currentCommunityId: string | null = null;
+
+// 编辑对话框相关
+const editDialog = ref(false);
+const editForm = reactive({
+  name: "",
+  region: [] as string[],
+  address: "",
+  ownerName: "",
+  ownerPhone: "",
+  startDate: null as Date | null,
+  endDate: null as Date | null,
+});
+const editPeriod = ref<number | null>(null);
+const editEndDateDisplay = computed(() => {
+  return editForm.endDate
+    ? new Date(editForm.endDate).toLocaleDateString()
+    : "-";
+});
+let editingCommunityId: string | null = null;
 // 顶部栏状态
 const isDark = ref(false);
 const username = ref("");
@@ -369,9 +468,12 @@ function logout() {
 async function onViewAdmin(row: any) {
   try {
     currentCommunityId = row._id;
-    const body = await request.get(`/communities/${row._id}/admin-account`, {
-      params: { t: Date.now() },
-    });
+    const body: any = await request.get(
+      `/communities/${row._id}/admin-account`,
+      {
+        params: { t: Date.now() },
+      },
+    );
     // 优先使用接口 username；若为空再兜底使用行数据中的 adminUsername（如接口受缓存/权限影响）
     adminForm.username = body.username || row.adminUsername || "";
     // 初次查看不展示密码明文
@@ -389,14 +491,14 @@ async function onSaveUsername() {
     return;
   }
   try {
-    const body = await request.put(
+    const body: any = await request.put(
       `/communities/${currentCommunityId}/admin-account`,
       {
         username: adminForm.username.trim(),
         ...(tempNewPassword.value
           ? { newPassword: String(tempNewPassword.value) }
           : {}),
-      }
+      },
     );
     // 如果后端返回了新密码（如首次创建时），在弹窗中显示一次
     if (body.newPassword) {
@@ -415,7 +517,7 @@ async function onResetAdmin() {
     await ElMessageBox.confirm(
       "将为该小区总管理员生成一个新密码。本次重置后无需强制修改密码。是否继续？",
       "重置密码确认",
-      { type: "warning" }
+      { type: "warning" },
     );
   } catch (_) {
     return; // 用户取消
@@ -425,7 +527,7 @@ async function onResetAdmin() {
     const gen8Digit = () =>
       String(Math.floor(10000000 + Math.random() * 90000000));
     const nextPwd = gen8Digit();
-    const body = await request.put(
+    const body: any = await request.put(
       `/communities/${currentCommunityId}/admin-account`,
       {
         // 带上已知账号更稳妥；若为空，后端会从 community 文档回退
@@ -434,7 +536,7 @@ async function onResetAdmin() {
           : {}),
         reset: true,
         newPassword: nextPwd,
-      }
+      },
     );
     const newPwd = body.newPassword || nextPwd;
     tempNewPassword.value = newPwd; // 在弹窗内一次性展示
@@ -491,16 +593,32 @@ function getEnd(row: any) {
 }
 
 function computeDays(row: any) {
-  const s = toTimestamp(getStart(row));
   const e = toTimestamp(getEnd(row));
-  if (!s || !e) return "-";
+  if (!e) return "-";
   try {
-    const days = Math.ceil((e - s) / (24 * 3600 * 1000));
+    const now = Date.now();
+    const days = Math.ceil((e - now) / (24 * 3600 * 1000));
     if (days <= 0) return "已到期";
     return days;
   } catch (e) {
     return "-";
   }
+}
+
+function getStatusText(row: any) {
+  const days = computeDays(row);
+  if (days === "已到期" || days === 0) return "已到期";
+  if (days === "-") return "-";
+  if (typeof days === "number" && days < 15) return "即将到期";
+  return "已开通";
+}
+
+function getStatusType(row: any) {
+  const status = getStatusText(row);
+  if (status === "已到期") return "danger";
+  if (status === "即将到期") return "warning";
+  if (status === "已开通") return "success";
+  return "info";
 }
 
 async function load() {
@@ -521,7 +639,7 @@ async function load() {
       params.startTo = new Date(filters.startRange[1]).toISOString();
     }
 
-    const body = await request.get("/communities", { params });
+    const body: any = await request.get("/communities", { params });
     communities.value = body.data || body;
     total.value = body.total || (Array.isArray(body) ? body.length : 0);
 
@@ -566,23 +684,93 @@ function toggleSort(field: string) {
   load();
 }
 
+function onEdit(row: any) {
+  editingCommunityId = row._id;
+  editForm.name = row.name || "";
+  editForm.region = row.region || [];
+  editForm.address = row.address || "";
+  editForm.ownerName = row.ownerName || "";
+  editForm.ownerPhone = row.ownerPhone || "";
+
+  const startTs = toTimestamp(getStart(row));
+  editForm.startDate = startTs ? new Date(startTs) : null;
+
+  const endTs = toTimestamp(getEnd(row));
+  editForm.endDate = endTs ? new Date(endTs) : null;
+
+  editPeriod.value = null;
+  editDialog.value = true;
+}
+
+function onEditPeriodChange() {
+  const s = editForm.startDate ? new Date(editForm.startDate) : new Date();
+  const years = editPeriod.value;
+  if (years) {
+    const d = new Date(s.getTime());
+    d.setFullYear(d.getFullYear() + years);
+    editForm.endDate = d;
+  }
+}
+
+function onEditEndDatePick() {
+  editPeriod.value = null;
+}
+
+async function onSaveEdit() {
+  if (!editingCommunityId) return;
+  if (!editForm.name) {
+    ElMessage.warning("请输入小区名称");
+    return;
+  }
+
+  try {
+    const payload: any = {
+      name: editForm.name,
+      region: editForm.region,
+      address: editForm.address || "",
+      ownerName: editForm.ownerName,
+      ownerPhone: editForm.ownerPhone,
+      productStart: editForm.startDate
+        ? new Date(editForm.startDate).toISOString()
+        : undefined,
+      productEnd: editForm.endDate
+        ? new Date(editForm.endDate).toISOString()
+        : undefined,
+    };
+
+    await request.put(`/communities/${editingCommunityId}`, payload);
+    ElMessage.success("保存成功");
+    editDialog.value = false;
+    load();
+  } catch (e) {
+    console.error(e);
+    ElMessage.error(
+      "保存失败: " + (e && (e as any).message ? (e as any).message : e),
+    );
+  }
+}
+
 async function onDelete(row: any) {
   try {
     await ElMessageBox.confirm(
-      `确认删除小区「${row.name}」？此操作不可撤销。`,
+      `确认删除小区「${row.name}」？数据将保疙1个月后彻底删除。`,
       "删除确认",
       {
         type: "warning",
         confirmButtonText: "确认删除",
         cancelButtonText: "取消",
-      }
+      },
     );
   } catch (_) {
     return; // 用户取消
   }
   try {
-    await request.delete(`/communities/${row._id}`);
-    ElMessage.success("删除成功");
+    // 软删除：标记为已删除，但保留数据
+    await request.put(`/communities/${row._id}`, {
+      deleted: true,
+      deletedAt: new Date().toISOString(),
+    });
+    ElMessage.success("删除成功，数据将在1个月后彻底清除");
     load();
   } catch (e) {
     console.error("删除异常:", e);
@@ -590,8 +778,19 @@ async function onDelete(row: any) {
   }
 }
 
+async function loadRegions() {
+  try {
+    const data: any = await request.get("/regions");
+    regionOptions.value = data || [];
+  } catch (e) {
+    console.error("加载省市区数据失败:", e);
+    regionOptions.value = [];
+  }
+}
+
 onMounted(() => {
   initUser();
+  loadRegions();
   // 跳转后展示登录成功提示
   if (sessionStorage.getItem("loginJust") === "1") {
     sessionStorage.removeItem("loginJust");

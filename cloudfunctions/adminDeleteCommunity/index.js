@@ -10,26 +10,18 @@ exports.main = async (event, context) => {
 
     if (!communityId) return { success: false, error: "missing communityId" };
 
-    // 删除小区
-    await db.collection("communities").doc(communityId).remove();
-
-    // 删除该小区的默认管理员账号（isPrimaryAdmin为true的用户）
-    const _ = db.command;
-    const usersRes = await db
-      .collection("users")
-      .where({
-        communityId: communityId,
-        isPrimaryAdmin: true,
-      })
-      .get();
-
-    // 批量删除找到的默认管理员账号
-    if (usersRes.data && usersRes.data.length > 0) {
-      const deletePromises = usersRes.data.map((user) =>
-        db.collection("users").doc(user._id).remove()
-      );
-      await Promise.all(deletePromises);
-    }
+    // 软删除：标记为deleted和deletedAt，保疓30天
+    const now = new Date();
+    await db
+      .collection("communities")
+      .doc(communityId)
+      .update({
+        data: {
+          deleted: true,
+          deletedAt: now,
+          updatedAt: now,
+        },
+      });
 
     return { success: true };
   } catch (e) {

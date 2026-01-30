@@ -18,6 +18,8 @@ router.get("/communities", async (req, res) => {
 
     const q = {};
     if (req.query.name) q.name = req.query.name;
+    // 过滤已删除的记录
+    q.deleted = db.command.neq(true);
 
     const countRes = await db.collection("communities").where(q).count();
     const total = countRes.total || 0;
@@ -179,7 +181,7 @@ router.get(
         .status(200)
         .json({ success: false, error: e.message || String(e) });
     }
-  }
+  },
 );
 
 /**
@@ -339,7 +341,7 @@ router.put(
     } catch (e) {
       return res.status(500).json({ success: false, error: e.message || e });
     }
-  }
+  },
 );
 
 /**
@@ -435,6 +437,31 @@ router.post("/community-admins", authMiddleware, async (req, res) => {
 });
 
 /**
+ * PUT /api/community-admins/:id - 更新小区管理员基本信息
+ */
+router.put("/community-admins/:id", authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { department, position, name, phone } = req.body;
+
+    const updateData = {
+      updatedAt: new Date(),
+    };
+
+    if (department !== undefined) updateData.department = department;
+    if (position !== undefined) updateData.position = position;
+    if (name !== undefined) updateData.name = name;
+    if (phone !== undefined) updateData.phone = phone;
+
+    await db.collection("users").doc(id).update(updateData);
+
+    return res.json({ success: true });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: e.message || e });
+  }
+});
+
+/**
  * DELETE /api/community-admins/:id - 删除小区管理员
  */
 router.delete("/community-admins/:id", authMiddleware, async (req, res) => {
@@ -470,7 +497,7 @@ router.put(
     } catch (e) {
       return res.status(500).json({ success: false, error: e.message || e });
     }
-  }
+  },
 );
 
 module.exports = router;
