@@ -26,6 +26,17 @@ async function ensureAdmin(token) {
  * 认证中间件 - 验证请求是否携带有效的管理员 token
  */
 async function authMiddleware(req, res, next) {
+  // Cloud function callback for door opening uses x-cloud-access-key in
+  // routes/door.js and does not require admin bearer token.
+  if (
+    req.method === "POST" &&
+    (req.path === "/door/open-from-cloud" ||
+      req.originalUrl === "/api/door/open-from-cloud" ||
+      req.originalUrl.endsWith("/api/door/open-from-cloud"))
+  ) {
+    return next();
+  }
+
   const token = getTokenFromReq(req);
   if (!token) {
     return res.status(401).json({ success: false, error: "no_token" });
