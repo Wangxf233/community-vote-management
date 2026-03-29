@@ -1,0 +1,9 @@
+{
+  "name": "openDoor",
+  "version": "1.0.0",
+  "description": "调用 admin gateway 发送开门指令",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

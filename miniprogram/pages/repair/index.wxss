@@ -5,6 +5,19 @@
   box-sizing: border-box;
 }
 
+.guest-mode-tip {
+  background: #fff7e6;
+  border: 1rpx solid #ffd591;
+  border-radius: 12rpx;
+  padding: 16rpx 20rpx;
+  margin-bottom: 20rpx;
+}
+
+.tip-text {
+  font-size: 24rpx;
+  color: #ad6800;
+}
+
 /* 选项卡样式 */
 .tab-container {
   display: flex;
@@ -27,7 +40,7 @@
 }
 
 .tab-item.active {
-  background: linear-gradient(135deg, #1AAD19, #4CD964);
+  background: linear-gradient(135deg, #1aad19, #4cd964);
   color: white;
   font-weight: bold;
   box-shadow: 0 4rpx 12rpx rgba(26, 173, 25, 0.3);
@@ -97,7 +110,7 @@
 }
 
 .form-label.required::after {
-  content: '*';
+  content: "*";
   color: #ff6b6b;
   margin-left: 8rpx;
 }
@@ -154,13 +167,15 @@
   display: block;
 }
 
-.image-uploader, .video-uploader {
+.image-uploader,
+.video-uploader {
   display: flex;
   flex-wrap: wrap;
   gap: 20rpx;
 }
 
-.image-item, .video-item {
+.image-item,
+.video-item {
   position: relative;
   width: 160rpx;
   height: 160rpx;
@@ -224,7 +239,7 @@
 
 /* 提交按钮 */
 .submit-btn {
-  background: linear-gradient(135deg, #1AAD19, #4CD964);
+  background: linear-gradient(135deg, #1aad19, #4cd964);
   color: white;
   border: none;
   border-radius: 16rpx;
@@ -301,7 +316,7 @@
 
 .progress-status.processing {
   background: #e8f5e8;
-  color: #1AAD19;
+  color: #1aad19;
 }
 
 .progress-status.completed {

@@ -6,25 +6,31 @@ const _ = db.command;
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
   const openid = wxContext.OPENID;
+  const { communityId } = event;
 
   try {
+    // 构建查询条件
+    const whereCondition = {
+      openid: openid,
+      deleted: _.neq(true),
+    };
+
+    // 如果提供了 communityId，则添加小区过滤
+    if (communityId) {
+      whereCondition.communityId = communityId;
+    }
+
     // 查询当前用户的报修记录，排除已删除的
     const repairsResult = await db
       .collection("repairs")
-      .where({
-        openid: openid,
-        deleted: _.neq(true),
-      })
+      .where(whereCondition)
       .orderBy("submitTime", "desc")
       .get();
 
     // 查询当前用户的报事记录，排除已删除的
     const reportsResult = await db
       .collection("reports")
-      .where({
-        openid: openid,
-        deleted: _.neq(true),
-      })
+      .where(whereCondition)
       .orderBy("submitTime", "desc")
       .get();
 
@@ -41,7 +47,7 @@ exports.main = async (event, context) => {
 
     // 合并并按时间排序
     const allData = [...repairs, ...reports].sort(
-      (a, b) => new Date(b.submitTime) - new Date(a.submitTime)
+      (a, b) => new Date(b.submitTime) - new Date(a.submitTime),
     );
 
     return {

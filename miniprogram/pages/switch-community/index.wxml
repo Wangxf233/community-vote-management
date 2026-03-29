@@ -46,3 +46,5 @@
     </button>
   </view>
 </view>
+
+<guest-tip></guest-tip>

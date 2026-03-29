@@ -26,7 +26,7 @@
         </view>
         <text class="menu-arrow">></text>
       </view>
-      <view class="menu-item" bindtap="goToMyFamily" wx:if="{{isOwner}}">
+      <view class="menu-item" bindtap="goToMyFamily" wx:if="{{isOwner || bindingStatus === 'guest'}}">
         <view class="menu-left">
           <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/icon-family.png" mode="aspectFit" class="menu-icon"/>
           <text class="menu-text">我的家属</text>
@@ -64,3 +64,5 @@
     </view>
   </view>
 </view>
+
+<guest-tip></guest-tip>

@@ -20,6 +20,44 @@ Page({
    * 加载用户的所有小区绑定
    */
   async loadUserCommunities() {
+    const bindingStatus = app.globalData.bindingStatus || "none";
+    if (bindingStatus === "guest") {
+      const currentCommunity = {
+        _id: "guest-binding-1",
+        communityId: "guest-community-1",
+        communityName: "星河苑",
+        region: ["浙江省", "杭州市", "滨江区"],
+        district: "江南大道",
+        building: "3幢",
+        unit: "2单元",
+        room: "1001",
+        status: "guest",
+        fullAddress: "浙江省杭州市滨江区江南大道3幢2单元1001",
+      };
+
+      const otherCommunities = [
+        {
+          _id: "guest-binding-2",
+          communityId: "guest-community-2",
+          communityName: "湖畔嘉园",
+          region: ["浙江省", "杭州市", "西湖区"],
+          district: "文三路",
+          building: "6幢",
+          unit: "1单元",
+          room: "0802",
+          status: "guest",
+          fullAddress: "浙江省杭州市西湖区文三路6幢1单元0802",
+        },
+      ];
+
+      this.setData({
+        currentCommunity,
+        otherCommunities,
+        allBindings: [currentCommunity, ...otherCommunities],
+      });
+      return;
+    }
+
     try {
       wx.showLoading({
         title: "加载中...",
@@ -42,12 +80,12 @@ Page({
 
         // 找到当前小区
         const current = bindings.find(
-          (b) => b.communityId === currentCommunityId
+          (b) => b.communityId === currentCommunityId,
         );
 
         // 其他小区
         const others = bindings.filter(
-          (b) => b.communityId !== currentCommunityId
+          (b) => b.communityId !== currentCommunityId,
         );
 
         // 为每个小区添加完整地址
@@ -77,7 +115,7 @@ Page({
         });
       } else {
         wx.showToast({
-          title: (res.result && res.result.message) || "加载失败",
+          title: res.result?.message || "加载失败",
           icon: "none",
         });
       }
@@ -95,6 +133,15 @@ Page({
    * 切换小区
    */
   async switchCommunity(e) {
+    const bindingStatus = app.globalData.bindingStatus || "none";
+    if (bindingStatus === "guest") {
+      wx.showToast({
+        title: "游客模式不支持切换",
+        icon: "none",
+      });
+      return;
+    }
+
     const { communityId, bindingId } = e.currentTarget.dataset;
 
     if (!communityId) {

@@ -51,13 +51,6 @@
     </view>
   </view>
 
-  <!-- 游客提示 -->
-  <view class="guest-tip" wx:if="{{isGuest}}">
-    <view class="tip-content">
-      <text class="tip-icon">ℹ️</text>
-      <text class="tip-text">您当前处于游客模式，</text>
-      <text class="tip-link" bindtap="goToBind">立即绑定</text>
-      <text class="tip-text">后可参与互动</text>
-    </view>
-  </view>
 </view>
+
+<guest-tip></guest-tip>

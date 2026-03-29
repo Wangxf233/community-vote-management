@@ -6,9 +6,15 @@ Page({
     page: 1,
     hasMore: true,
     loading: false,
+    isGuest: false,
   },
 
   onLoad(options) {
+    const bindingStatus = app.globalData.bindingStatus || "guest";
+    this.setData({
+      isGuest: bindingStatus === "guest",
+    });
+
     // 检查是否是家属
     const bindingInfo = app.globalData.bindingInfo;
     if (bindingInfo && bindingInfo.type === "family") {
@@ -38,6 +44,15 @@ Page({
 
   loadVoteList(refresh = false) {
     if (this.data.loading) return;
+
+    if (this.data.isGuest) {
+      this.setData({
+        voteList: this.getGuestMockVoteList(),
+        loading: false,
+        hasMore: false,
+      });
+      return;
+    }
 
     this.setData({ loading: true });
 
@@ -85,21 +100,29 @@ Page({
     });
   },
 
-  getMockData() {
-    const mockData = [];
-    for (let i = 1; i <= 3; i++) {
-      mockData.push({
-        id: i,
-        title: "停车场收费",
+  getGuestMockVoteList() {
+    return [
+      {
+        id: "guest-vote-1",
+        title: "关于2026年度电梯维保单位续签的业主表决",
         description:
-          "为了规范停车场管理，提高停车场使用效率，现就停车场收费方案进行投票。具体方案包括：\n\n1. 临时停车：首小时5元，后续每小时3元\n2. 月租停车：每月300元\n3. 业主优惠：业主享受8折优惠\n\n请各位业主认真考虑后投票。",
-        deadline: "2025-3-3",
-        voteCount: Math.floor(Math.random() * 100),
-        hasVoted: Math.random() > 0.5,
-        type: this.data.currentTab === 0 ? "vote" : "survey",
-      });
-    }
-    return mockData;
+          "拟续签现有维保单位一年，费用与服务标准按现合同执行，请业主审议。",
+        deadline: "2026-04-30",
+        voteCount: 186,
+        status: "ongoing",
+        statusText: "进行中",
+      },
+      {
+        id: "guest-vote-2",
+        title: "关于3号楼架空层非机动车充电区改造方案表决",
+        description:
+          "对消防整改后的充电区布局、充电桩数量及夜间断电策略进行居民表决。",
+        deadline: "2026-02-18",
+        voteCount: 243,
+        status: "ended",
+        statusText: "已结束",
+      },
+    ];
   },
 
   formatDeadline(deadlineTime) {
@@ -155,7 +178,7 @@ Page({
         },
         () => {
           this.loadVoteList();
-        }
+        },
       );
     }
   },

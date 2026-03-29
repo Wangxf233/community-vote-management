@@ -8,6 +8,7 @@ Page({
     hasMore: true,
     loading: false,
     communityId: "",
+    isGuest: false,
   },
 
   onLoad(options) {
@@ -40,6 +41,16 @@ Page({
 
   // 加载社区ID
   loadCommunityId() {
+    const bindingStatus = getApp().globalData.bindingStatus || "none";
+    if (bindingStatus === "guest") {
+      this.setData({
+        isGuest: true,
+        communityId: "guest-community",
+      });
+      this.loadInformationList();
+      return;
+    }
+
     const app = getApp();
     const communityId =
       app.globalData.communityId || wx.getStorageSync("communityId");
@@ -62,6 +73,26 @@ Page({
     }
 
     this.setData({ loading: true });
+
+    if (this.data.isGuest) {
+      const all = this.getGuestInformationByType(this.data.type);
+      const start = (this.data.page - 1) * this.data.pageSize;
+      const end = start + this.data.pageSize;
+      const newList = all.slice(start, end).map((item) => ({
+        ...item,
+        displayTime: this.formatTime(item.publishTime),
+      }));
+
+      this.setData({
+        informationList:
+          this.data.page === 1
+            ? newList
+            : this.data.informationList.concat(newList),
+        hasMore: end < all.length,
+        loading: false,
+      });
+      return;
+    }
 
     const { type, page, pageSize, communityId } = this.data;
     const requestData = {
@@ -137,6 +168,46 @@ Page({
     } else {
       return publish.toLocaleDateString("zh-CN");
     }
+  },
+
+  getGuestInformationByType(type) {
+    const all = [
+      {
+        _id: "guest-committee-1",
+        type: "committee",
+        title: "业委会关于公共收益季度公示的说明",
+        content: "现对2026年第一季度公共收益收支情况进行公示，欢迎业主监督。",
+        publishTime: "2026-03-15T10:00:00",
+        publisher: "星河苑业主委员会",
+        isPinned: true,
+        isRead: false,
+      },
+      {
+        _id: "guest-property-1",
+        type: "property",
+        title: "春季绿化养护及病虫害防治安排",
+        content: "3月下旬将集中开展绿化修剪、补植和病虫害防治作业。",
+        publishTime: "2026-03-14T15:30:00",
+        publisher: "星河苑物业服务中心",
+        isPinned: false,
+        isRead: true,
+      },
+      {
+        _id: "guest-laws-1",
+        type: "laws",
+        title: "《民法典》物业服务相关条款解读",
+        content:
+          "围绕物业服务合同、公共收益与维修资金使用等重点条款进行简要解读。",
+        publishTime: "2026-03-12T09:20:00",
+        publisher: "社区法务顾问",
+        isPinned: false,
+        isRead: true,
+      },
+    ];
+
+    if (type === "all") return all;
+    if (type === "law") return all.filter((item) => item.type === "laws");
+    return all.filter((item) => item.type === type);
   },
 
   goToDetail(e) {

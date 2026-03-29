@@ -17,7 +17,7 @@ function calculateExpiryTime(announcement) {
   if (announcement.expiryDays && announcement.publishTime) {
     const publishTime = new Date(announcement.publishTime);
     const expiryTime = new Date(
-      publishTime.getTime() + announcement.expiryDays * 24 * 60 * 60 * 1000
+      publishTime.getTime() + announcement.expiryDays * 24 * 60 * 60 * 1000,
     );
     return expiryTime;
   }
@@ -32,26 +32,35 @@ function calculateExpiryTime(announcement) {
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
   const openid = wxContext.OPENID;
-  const { type, page = 1, pageSize = 10 } = event;
+  const {
+    type,
+    page = 1,
+    pageSize = 10,
+    communityId: inputCommunityId,
+  } = event;
 
   try {
-    // 从 owner_list 中获取用户信息
-    const ownerResult = await db
-      .collection("owner_list")
-      .where({
-        openid: openid,
-      })
-      .get();
+    let communityId = inputCommunityId;
 
-    if (ownerResult.data.length === 0) {
-      return {
-        success: false,
-        error: "未绑定用户信息",
-      };
+    // 如果没有传入 communityId，则从 owner_list 获取
+    if (!communityId) {
+      const ownerResult = await db
+        .collection("owner_list")
+        .where({
+          openid: openid,
+        })
+        .get();
+
+      if (ownerResult.data.length === 0) {
+        return {
+          success: false,
+          error: "未绑定用户信息",
+        };
+      }
+
+      const owner = ownerResult.data[0];
+      communityId = owner.communityId;
     }
-
-    const owner = ownerResult.data[0];
-    const communityId = owner.communityId;
 
     const skip = (page - 1) * pageSize;
     const now = new Date();

@@ -6,15 +6,24 @@ const _ = db.command;
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
   const openid = wxContext.OPENID;
+  const { communityId } = event;
 
   try {
+    // 构建查询条件
+    const whereCondition = {
+      openid: openid,
+      deleted: _.neq(true),
+    };
+
+    // 如果提供了 communityId，则添加小区过滤
+    if (communityId) {
+      whereCondition.communityId = communityId;
+    }
+
     // 查询该用户的所有投票记录
     const recordsRes = await db
       .collection("vote_records")
-      .where({
-        openid: openid,
-        deleted: _.neq(true),
-      })
+      .where(whereCondition)
       .orderBy("createdAt", "desc")
       .get();
 

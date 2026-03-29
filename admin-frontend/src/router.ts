@@ -102,4 +102,57 @@ const router = createRouter({
   routes,
 });
 
+// 路由守卫：权限验证
+router.beforeEach((to, from, next) => {
+  // 登录页直接放行
+  if (to.path === "/login") {
+    next();
+    return;
+  }
+
+  // 检查是否已登录
+  const token = localStorage.getItem("admin-token");
+  if (!token) {
+    next("/login");
+    return;
+  }
+
+  // 获取用户信息
+  const userStr = localStorage.getItem("admin-user");
+  if (!userStr) {
+    next("/login");
+    return;
+  }
+
+  try {
+    const user = JSON.parse(userStr);
+    const userRole = user.role;
+
+    // 超级管理员可以访问所有页面
+    if (userRole === "super") {
+      next();
+      return;
+    }
+
+    // 小区管理员只能访问 /community-admin 路径
+    if (userRole === "community" || userRole === "community_admin") {
+      if (to.path.startsWith("/community-admin")) {
+        next();
+      } else {
+        // 尝试访问超级管理员页面，拦截并跳转
+        console.warn("权限不足：小区管理员无法访问超级管理员页面");
+        next("/community-admin");
+      }
+      return;
+    }
+
+    // 其他未知角色，跳转到登录
+    console.warn("未知角色:", userRole);
+    next("/login");
+  } catch (error) {
+    console.error("解析用户信息失败:", error);
+    next("/login");
+  }
+});
+
 export default router;

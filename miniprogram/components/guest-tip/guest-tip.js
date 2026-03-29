@@ -12,17 +12,27 @@ Component({
 
   lifetimes: {
     attached() {
-      const app = getApp();
-      this.setData({
-        bindingStatus: app.globalData.bindingStatus,
-      });
+      this.syncStatus();
+    },
+  },
+
+  pageLifetimes: {
+    show() {
+      this.syncStatus();
     },
   },
 
   methods: {
+    syncStatus() {
+      const app = getApp();
+      this.setData({
+        bindingStatus: app.globalData.bindingStatus || "none",
+      });
+    },
+
     goBind() {
       wx.navigateTo({
-        url: "/pages/bind-info/index",
+        url: "/pages/welcome/index",
       });
     },
   },

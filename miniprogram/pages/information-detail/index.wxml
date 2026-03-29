@@ -60,3 +60,5 @@
     <text class="empty-text">未找到公告信息</text>
   </view>
 </view>
+
+<guest-tip></guest-tip>

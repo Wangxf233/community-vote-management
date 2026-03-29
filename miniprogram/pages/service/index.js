@@ -88,21 +88,6 @@ Page({
       }
     }
 
-    if (bindingStatus === "guest") {
-      wx.showModal({
-        title: "温馨提示",
-        content: "游客模式下无法使用此功能，是否立即绑定账号？",
-        confirmText: "立即绑定",
-        cancelText: "取消",
-        success: (res) => {
-          if (res.confirm) {
-            this.goToBind();
-          }
-        },
-      });
-      return;
-    }
-
     if (bindingStatus === "pending") {
       wx.showModal({
         title: "温馨提示",

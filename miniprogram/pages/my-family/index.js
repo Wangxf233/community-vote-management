@@ -48,6 +48,15 @@ Page({
    * 加载已有的邀请码
    */
   async loadExistingInviteCode() {
+    const bindingStatus = app.globalData.bindingStatus || "none";
+    if (bindingStatus === "guest") {
+      this.setData({
+        inviteCode: "GUEST8A2F",
+        expiresAt: "2026-12-31",
+      });
+      return;
+    }
+
     try {
       const result = await wx.cloud.callFunction({
         name: "generateInviteCode",
@@ -68,7 +77,7 @@ Page({
         if (expireDate > now) {
           // 格式化过期时间
           const formatted = `${expireDate.getFullYear()}-${String(
-            expireDate.getMonth() + 1
+            expireDate.getMonth() + 1,
           ).padStart(2, "0")}-${String(expireDate.getDate()).padStart(2, "0")}`;
 
           this.setData({
@@ -86,6 +95,19 @@ Page({
    * 生成邀请码
    */
   async generateInviteCode() {
+    const bindingStatus = app.globalData.bindingStatus || "none";
+    if (bindingStatus === "guest") {
+      this.setData({
+        inviteCode: "GUEST9C6M",
+        expiresAt: "2026-12-31",
+      });
+      wx.showToast({
+        title: "演示邀请码已更新",
+        icon: "none",
+      });
+      return;
+    }
+
     this.setData({ generating: true });
 
     try {
@@ -103,7 +125,7 @@ Page({
         // 格式化过期时间
         const date = new Date(expiresAt);
         const formatted = `${date.getFullYear()}-${String(
-          date.getMonth() + 1
+          date.getMonth() + 1,
         ).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
         this.setData({
@@ -152,6 +174,34 @@ Page({
    */
   async loadFamilyList() {
     this.setData({ loading: true });
+
+    const bindingStatus = app.globalData.bindingStatus || "none";
+    if (bindingStatus === "guest") {
+      this.setData({
+        familyList: [
+          {
+            _id: "guest-family-1",
+            name: "张晨曦",
+            relation: "配偶",
+            phone: "138****6621",
+            idCard: "3301**********1324",
+            status: "approved",
+            createdAt: "2026-02-12 14:30",
+          },
+          {
+            _id: "guest-family-2",
+            name: "李子沐",
+            relation: "子女",
+            phone: "139****4508",
+            idCard: "3301**********2217",
+            status: "approved",
+            createdAt: "2026-01-08 10:10",
+          },
+        ],
+        loading: false,
+      });
+      return;
+    }
 
     try {
       const result = await wx.cloud.callFunction({
@@ -203,6 +253,15 @@ Page({
    * 执行移出操作
    */
   async executeRemoveMember(certificationId) {
+    const bindingStatus = app.globalData.bindingStatus || "none";
+    if (bindingStatus === "guest") {
+      wx.showToast({
+        title: "游客模式为演示数据",
+        icon: "none",
+      });
+      return;
+    }
+
     wx.showLoading({ title: "处理中..." });
 
     try {
@@ -259,6 +318,15 @@ Page({
    * 执行解绑操作
    */
   async unbindFamily(familyId) {
+    const bindingStatus = app.globalData.bindingStatus || "none";
+    if (bindingStatus === "guest") {
+      wx.showToast({
+        title: "游客模式为演示数据",
+        icon: "none",
+      });
+      return;
+    }
+
     wx.showLoading({ title: "处理中..." });
 
     try {

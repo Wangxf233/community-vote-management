@@ -1,9 +1,0 @@
-{
-  "name": "generateInviteCode",
-  "version": "1.0.0",
-  "description": "Generate invite code for family members",
-  "main": "index.js",
-  "dependencies": {
-    "wx-server-sdk": "~2.6.3"
-  }
-}

@@ -11,35 +11,39 @@ const db = cloud.database();
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
   const openid = wxContext.OPENID;
+  let communityId = event.communityId; // 优先使用传入的communityId
+  let communityName = "小区基本情况";
 
   try {
-    // 1. 获取用户的认证申请信息（包含 communityId）
-    const certResult = await db
-      .collection("certification_applications")
-      .where({
-        openid: openid,
-        status: "approved",
-      })
-      .orderBy("updatedAt", "desc")
-      .limit(1)
-      .get();
-
-    if (!certResult.data || certResult.data.length === 0) {
-      return {
-        success: false,
-        error: "未找到已认证的绑定信息",
-      };
-    }
-
-    const certification = certResult.data[0];
-    const communityId = certification.communityId;
-    const communityName = certification.communityName || "小区基本情况";
-
+    // 1. 如果没有传入communityId，则从用户的认证申请信息中获取
     if (!communityId) {
-      return {
-        success: false,
-        error: "认证信息中缺少小区ID",
-      };
+      const certResult = await db
+        .collection("certification_applications")
+        .where({
+          openid: openid,
+          status: "approved",
+        })
+        .orderBy("updatedAt", "desc")
+        .limit(1)
+        .get();
+
+      if (!certResult.data || certResult.data.length === 0) {
+        return {
+          success: false,
+          error: "未找到已认证的绑定信息",
+        };
+      }
+
+      const certification = certResult.data[0];
+      communityId = certification.communityId;
+      communityName = certification.communityName || "小区基本情况";
+
+      if (!communityId) {
+        return {
+          success: false,
+          error: "认证信息中缺少小区ID",
+        };
+      }
     }
 
     // 2. 查询小区基本情况
@@ -51,10 +55,32 @@ exports.main = async (event, context) => {
       .limit(1)
       .get();
 
+    // 如果没有找到小区信息，返回空数据而不是报错
     if (!infoResult.data || infoResult.data.length === 0) {
       return {
-        success: false,
-        error: "未找到小区基本情况信息",
+        success: true,
+        communityName: communityName,
+        data: {
+          propertyName: "",
+          buildingCount: 0,
+          unitCount: 0,
+          residentialCount: 0,
+          shopCount: 0,
+          ownerCount: 0,
+          landArea: 0,
+          buildingArea: 0,
+          exclusiveArea: {
+            residential: 0,
+            shop: 0,
+            other: 0,
+          },
+          parkingArea: 0,
+          surfaceParkingCount: 0,
+          undergroundParkingCount: 0,
+          vehicleCount: 0,
+          planImage: "",
+          effectImage: "",
+        },
       };
     }
 

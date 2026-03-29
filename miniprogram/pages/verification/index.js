@@ -14,18 +14,6 @@ Page({
     contract: "",
     payment: "",
 
-    // 身份证识别信息
-    idCardInfo: {
-      name: "",
-      idNum: "",
-      sex: "",
-      nation: "",
-      birth: "",
-      address: "",
-      authority: "",
-      validDate: "",
-    },
-
     submitting: false,
     redirectUrl: "", // 认证成功后跳转的地址
   },
@@ -88,12 +76,12 @@ Page({
 
   // 上传身份证正面
   uploadIdCardFront() {
-    this.chooseAndUploadImage("idCardFront", "id-card-front", "FRONT");
+    this.chooseAndUploadImage("idCardFront", "id-card-front");
   },
 
   // 上传身份证反面
   uploadIdCardBack() {
-    this.chooseAndUploadImage("idCardBack", "id-card-back", "BACK");
+    this.chooseAndUploadImage("idCardBack", "id-card-back");
   },
 
   // 上传房产证
@@ -112,7 +100,7 @@ Page({
   },
 
   // 选择并上传图片
-  chooseAndUploadImage(dataKey, folder, cardSide) {
+  chooseAndUploadImage(dataKey, folder) {
     wx.chooseMedia({
       count: 1,
       mediaType: ["image"],
@@ -131,15 +119,25 @@ Page({
           cloudPath: cloudPath,
           filePath: tempFilePath,
           success: (uploadRes) => {
-            const fileID = uploadRes.fileID;
+            wx.hideLoading();
 
-            // 如果是身份证，进行OCR识别
-            if (cardSide) {
-              this.performOCR(fileID, cardSide, dataKey);
-            } else {
-              // 非身份证直接获取临时链接
-              this.getTempURL(fileID, dataKey);
-            }
+            // 获取临时链接
+            wx.cloud.getTempFileURL({
+              fileList: [uploadRes.fileID],
+              success: (urlRes) => {
+                if (urlRes.fileList && urlRes.fileList.length > 0) {
+                  const tempFileURL = urlRes.fileList[0].tempFileURL;
+                  this.setData({
+                    [dataKey]: tempFileURL,
+                  });
+
+                  wx.showToast({
+                    title: "上传成功",
+                    icon: "success",
+                  });
+                }
+              },
+            });
           },
           fail: (err) => {
             wx.hideLoading();
@@ -148,126 +146,6 @@ Page({
               icon: "none",
             });
             console.error("上传失败:", err);
-          },
-        });
-      },
-    });
-  },
-
-  // 获取临时链接
-  getTempURL(fileID, dataKey) {
-    wx.cloud.getTempFileURL({
-      fileList: [fileID],
-      success: (urlRes) => {
-        wx.hideLoading();
-        if (urlRes.fileList && urlRes.fileList.length > 0) {
-          const tempFileURL = urlRes.fileList[0].tempFileURL;
-          this.setData({
-            [dataKey]: tempFileURL,
-          });
-
-          wx.showToast({
-            title: "上传成功",
-            icon: "success",
-          });
-        }
-      },
-      fail: () => {
-        wx.hideLoading();
-        wx.showToast({
-          title: "获取图片失败",
-          icon: "none",
-        });
-      },
-    });
-  },
-
-  // 执行OCR识别
-  performOCR(fileID, cardSide, dataKey) {
-    wx.showLoading({ title: "识别中..." });
-
-    wx.cloud.callFunction({
-      name: "idCardOCR",
-      data: {
-        imageUrl: fileID,
-        cardSide: cardSide,
-      },
-      success: (res) => {
-        wx.hideLoading();
-
-        if (res.result.success) {
-          // 识别成功，保存图片和信息
-          wx.cloud.getTempFileURL({
-            fileList: [fileID],
-            success: (urlRes) => {
-              if (urlRes.fileList && urlRes.fileList.length > 0) {
-                const tempFileURL = urlRes.fileList[0].tempFileURL;
-
-                // 更新图片
-                this.setData({
-                  [dataKey]: tempFileURL,
-                });
-
-                // 更新识别信息
-                const idCardInfo = { ...this.data.idCardInfo };
-                Object.assign(idCardInfo, res.result.data);
-                this.setData({ idCardInfo });
-
-                // 显示识别结果
-                let message = "识别成功";
-                if (res.result.quality) {
-                  message += `\n图片质量：${res.result.quality}分`;
-                }
-                if (cardSide === "FRONT" && res.result.data.idNum) {
-                  message += `\n身份证号：${res.result.data.idNum}`;
-                  message += `\n姓名：${res.result.data.name}`;
-                }
-
-                wx.showModal({
-                  title: "识别成功",
-                  content: message,
-                  showCancel: false,
-                  confirmText: "确定",
-                });
-              }
-            },
-          });
-        } else {
-          // 识别失败或图片质量问题
-          wx.showModal({
-            title: "识别失败",
-            content: res.result.message || "图片识别失败，请重新上传",
-            showCancel: true,
-            confirmText: "重新上传",
-            cancelText: "继续使用",
-            success: (modalRes) => {
-              if (modalRes.confirm) {
-                // 重新上传
-                if (dataKey === "idCardFront") {
-                  this.uploadIdCardFront();
-                } else if (dataKey === "idCardBack") {
-                  this.uploadIdCardBack();
-                }
-              } else {
-                // 继续使用当前图片
-                this.getTempURL(fileID, dataKey);
-              }
-            },
-          });
-        }
-      },
-      fail: (err) => {
-        wx.hideLoading();
-        console.error("OCR识别失败:", err);
-
-        // OCR失败，但仍可以使用图片
-        wx.showModal({
-          title: "识别失败",
-          content: "自动识别失败，是否继续使用该图片？",
-          success: (modalRes) => {
-            if (modalRes.confirm) {
-              this.getTempURL(fileID, dataKey);
-            }
           },
         });
       },
@@ -283,7 +161,6 @@ Page({
       propertyCert,
       contract,
       payment,
-      idCardInfo,
     } = this.data;
 
     // 验证必填项
@@ -294,35 +171,6 @@ Page({
       });
       return;
     }
-
-    // 检查是否识别到身份证号
-    if (!idCardInfo.idNum) {
-      wx.showModal({
-        title: "提示",
-        content: "未能识别到身份证号码，是否继续提交？",
-        success: (res) => {
-          if (res.confirm) {
-            this.doSubmit();
-          }
-        },
-      });
-      return;
-    }
-
-    this.doSubmit();
-  },
-
-  // 执行提交
-  doSubmit() {
-    const {
-      idCardFront,
-      idCardBack,
-      certType,
-      propertyCert,
-      contract,
-      payment,
-      idCardInfo,
-    } = this.data;
 
     if (!certType) {
       wx.showToast({
@@ -369,8 +217,6 @@ Page({
         idCardBack,
         certType,
         certImage,
-        // 附加身份证识别信息
-        idCardInfo,
       },
       success: (res) => {
         wx.hideLoading();

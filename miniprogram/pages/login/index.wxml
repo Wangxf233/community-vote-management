@@ -24,3 +24,5 @@
     <text class="agreement-link" bindtap="showPrivacyPolicy">《隐私政策》</text>
   </view>
 </view>
+
+<guest-tip></guest-tip>

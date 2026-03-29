@@ -271,10 +271,10 @@ const formatDateTime = (date: string) => {
   const d = new Date(date);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
     2,
-    "0"
+    "0",
   )}-${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(
     2,
-    "0"
+    "0",
   )}:${String(d.getMinutes()).padStart(2, "0")}`;
 };
 
@@ -329,9 +329,7 @@ const fetchAvailableStaff = async () => {
         pageSize: 1000,
       },
     });
-    if (response.data.success) {
-      availableStaff.value = response.data.data;
-    }
+    availableStaff.value = response.data;
   } catch (error: any) {
     ElMessage.error(error.response?.data?.error || "获取服务人员列表失败");
   }
@@ -403,7 +401,7 @@ const handleViewResults = (row: Cycle) => {
   // 使用 sessionStorage 传递周期ID
   sessionStorage.setItem(
     "evaluationsManagement_selectedCycleId",
-    row._id || ""
+    row._id || "",
   );
   // 设置目标标签页
   sessionStorage.setItem("evaluationsManagement_targetTab", "results");

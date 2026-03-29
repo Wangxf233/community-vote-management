@@ -41,8 +41,34 @@ async function authMiddleware(req, res, next) {
   next();
 }
 
+/**
+ * 超级管理员权限中间件 - 只允许超级管理员访问
+ */
+async function superAdminOnly(req, res, next) {
+  const token = getTokenFromReq(req);
+  if (!token) {
+    return res.status(401).json({ success: false, error: "no_token" });
+  }
+
+  const user = await ensureAdmin(token);
+  if (!user) {
+    return res.status(401).json({ success: false, error: "invalid_token" });
+  }
+
+  // 检查是否为超级管理员
+  if (user.role !== "super") {
+    return res
+      .status(403)
+      .json({ success: false, error: "insufficient_permissions" });
+  }
+
+  req.user = user;
+  next();
+}
+
 module.exports = {
   ensureAdmin,
   authMiddleware,
+  superAdminOnly,
   verifyToken: authMiddleware, // 别名，保持兼容性
 };

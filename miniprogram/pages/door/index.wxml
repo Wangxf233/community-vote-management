@@ -1,0 +1,47 @@
+<view class="door-page">
+  <view class="header-card">
+    <text class="header-title">小区开门</text>
+    <text class="header-subtitle">选择门禁后可远程发送开门指令</text>
+  </view>
+
+  <view class="status-banner" wx:if="{{bindingStatus === 'pending'}}">
+    <text>您的认证申请审核中，暂不可开门</text>
+  </view>
+
+  <view class="status-banner rejected" wx:if="{{bindingStatus === 'rejected'}}">
+    <text>您的认证未通过，请重新提交后使用开门功能</text>
+  </view>
+
+  <view class="status-banner guest" wx:if="{{bindingStatus === 'guest' || bindingStatus === 'none'}}">
+    <text>请先完成业主认证后再使用小区开门</text>
+    <button class="bind-btn" size="mini" bindtap="goBind">去认证</button>
+  </view>
+
+  <view class="loading-wrap" wx:if="{{loading}}">
+    <text>正在加载门禁设备...</text>
+  </view>
+
+  <view class="empty-wrap" wx:if="{{!loading && devices.length === 0 && canUse}}">
+    <text>当前小区暂无可用门禁设备</text>
+  </view>
+
+  <view class="device-list" wx:if="{{!loading && devices.length > 0 && canUse}}">
+    <view class="device-item" wx:for="{{devices}}" wx:key="serial">
+      <view class="device-main">
+        <text class="device-name">{{item.deviceName}}</text>
+        <text class="device-location" wx:if="{{item.location}}">{{item.location}}</text>
+        <text class="device-serial">SN: {{item.serial}}</text>
+      </view>
+      <button
+        class="open-btn"
+        type="primary"
+        loading="{{openingSerial === item.serial}}"
+        disabled="{{openingSerial !== ''}}"
+        data-serial="{{item.serial}}"
+        bindtap="onOpenDoor"
+      >
+        开门
+      </button>
+    </view>
+  </view>
+</view>

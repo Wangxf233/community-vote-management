@@ -1,9 +1,0 @@
-{
-  "name": "verifyRealName",
-  "version": "1.0.0",
-  "description": "微信实名认证",
-  "main": "index.js",
-  "dependencies": {
-    "wx-server-sdk": "latest"
-  }
-}

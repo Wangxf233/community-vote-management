@@ -13,19 +13,28 @@ exports.main = async (event, context) => {
   try {
     const wxContext = cloud.getWXContext();
     const openid = wxContext.OPENID;
+    const { communityId } = event;
 
     if (!openid) {
       return { code: -1, message: "无法获取用户身份" };
     }
 
+    // 构建查询条件
+    const ownerWhereCondition = {
+      openid,
+      type: "owner",
+      status: "approved",
+    };
+
+    // 如果提供了 communityId，则添加小区过滤
+    if (communityId) {
+      ownerWhereCondition.communityId = communityId;
+    }
+
     // 验证当前用户是否为已认证的户主
     const ownerRes = await db
       .collection("certification_applications")
-      .where({
-        openid,
-        type: "owner",
-        status: "approved",
-      })
+      .where(ownerWhereCondition)
       .limit(1)
       .get();
 
@@ -33,14 +42,22 @@ exports.main = async (event, context) => {
       return { code: -1, message: "只有已认证的户主才能查看家属列表" };
     }
 
+    // 构建家属查询条件
+    const familyWhereCondition = {
+      ownerOpenid: openid,
+      type: "family",
+      status: "approved",
+    };
+
+    // 如果提供了 communityId，则添加小区过滤
+    if (communityId) {
+      familyWhereCondition.communityId = communityId;
+    }
+
     // 查询该户主的所有已通过的家属
     const familyRes = await db
       .collection("certification_applications")
-      .where({
-        ownerOpenid: openid,
-        type: "family",
-        status: "approved",
-      })
+      .where(familyWhereCondition)
       .orderBy("createdAt", "desc")
       .get();
 

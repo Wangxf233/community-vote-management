@@ -17,6 +17,34 @@ Page({
     const that = this;
     that.setData({ loading: true });
 
+    const bindingStatus = getApp().globalData.bindingStatus || "none";
+    if (bindingStatus === "guest") {
+      const votes = [
+        {
+          _id: "guest-vote-1",
+          title: "关于3号楼电梯更新方案表决",
+          voteType: "vote",
+          selectedOptionText: "同意",
+          createdAt: "2026-03-16 19:30",
+          voteDeadline: "2026-03-20 18:00",
+        },
+        {
+          _id: "guest-vote-2",
+          title: "小区共享充电桩建设问卷",
+          voteType: "survey",
+          selectedOptionText: "弃权",
+          createdAt: "2026-03-10 10:12",
+          voteDeadline: "2026-03-25 20:00",
+        },
+      ];
+
+      that.setData({
+        voteList: votes,
+        loading: false,
+      });
+      return;
+    }
+
     wx.cloud
       .callFunction({
         name: "getMyVoteRecords",
@@ -43,7 +71,7 @@ Page({
           });
         } else {
           wx.showToast({
-            title: (res.result && res.result.error) || "加载失败",
+            title: res.result?.error || "加载失败",
             icon: "none",
           });
           that.setData({ loading: false });

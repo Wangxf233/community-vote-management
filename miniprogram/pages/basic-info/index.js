@@ -17,6 +17,47 @@ Page({
     try {
       this.setData({ loading: true, error: null });
 
+      const bindingStatus = getApp().globalData.bindingStatus || "none";
+      if (bindingStatus === "guest") {
+        this.setData({
+          communityName: "星河苑小区",
+          communityInfo: {
+            address: "杭州市滨江区江南大道1888号",
+            developer: "星河置业集团",
+            propertyCompany: "星河苑物业服务中心",
+            buildYear: "2021",
+            buildingCount: 18,
+            unitCount: 54,
+            residentialCount: 1260,
+            shopCount: 46,
+            ownerCount: 1187,
+            landArea: 168000,
+            buildingArea: {
+              residential: 236500,
+              commercial: 18500,
+            },
+            exclusiveArea: {
+              residential: 198200,
+              commercial: 14200,
+            },
+            undergroundParkingArea: 38200,
+            surfaceParkingCount: 186,
+            undergroundParkingCount: 794,
+            vehicleCount: 912,
+            greenRate: "35%",
+            parkingSpaces: 980,
+            introduction:
+              "星河苑小区由高层住宅与配套商业组成，设有儿童活动区、健身步道和社区服务驿站，支持线上报修与公告通知。",
+            planImage:
+              "https://images.unsplash.com/photo-1484154218962-a197022b5858?w=1200&q=80",
+            effectImage:
+              "https://images.unsplash.com/photo-1460317442991-0ec209397118?w=1200&q=80",
+          },
+          loading: false,
+        });
+        return;
+      }
+
       const res = await wx.cloud.callFunction({
         name: "getCommunityInfo",
         data: {},

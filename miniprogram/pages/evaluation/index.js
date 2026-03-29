@@ -14,9 +14,19 @@ Page({
     loading: false,
     isViewMode: false, // 是否是查看模式（已完成评价）
     evaluationHistory: [], // 评价历史记录
+    isGuest: false,
   },
 
   onLoad(options) {
+    const bindingStatus = app.globalData.bindingStatus || "guest";
+    if (bindingStatus === "guest") {
+      this.setData({
+        isGuest: true,
+      });
+      this.loadGuestEvaluationData();
+      return;
+    }
+
     // 检查是否是家属
     const bindingInfo = app.globalData.bindingInfo;
     if (bindingInfo && bindingInfo.type === "family") {
@@ -137,6 +147,26 @@ Page({
   switchTab(e) {
     const tab = parseInt(e.currentTarget.dataset.tab);
     if (tab !== this.data.currentTab) {
+      if (this.data.isGuest) {
+        this.setData(
+          {
+            currentTab: tab,
+            currentCycle: null,
+            selectedStaff: null,
+            cycles: [],
+            staffList: [],
+            scores: {},
+            comment: "",
+            isViewMode: false,
+            evaluationHistory: [],
+          },
+          () => {
+            this.loadGuestEvaluationData();
+          },
+        );
+        return;
+      }
+
       // 切换tab并重置状态，重新加载对应类型的评价周期
       this.setData(
         {
@@ -153,7 +183,7 @@ Page({
         () => {
           // 重新加载评价周期
           this.loadEvaluationCycles();
-        }
+        },
       );
     }
   },
@@ -162,6 +192,21 @@ Page({
   selectCycle(e) {
     const index = e.currentTarget.dataset.index;
     const cycle = this.data.cycles[index];
+
+    if (this.data.isGuest) {
+      const dimensions = cycle.dimensions || [];
+      const scores = {};
+      dimensions.forEach((dim) => {
+        scores[dim.name] = 0;
+      });
+
+      this.setData({
+        currentCycle: cycle,
+        dimensions,
+        scores,
+      });
+      return;
+    }
 
     this.setData({
       currentCycle: cycle,
@@ -326,6 +371,55 @@ Page({
     });
   },
 
+  loadGuestEvaluationData() {
+    const isStaffTab = this.data.currentTab === 0;
+    const mockCycle = {
+      _id: "guest-cycle-1",
+      title: isStaffTab
+        ? "2026年第一季度服务人员绩效评价"
+        : "2026年第一季度物业公司综合服务评价",
+      deadline: "2026-04-15 23:59",
+      startDate: "2026-03-15",
+      endDate: "2026-04-15",
+      hasEvaluated: false,
+      dimensions: isStaffTab
+        ? [{ name: "服务态度" }, { name: "响应及时性" }, { name: "处理专业度" }]
+        : [
+            { name: "保洁质量" },
+            { name: "安保巡查" },
+            { name: "客服响应" },
+            { name: "设施维护" },
+          ],
+    };
+
+    const dimensions = mockCycle.dimensions;
+    const scores = {};
+    dimensions.forEach((dim) => {
+      scores[dim.name] = 0;
+    });
+
+    const guestStaff = {
+      _id: "guest-staff-1",
+      name: "张明",
+      position: "客服管家",
+      workScope: "3栋-5栋日常客服与工单协调",
+      photo: "/images/avatar.png",
+      hasEvaluated: false,
+    };
+
+    this.setData({
+      cycles: [mockCycle],
+      currentCycle: null,
+      staffList: isStaffTab ? [guestStaff] : [],
+      selectedStaff: null,
+      dimensions,
+      scores,
+      comment: "整体服务较稳定，建议晚高峰时段增加客服在线值守。",
+      isViewMode: false,
+      evaluationHistory: [],
+    });
+  },
+
   // 格式化时间
   formatTime(isoString) {
     if (!isoString) return "";
@@ -357,6 +451,45 @@ Page({
 
   // 提交评价
   async submitEvaluation() {
+    if (this.data.isGuest) {
+      if (!this.canSubmit()) {
+        wx.showToast({
+          title: "请完成所有评分",
+          icon: "none",
+        });
+        return;
+      }
+
+      wx.showToast({
+        title: "评价提交成功（演示）",
+        icon: "success",
+      });
+
+      this.setData({
+        isViewMode: true,
+        evaluationHistory: [
+          {
+            _id: `guest-eval-${Date.now()}`,
+            staff: this.data.selectedStaff
+              ? {
+                  name: this.data.selectedStaff.name,
+                  position: this.data.selectedStaff.position,
+                  photo: this.data.selectedStaff.photo,
+                }
+              : {
+                  name: "星河苑物业服务中心",
+                  position: "物业服务",
+                  photo: "/images/avatar.png",
+                },
+            scores: { ...this.data.scores },
+            comment: this.data.comment,
+            createdAt: this.formatTime(new Date().toISOString()),
+          },
+        ],
+      });
+      return;
+    }
+
     if (!this.canSubmit()) {
       wx.showToast({
         title: "请完成所有评分",
@@ -415,7 +548,7 @@ Page({
             if (cyclesRes.result.success) {
               const cycles = cyclesRes.result.data;
               const currentCycle = cycles.find(
-                (c) => c._id === this.data.currentCycle._id
+                (c) => c._id === this.data.currentCycle._id,
               );
 
               // 如果已完成所有评价，直接跳转到评价历史页

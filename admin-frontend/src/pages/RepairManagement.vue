@@ -257,8 +257,15 @@
                     </el-tooltip>
                   </template>
                 </el-table-column>
-                <el-table-column label="操作" width="200" fixed="right">
+                <el-table-column label="操作" width="280" fixed="right">
                   <template #default="{ row }">
+                    <el-button
+                      type="primary"
+                      size="small"
+                      @click="handleViewDetail(row)"
+                    >
+                      查看详情
+                    </el-button>
                     <el-button
                       type="success"
                       size="small"
@@ -396,8 +403,14 @@
                     </el-tooltip>
                   </template>
                 </el-table-column>
-                <el-table-column label="操作" width="200" fixed="right">
+                <el-table-column label="操作" width="280" fixed="right">
                   <template #default="{ row }">
+                    <el-button
+                      type="primary"
+                      size="small"
+                      @click="handleViewDetail(row)"
+                      >查看详情</el-button
+                    >
                     <el-button
                       type="success"
                       size="small"
@@ -510,6 +523,83 @@
         </div>
       </div>
     </el-dialog>
+
+    <!-- 详情对话框 -->
+    <el-dialog
+      v-model="detailDialogVisible"
+      :title="activeTab === 'repair' ? '报修详情' : '报事详情'"
+      width="800px"
+    >
+      <div v-if="currentRow">
+        <el-descriptions :column="2" border>
+          <el-descriptions-item v-if="activeTab === 'repair'" label="报修设备">
+            {{ currentRow.equipment }}
+          </el-descriptions-item>
+          <el-descriptions-item v-if="activeTab === 'repair'" label="地点">
+            {{ currentRow.location }}
+          </el-descriptions-item>
+          <el-descriptions-item
+            v-if="activeTab === 'report'"
+            label="事项"
+            :span="2"
+          >
+            {{ currentRow.title }}
+          </el-descriptions-item>
+          <el-descriptions-item label="提交时间" :span="2">
+            {{ formatDate(currentRow.submitTime) }}
+          </el-descriptions-item>
+          <el-descriptions-item v-if="activeTab === 'repair'" label="是否紧急">
+            <el-tag :type="currentRow.isUrgent ? 'danger' : 'info'">
+              {{ currentRow.isUrgent ? "是" : "否" }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="当前进度">
+            <el-tag :type="getStatusType(currentRow.status)">
+              {{ getStatusText(currentRow.status) }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="描述" :span="2">
+            {{ currentRow.description }}
+          </el-descriptions-item>
+          <el-descriptions-item label="备注" :span="2">
+            {{ currentRow.remark || "无" }}
+          </el-descriptions-item>
+        </el-descriptions>
+
+        <el-divider />
+
+        <div v-if="currentRow.images && currentRow.images.length > 0">
+          <h4 style="margin-bottom: 12px">图片</h4>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px">
+            <img
+              v-for="(img, index) in currentRow.images"
+              :key="index"
+              :src="img"
+              @click="handlePreviewImages(currentRow.images, index)"
+              style="
+                width: 100px;
+                height: 100px;
+                object-fit: cover;
+                border-radius: 4px;
+                cursor: pointer;
+              "
+            />
+          </div>
+        </div>
+
+        <div v-if="currentRow.video" style="margin-top: 20px">
+          <h4 style="margin-bottom: 12px">视频</h4>
+          <video
+            :src="currentRow.video"
+            controls
+            style="width: 100%; max-height: 400px; border-radius: 4px"
+          />
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="detailDialogVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -554,7 +644,7 @@ function loadPermissions() {
 // 页签 - 从 sessionStorage 恢复上次的状态
 const savedTab = sessionStorage.getItem("repairManagement_activeTab");
 const activeTab = ref<"repair" | "report">(
-  (savedTab as "repair" | "report") || "repair"
+  (savedTab as "repair" | "report") || "repair",
 );
 
 // 筛选条件
@@ -582,6 +672,7 @@ const pagination = reactive({
 const statusDialogVisible = ref(false);
 const remarkDialogVisible = ref(false);
 const videoDialogVisible = ref(false);
+const detailDialogVisible = ref(false);
 
 const currentRow = ref<any>(null);
 const currentVideo = ref("");
@@ -643,7 +734,7 @@ const loadData = async () => {
     // 401错误会在拦截器中处理，这里不再显示
     if (error.response?.status !== 401) {
       ElMessage.error(
-        error.response?.data?.error || error.message || "加载失败"
+        error.response?.data?.error || error.message || "加载失败",
       );
     }
   } finally {
@@ -682,6 +773,12 @@ const handleSizeChange = () => {
 
 const handlePageChange = () => {
   loadData();
+};
+
+// 查看详情
+const handleViewDetail = (row: any) => {
+  currentRow.value = row;
+  detailDialogVisible.value = true;
 };
 
 // 修改进度

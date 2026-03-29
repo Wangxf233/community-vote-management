@@ -1,4 +1,8 @@
 <view class="evaluation-container">
+  <view class="guest-mode-tip" wx:if="{{isGuest}}">
+    <text class="tip-text">您当前处于游客演示模式，提交为演示数据</text>
+  </view>
+
   <!-- 顶部选项卡 -->
   <view class="tab-container">
     <view class="tab-item {{currentTab === 0 ? 'active' : ''}}" bindtap="switchTab" data-tab="0">
@@ -326,3 +330,5 @@
     </view>
   </view>
 </view>
+
+<guest-tip></guest-tip>

@@ -111,133 +111,164 @@
       >
         <div>小区列表（共 {{ total }} 条）</div>
       </div>
-      <div style="flex: 1; width: 100%; overflow: hidden">
-        <el-table :data="communities" stripe style="width: 100%" height="100%">
-          <el-table-column
-            label="小区名称"
-            prop="name"
-            width="220"
-            align="center"
-          />
-          <el-table-column label="省" width="120" align="center">
-            <template #default="{ row }">{{
-              row.region && row.region[0] ? row.region[0] : ""
-            }}</template></el-table-column
+      <div
+        style="
+          flex: 1;
+          width: 100%;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+        "
+      >
+        <div style="flex: 1; overflow: hidden">
+          <el-table
+            :data="communities"
+            stripe
+            style="width: 100%"
+            height="100%"
           >
-          <el-table-column label="市" width="120" align="center">
-            <template #default="{ row }">{{
-              row.region && row.region[1] ? row.region[1] : ""
-            }}</template></el-table-column
-          >
-          <el-table-column label="区" width="120" align="center">
-            <template #default="{ row }">{{
-              row.region && row.region[2] ? row.region[2] : ""
-            }}</template></el-table-column
-          >
-          <el-table-column
-            label="详细地址"
-            prop="address"
-            min-width="180"
-            align="center"
-            show-overflow-tooltip
-          />
-          <el-table-column
-            label="负责人"
-            prop="ownerName"
-            width="130"
-            align="center"
-          />
-          <el-table-column
-            label="联系方式"
-            prop="ownerPhone"
-            min-width="160"
-            align="center"
-          />
-          <el-table-column label="开通时间" width="160" align="center">
-            <template #header>
-              <span class="sortable-header">
-                开通时间
-                <el-button
-                  class="sort-btn"
-                  type="text"
-                  @click="toggleSort('productStart')"
-                  >{{
-                    sortField === "productStart"
-                      ? sortOrder === "asc"
-                        ? "↑"
-                        : "↓"
-                      : "↕"
-                  }}</el-button
+            <el-table-column
+              label="小区名称"
+              prop="name"
+              width="220"
+              align="center"
+            />
+            <el-table-column label="省" width="120" align="center">
+              <template #default="{ row }">{{
+                row.region && row.region[0] ? row.region[0] : ""
+              }}</template></el-table-column
+            >
+            <el-table-column label="市" width="120" align="center">
+              <template #default="{ row }">{{
+                row.region && row.region[1] ? row.region[1] : ""
+              }}</template></el-table-column
+            >
+            <el-table-column label="区" width="120" align="center">
+              <template #default="{ row }">{{
+                row.region && row.region[2] ? row.region[2] : ""
+              }}</template></el-table-column
+            >
+            <el-table-column
+              label="详细地址"
+              prop="address"
+              min-width="180"
+              align="center"
+              show-overflow-tooltip
+            />
+            <el-table-column
+              label="负责人"
+              prop="ownerName"
+              width="130"
+              align="center"
+            />
+            <el-table-column
+              label="联系方式"
+              prop="ownerPhone"
+              min-width="160"
+              align="center"
+            />
+            <el-table-column label="开通时间" width="160" align="center">
+              <template #header>
+                <span class="sortable-header">
+                  开通时间
+                  <el-button
+                    class="sort-btn"
+                    type="text"
+                    @click="toggleSort('productStart')"
+                    >{{
+                      sortField === "productStart"
+                        ? sortOrder === "asc"
+                          ? "↑"
+                          : "↓"
+                        : "↕"
+                    }}</el-button
+                  >
+                </span>
+              </template>
+              <template #default="{ row }">{{
+                formatDate(getStart(row))
+              }}</template>
+            </el-table-column>
+            <el-table-column label="到期时间" width="160" align="center">
+              <template #header>
+                <span class="sortable-header">
+                  到期时间
+                  <el-button
+                    class="sort-btn"
+                    type="text"
+                    @click="toggleSort('productEnd')"
+                    >{{
+                      sortField === "productEnd"
+                        ? sortOrder === "asc"
+                          ? "↑"
+                          : "↓"
+                        : "↕"
+                    }}</el-button
+                  >
+                </span>
+              </template>
+              <template #default="{ row }">{{
+                formatDate(getEnd(row))
+              }}</template>
+            </el-table-column>
+            <el-table-column label="有效期(天)" width="140" align="center">
+              <template #header>
+                <span class="sortable-header">
+                  有效期(天)
+                  <el-button
+                    class="sort-btn"
+                    type="text"
+                    @click="toggleSort('remainingDays')"
+                    >{{
+                      sortField === "remainingDays"
+                        ? sortOrder === "asc"
+                          ? "↑"
+                          : "↓"
+                        : "↕"
+                    }}</el-button
+                  >
+                </span>
+              </template>
+              <template #default="{ row }">{{ computeDays(row) }}</template>
+            </el-table-column>
+            <el-table-column label="状态" width="120" align="center">
+              <template #default="{ row }">
+                <el-tag :type="getStatusType(row)" size="small">{{
+                  getStatusText(row)
+                }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column
+              label="操作"
+              width="300"
+              align="center"
+              fixed="right"
+            >
+              <template #default="{ row }">
+                <el-button type="primary" size="small" @click="onViewAdmin(row)"
+                  >查看账号</el-button
                 >
-              </span>
-            </template>
-            <template #default="{ row }">{{
-              formatDate(getStart(row))
-            }}</template>
-          </el-table-column>
-          <el-table-column label="到期时间" width="160" align="center">
-            <template #header>
-              <span class="sortable-header">
-                到期时间
-                <el-button
-                  class="sort-btn"
-                  type="text"
-                  @click="toggleSort('productEnd')"
-                  >{{
-                    sortField === "productEnd"
-                      ? sortOrder === "asc"
-                        ? "↑"
-                        : "↓"
-                      : "↕"
-                  }}</el-button
+                <el-button type="warning" size="small" @click="onEdit(row)"
+                  >编辑</el-button
                 >
-              </span>
-            </template>
-            <template #default="{ row }">{{
-              formatDate(getEnd(row))
-            }}</template>
-          </el-table-column>
-          <el-table-column label="有效期(天)" width="140" align="center">
-            <template #header>
-              <span class="sortable-header">
-                有效期(天)
-                <el-button
-                  class="sort-btn"
-                  type="text"
-                  @click="toggleSort('remainingDays')"
-                  >{{
-                    sortField === "remainingDays"
-                      ? sortOrder === "asc"
-                        ? "↑"
-                        : "↓"
-                      : "↕"
-                  }}</el-button
+                <el-button type="danger" size="small" @click="onDelete(row)"
+                  >删除</el-button
                 >
-              </span>
-            </template>
-            <template #default="{ row }">{{ computeDays(row) }}</template>
-          </el-table-column>
-          <el-table-column label="状态" width="120" align="center">
-            <template #default="{ row }">
-              <el-tag :type="getStatusType(row)" size="small">{{
-                getStatusText(row)
-              }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="300" align="center">
-            <template #default="{ row }">
-              <el-button type="primary" size="small" @click="onViewAdmin(row)"
-                >查看账号</el-button
-              >
-              <el-button type="warning" size="small" @click="onEdit(row)"
-                >编辑</el-button
-              >
-              <el-button type="danger" size="small" @click="onDelete(row)"
-                >删除</el-button
-              >
-            </template>
-          </el-table-column>
-        </el-table>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+        <div style="padding: 12px; display: flex; justify-content: center">
+          <el-pagination
+            v-model:current-page="page"
+            v-model:page-size="pageSize"
+            :page-sizes="[10, 20, 50, 100]"
+            :total="total"
+            layout="total, sizes, prev, pager, next, jumper"
+            @size-change="onPageSizeChange"
+            @current-change="onPageChange"
+          />
+        </div>
       </div>
     </el-card>
     <el-dialog
@@ -325,6 +356,7 @@
             v-model="editForm.startDate"
             type="date"
             placeholder="开通日期"
+            disabled
           />
         </el-form-item>
         <el-form-item label="有效期/到期时间">
@@ -681,6 +713,17 @@ function toggleSort(field: string) {
     sortField.value = field;
     sortOrder.value = "desc";
   }
+  load();
+}
+
+function onPageChange(newPage: number) {
+  page.value = newPage;
+  load();
+}
+
+function onPageSizeChange(newSize: number) {
+  pageSize.value = newSize;
+  page.value = 1; // 改变每页数量时重置到第一页
   load();
 }
 

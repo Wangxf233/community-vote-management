@@ -17,7 +17,7 @@ function calculateExpiryTime(announcement) {
   if (announcement.expiryDays && announcement.publishTime) {
     const publishTime = new Date(announcement.publishTime);
     const expiryTime = new Date(
-      publishTime.getTime() + announcement.expiryDays * 24 * 60 * 60 * 1000
+      publishTime.getTime() + announcement.expiryDays * 24 * 60 * 60 * 1000,
     );
     return expiryTime;
   }
@@ -85,6 +85,7 @@ exports.main = async (event, context) => {
             property: 0,
             law: 0,
           },
+          latestPublishTime: null,
         },
       };
     }
@@ -104,12 +105,33 @@ exports.main = async (event, context) => {
     const readIds = readResult.data.map((item) => item.announcementId);
     const unreadCount = announcementIds.length - readIds.length;
 
+    // 获取最新的未读公告发布时间
+    const unreadIds = announcementIds.filter((id) => !readIds.includes(id));
+    let latestPublishTime = null;
+
+    if (unreadIds.length > 0) {
+      // 从 validAnnouncements 中找出未读公告的最新发布时间
+      const unreadAnnouncements = validAnnouncements.filter((item) =>
+        unreadIds.includes(item._id),
+      );
+      if (unreadAnnouncements.length > 0) {
+        latestPublishTime = unreadAnnouncements.reduce((latest, item) => {
+          const publishTime = item.publishTime
+            ? new Date(item.publishTime).getTime()
+            : 0;
+          return publishTime > latest ? publishTime : latest;
+        }, 0);
+        // 转换为 ISO 字符串便于比较
+        if (latestPublishTime > 0) {
+          latestPublishTime = new Date(latestPublishTime).toISOString();
+        }
+      }
+    }
+
     // 如果需要按类型统计
     let byType = { committee: 0, property: 0, law: 0 };
     if (!type) {
       // 获取所有未读公告的类型
-      const unreadIds = announcementIds.filter((id) => !readIds.includes(id));
-
       if (unreadIds.length > 0) {
         const unreadAnnouncementsResult = await db
           .collection("announcements")
@@ -135,6 +157,7 @@ exports.main = async (event, context) => {
         total: announcementIds.length,
         unreadCount: unreadCount,
         byType: byType,
+        latestPublishTime: latestPublishTime, // 返回最新未读公告的发布时间
       },
     };
   } catch (error) {

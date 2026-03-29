@@ -25,7 +25,7 @@ router.post("/login/sms", async (req, res) => {
       return res.status(401).json({ success: false, error: "invalid_code" });
 
     const match = list.data.find(
-      (item) => item.code === code && new Date(item.expiresAt) > new Date()
+      (item) => item.code === code && new Date(item.expiresAt) > new Date(),
     );
 
     if (!match)
@@ -101,6 +101,63 @@ router.post("/login/password", async (req, res) => {
       return res
         .status(401)
         .json({ success: false, error: "invalid_credentials" });
+    }
+
+    // 检查小区有效期（如果用户属于某个小区）
+    if (user.communityId && user.role !== "super") {
+      try {
+        const commRes = await db
+          .collection("communities")
+          .doc(user.communityId)
+          .get();
+
+        if (commRes && commRes.data && commRes.data.length > 0) {
+          const community = commRes.data[0];
+
+          // 获取到期时间
+          const productEnd =
+            community.productEnd ||
+            community.endDate ||
+            community.product_end ||
+            community.end;
+
+          if (productEnd) {
+            let endTimestamp = null;
+
+            // 转换为时间戳
+            if (productEnd instanceof Date) {
+              endTimestamp = productEnd.getTime();
+            } else if (typeof productEnd === "number") {
+              endTimestamp = productEnd < 1e12 ? productEnd * 1000 : productEnd;
+            } else if (typeof productEnd === "string") {
+              endTimestamp = new Date(productEnd).getTime();
+            } else if (
+              productEnd &&
+              typeof productEnd === "object" &&
+              (productEnd.$date || productEnd.date)
+            ) {
+              const dateValue = productEnd.$date || productEnd.date;
+              if (typeof dateValue === "number") {
+                endTimestamp = dateValue < 1e12 ? dateValue * 1000 : dateValue;
+              } else {
+                endTimestamp = new Date(dateValue).getTime();
+              }
+            }
+
+            // 检查是否已到期
+            if (endTimestamp && endTimestamp < Date.now()) {
+              return res.status(403).json({
+                success: false,
+                error: "community_expired",
+                message: "该小区服务已到期，请尽快联系管理员续费以继续使用",
+              });
+            }
+          }
+        }
+      } catch (e) {
+        console.error("检查小区有效期失败:", e);
+        // 如果检查失败，记录日志但不阻止登录（避免因为数据问题导致无法登录）
+      }
     }
 
     // 生成 token

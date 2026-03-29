@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "@cloudbase/node-sdk": "^3.14.1",
+    "dotenv": "^17.2.3",
     "miniprogram-barrage": "^1.1.0",
     "miniprogram-recycle-view": "^0.1.5",
     "wxml-to-canvas": "^1.1.1"

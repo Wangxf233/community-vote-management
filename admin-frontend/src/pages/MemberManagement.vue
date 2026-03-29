@@ -184,18 +184,6 @@
     <!-- 查看账号弹窗 -->
     <el-dialog v-model="accountDialog" title="账号信息" width="520px">
       <el-form :model="accountForm" label-width="100px">
-        <el-form-item label="所属部门">
-          <el-input v-model="accountForm.department" disabled />
-        </el-form-item>
-        <el-form-item label="职位">
-          <el-input v-model="accountForm.position" disabled />
-        </el-form-item>
-        <el-form-item label="姓名">
-          <el-input v-model="accountForm.name" disabled />
-        </el-form-item>
-        <el-form-item label="手机号">
-          <el-input v-model="accountForm.phone" disabled />
-        </el-form-item>
         <el-form-item label="账号">
           <el-input v-model="accountForm.username" />
         </el-form-item>
@@ -430,7 +418,7 @@ async function onSaveAccount() {
       tempNewPassword.value = body.newPassword;
     }
 
-    ElMessage.success("保存成功");
+    ElMessage.success("账号/密码已保存");
     loadMembers();
   } catch (e) {
     console.error(e);

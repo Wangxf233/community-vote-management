@@ -2,7 +2,7 @@
   <view class="welcome-content">
     <image src="/images/welcome-logo.png" class="logo" mode="aspectFit"></image>
     
-    <view class="welcome-title">欢迎使用业主投票评价系统</view>
+    <view class="welcome-title">欢迎使用众议票评系统</view>
     
     <view class="feature-list">
       <view class="feature-item">

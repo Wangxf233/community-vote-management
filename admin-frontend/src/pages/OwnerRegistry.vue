@@ -1,6 +1,11 @@
 <template>
-  <div class="owner-registry-page">
-    <el-card>
+  <div
+    class="owner-registry-page"
+    style="height: calc(100vh - 96px); display: flex; flex-direction: column"
+  >
+    <el-card
+      style="flex: 1; display: flex; flex-direction: column; overflow: hidden"
+    >
       <template #header>
         <div class="card-header">
           <span>业主名册</span>
@@ -97,171 +102,191 @@
         </el-form-item>
       </el-form>
 
-      <div class="batch-operations" style="margin-bottom: 16px">
-        <el-button
-          type="danger"
-          :disabled="selectedIds.length === 0"
-          @click="handleBatchDelete"
-        >
-          删除
-        </el-button>
-        <span style="margin-left: 12px; color: #909399">
-          已选择 {{ selectedIds.length }} 条
-        </span>
-      </div>
-
-      <el-table
-        :data="registryList"
-        stripe
-        style="width: 100%"
-        @selection-change="handleSelectionChange"
-        row-key="_id"
-        :row-class-name="getRowClassName"
+      <div
+        style="flex: 1; display: flex; flex-direction: column; overflow: hidden"
       >
-        <el-table-column type="selection" width="55" />
-        <el-table-column type="expand" v-if="hasMultipleProperties">
-          <template #default="{ row }">
-            <div
-              v-if="row.properties && row.properties.length > 0"
-              style="padding: 20px 50px"
-            >
+        <div class="batch-operations" style="margin-bottom: 16px">
+          <el-button
+            type="primary"
+            @click="handleSelect50Data"
+            :loading="selectingAll"
+          >
+            选择50条数据
+          </el-button>
+          <el-button
+            type="danger"
+            :disabled="selectedIds.length === 0"
+            @click="handleBatchDelete"
+          >
+            删除
+          </el-button>
+          <span style="margin-left: 12px; color: #909399">
+            已选择 {{ selectedRows.length }} 个业主
+          </span>
+        </div>
+
+        <el-table
+          ref="tableRef"
+          :data="registryList"
+          stripe
+          style="width: 100%"
+          height="100%"
+          @selection-change="handleSelectionChange"
+          row-key="_id"
+          :row-class-name="getRowClassName"
+        >
+          <el-table-column type="selection" width="55" />
+          <el-table-column type="expand" v-if="hasMultipleProperties">
+            <template #default="{ row }">
               <div
-                style="margin-bottom: 10px; font-weight: bold; color: #409eff"
+                v-if="row.properties && row.properties.length > 0"
+                style="padding: 20px 50px"
               >
-                其他房产信息:
+                <div
+                  style="margin-bottom: 10px; font-weight: bold; color: #409eff"
+                >
+                  其他房产信息:
+                </div>
+                <el-table :data="row.properties" border size="small">
+                  <el-table-column
+                    prop="building"
+                    label="楼栋号"
+                    min-width="100"
+                  />
+                  <el-table-column prop="unit" label="单元号" min-width="100" />
+                  <el-table-column prop="room" label="房号" min-width="100">
+                    <template #default="{ row }">
+                      {{ formatRoom(row.room) }}
+                    </template>
+                  </el-table-column>
+                  <el-table-column
+                    prop="area"
+                    label="专有面积(㎡)"
+                    min-width="120"
+                  />
+                  <el-table-column prop="remark" label="备注" min-width="120">
+                    <template #default="{ row }">
+                      {{ row.remark || "-" }}
+                    </template>
+                  </el-table-column>
+                </el-table>
               </div>
-              <el-table :data="row.properties" border size="small">
-                <el-table-column
-                  prop="building"
-                  label="楼栋号"
-                  min-width="100"
-                />
-                <el-table-column prop="unit" label="单元号" min-width="100" />
-                <el-table-column prop="room" label="房号" min-width="100">
-                  <template #default="{ row }">
-                    {{ formatRoom(row.room) }}
-                  </template>
-                </el-table-column>
-                <el-table-column
-                  prop="area"
-                  label="专有面积(㎡)"
-                  min-width="120"
-                />
-                <el-table-column prop="remark" label="备注" min-width="120">
-                  <template #default="{ row }">
-                    {{ row.remark || "-" }}
-                  </template>
-                </el-table-column>
-              </el-table>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column prop="ownerName1" label="户主姓名1" min-width="120" />
-        <el-table-column prop="ownerName2" label="户主姓名2" min-width="120" />
-        <el-table-column prop="building" label="楼栋号" min-width="80" />
-        <el-table-column prop="unit" label="单元号" min-width="80" />
-        <el-table-column prop="room" label="房号" min-width="80">
-          <template #default="{ row }">
-            {{ formatRoom(row.room) }}
-          </template>
-        </el-table-column>
-        <el-table-column label="车牌号" min-width="150">
-          <template #default="{ row }">
-            <el-tooltip
-              v-if="row.carNumber && row.carNumber.length > 15"
-              :content="row.carNumber"
-              placement="top"
-            >
-              <span style="cursor: pointer">{{
-                row.carNumber.substring(0, 15) + "..."
-              }}</span>
-            </el-tooltip>
-            <span v-else>{{ row.carNumber || "-" }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="area" label="专有面积(㎡)" min-width="120" />
-        <el-table-column prop="remark" label="备注" min-width="120">
-          <template #default="{ row }">
-            {{ row.remark || "-" }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="status" label="导入状态" min-width="100">
-          <template #default="{ row }">
-            <el-tag :type="row.status === 'valid' ? 'success' : 'danger'">
-              {{ row.status === "valid" ? "有效" : "无效" }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column
-          prop="registrationStatus"
-          label="注册认证状态"
-          min-width="120"
-        >
-          <template #default="{ row }">
-            <el-tag
-              :type="
-                row.registrationStatus === 'approved'
-                  ? 'success'
-                  : row.registrationStatus === 'rejected'
-                  ? 'danger'
-                  : row.registrationStatus === 'pending'
-                  ? 'warning'
-                  : 'info'
-              "
-            >
-              {{
-                row.registrationStatus === "approved"
-                  ? "已通过"
-                  : row.registrationStatus === "rejected"
-                  ? "未通过"
-                  : row.registrationStatus === "pending"
-                  ? "进行中"
-                  : "未申请"
-              }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column
-          prop="realNameStatusValue"
-          label="实名认证状态"
-          min-width="120"
-        >
-          <template #default="{ row }">
-            <el-tag
-              :type="
-                row.realNameStatusValue === 'verified'
-                  ? 'success'
-                  : row.realNameStatusValue === 'pending'
-                  ? 'warning'
-                  : 'info'
-              "
-            >
-              {{
-                row.realNameStatusValue === "verified"
-                  ? "已实名"
-                  : row.realNameStatusValue === "pending"
-                  ? "进行中"
-                  : "未实名"
-              }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="180" fixed="right">
-          <template #default="{ row }">
-            <el-button type="primary" size="small" @click="handleEdit(row)">
-              编辑
-            </el-button>
-            <el-button
-              v-if="row.realNameStatus === 'pending'"
-              type="warning"
-              size="small"
-              @click="handleRealNameReview(row)"
-            >
-              审核认证
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop="ownerName1"
+            label="户主姓名1"
+            min-width="120"
+          />
+          <el-table-column
+            prop="ownerName2"
+            label="户主姓名2"
+            min-width="120"
+          />
+          <el-table-column prop="building" label="楼栋号" min-width="80" />
+          <el-table-column prop="unit" label="单元号" min-width="80" />
+          <el-table-column prop="room" label="房号" min-width="80">
+            <template #default="{ row }">
+              {{ formatRoom(row.room) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="车牌号" min-width="150">
+            <template #default="{ row }">
+              <el-tooltip
+                v-if="row.carNumber && row.carNumber.length > 15"
+                :content="row.carNumber"
+                placement="top"
+              >
+                <span style="cursor: pointer">{{
+                  row.carNumber.substring(0, 15) + "..."
+                }}</span>
+              </el-tooltip>
+              <span v-else>{{ row.carNumber || "-" }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="area" label="专有面积(㎡)" min-width="120" />
+          <el-table-column prop="remark" label="备注" min-width="120">
+            <template #default="{ row }">
+              {{ row.remark || "-" }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="status" label="导入状态" min-width="100">
+            <template #default="{ row }">
+              <el-tag :type="row.status === 'valid' ? 'success' : 'danger'">
+                {{ row.status === "valid" ? "有效" : "无效" }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop="registrationStatus"
+            label="注册认证状态"
+            min-width="120"
+          >
+            <template #default="{ row }">
+              <el-tag
+                :type="
+                  row.registrationStatus === 'approved'
+                    ? 'success'
+                    : row.registrationStatus === 'rejected'
+                      ? 'danger'
+                      : row.registrationStatus === 'pending'
+                        ? 'warning'
+                        : 'info'
+                "
+              >
+                {{
+                  row.registrationStatus === "approved"
+                    ? "已通过"
+                    : row.registrationStatus === "rejected"
+                      ? "未通过"
+                      : row.registrationStatus === "pending"
+                        ? "进行中"
+                        : "未申请"
+                }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop="realNameStatusValue"
+            label="实名认证状态"
+            min-width="120"
+          >
+            <template #default="{ row }">
+              <el-tag
+                :type="
+                  row.realNameStatusValue === 'verified'
+                    ? 'success'
+                    : row.realNameStatusValue === 'pending'
+                      ? 'warning'
+                      : 'info'
+                "
+              >
+                {{
+                  row.realNameStatusValue === "verified"
+                    ? "已实名"
+                    : row.realNameStatusValue === "pending"
+                      ? "进行中"
+                      : "未实名"
+                }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="180" fixed="right">
+            <template #default="{ row }">
+              <el-button type="primary" size="small" @click="handleEdit(row)">
+                编辑
+              </el-button>
+              <el-button
+                type="warning"
+                size="small"
+                @click="handleRealNameReview(row)"
+              >
+                审核认证
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
 
       <el-pagination
         v-model:current-page="currentPage"
@@ -271,7 +296,7 @@
         layout="total, sizes, prev, pager, next, jumper"
         @size-change="loadList"
         @current-change="loadList"
-        style="margin-top: 16px; justify-content: center"
+        style="padding: 16px 0; justify-content: center; flex-shrink: 0"
         :pager-count="7"
       />
     </el-card>
@@ -627,12 +652,17 @@ const currentPage = ref(1);
 const pageSize = ref(20);
 const total = ref(0);
 const selectedIds = ref<string[]>([]);
+const selectedRows = ref<any[]>([]);
 const importing = ref(false);
+const tableRef = ref();
+const allDataSelected = ref(false);
+const selectingAll = ref(false);
+const isBatchSelecting = ref(false); // 正在批量选择中的标志
 
 // 检查是否有多套房产的数据
 const hasMultipleProperties = computed(() => {
   return registryList.value.some(
-    (item) => item.properties && item.properties.length > 0
+    (item) => item.properties && item.properties.length > 0,
   );
 });
 
@@ -750,6 +780,15 @@ async function loadList() {
 
     registryList.value = Array.from(ownerMap.values());
     total.value = data.total || 0;
+
+    // 如果是全选状态，自动选中当前页的所有行
+    if (allDataSelected.value) {
+      setTimeout(() => {
+        registryList.value.forEach((row) => {
+          tableRef.value?.toggleRowSelection(row, true);
+        });
+      }, 0);
+    }
   } catch (err) {
     ElMessage.error("加载失败");
   }
@@ -880,31 +919,82 @@ async function handleImport(file: File) {
       });
 
       const importData = processedData;
+      const totalCount = importData.length;
 
-      // 调用后端接口批量导入
-      const result = await request.post("/owner-registry/import", {
-        data: importData,
-      });
+      // 分批导入，每批100条
+      const batchSize = 100;
+      const batches = [];
+      for (let i = 0; i < importData.length; i += batchSize) {
+        batches.push(importData.slice(i, i + batchSize));
+      }
 
       loading.close();
+      const progressLoading = ElMessage({
+        message: `准备导入 ${totalCount} 条数据，共 ${batches.length} 批...`,
+        type: "info",
+        duration: 0,
+        icon: h(Loading),
+      });
+
+      // 汇总结果
+      let totalAdded = 0;
+      let totalSkipped = 0;
+      let totalFailed = 0;
+      const allErrors: any[] = [];
+      const allSkipped: any[] = [];
+
+      // 逐批导入
+      for (let i = 0; i < batches.length; i++) {
+        progressLoading.close();
+        const currentProgress = ElMessage({
+          message: `正在导入第 ${i + 1}/${batches.length} 批 (${Math.round(((i + 1) / batches.length) * 100)}%)...`,
+          type: "info",
+          duration: 0,
+          icon: h(Loading),
+        });
+
+        try {
+          const result = await request.post(
+            "/owner-registry/import",
+            { data: batches[i] },
+            { timeout: 60000 }, // 单批次超时60秒
+          );
+
+          totalAdded += result.addCount || 0;
+          totalSkipped += result.skipCount || 0;
+          totalFailed += result.failCount || 0;
+
+          if (result.errors && result.errors.length > 0) {
+            allErrors.push(...result.errors);
+          }
+          if (result.skipped && result.skipped.length > 0) {
+            allSkipped.push(...result.skipped);
+          }
+        } catch (err: any) {
+          // 某批次失败，记录错误
+          totalFailed += batches[i].length;
+          allErrors.push({
+            row: `批次 ${i + 1}`,
+            error: err.message || "导入失败",
+          });
+        }
+
+        currentProgress.close();
+      }
+
       importing.value = false;
 
-      if (result.success) {
-        importResult.success = true;
-        importResult.title = "导入完成";
-        importResult.message = `新增 ${result.addCount || 0} 条，跳过 ${
-          result.skipCount || 0
-        } 条，失败 ${result.failCount || 0} 条`;
-        importResult.addCount = result.addCount || 0;
-        importResult.skipCount = result.skipCount || 0;
-        importResult.failCount = result.failCount || 0;
-        importResult.errors = result.errors || [];
-        importResult.skipped = result.skipped || [];
-        importDialog.value = true;
-        loadList();
-      } else {
-        ElMessage.error(result.error || "导入失败");
-      }
+      // 显示汇总结果
+      importResult.success = totalFailed < totalCount;
+      importResult.title = "导入完成";
+      importResult.message = `总计 ${totalCount} 条，新增 ${totalAdded} 条，跳过 ${totalSkipped} 条，失败 ${totalFailed} 条`;
+      importResult.addCount = totalAdded;
+      importResult.skipCount = totalSkipped;
+      importResult.failCount = totalFailed;
+      importResult.errors = allErrors;
+      importResult.skipped = allSkipped;
+      importDialog.value = true;
+      loadList();
     } catch (err: any) {
       loading.close();
       importing.value = false;
@@ -1036,9 +1126,149 @@ async function submitEdit() {
   }
 }
 
-const selectedRows = ref<any[]>([]);
+// 选择前50条数据
+async function handleSelect50Data() {
+  if (total.value === 0) {
+    ElMessage.warning("没有数据可选择");
+    return;
+  }
+
+  try {
+    await ElMessageBox.confirm("确定要选择前50个业主的数据吗？", "选择数据", {
+      confirmButtonText: "确定",
+      cancelButtonText: "取消",
+      type: "warning",
+    });
+
+    selectingAll.value = true;
+
+    try {
+      // 获取足够的房产记录，以确保能得到至少50个业主
+      // 假设平均每个业主有2套房，获取100条记录应该足够
+      const params: any = {
+        page: 1,
+        pageSize: 100,
+        ...searchForm,
+      };
+
+      const data = await request.get("/owner-registry", { params });
+      const rawList = data.data || [];
+
+      // 合并同一户主的多套房产
+      const ownerMap = new Map();
+      rawList.forEach((item: any) => {
+        const key = `${item.ownerName1}_${item.ownerName2 || ""}`;
+        if (ownerMap.has(key)) {
+          const owner = ownerMap.get(key);
+          if (!owner.properties) {
+            owner.properties = [];
+          }
+          owner.properties.push({
+            building: item.building,
+            unit: item.unit,
+            room: item.room,
+            area: item.area,
+            remark: item.remark,
+            _id: item._id,
+          });
+          if (item.carNumber && !owner.carNumber.includes(item.carNumber)) {
+            owner.carNumber = owner.carNumber
+              ? `${owner.carNumber},${item.carNumber}`
+              : item.carNumber;
+          }
+        } else {
+          ownerMap.set(key, { ...item });
+        }
+      });
+
+      const allOwners = Array.from(ownerMap.values());
+
+      // 只取前50个业主
+      const selectedOwners = allOwners.slice(0, 50);
+
+      // 收集这50个业主的所有ID（包括主记录和额外房产）
+      const allIds: string[] = [];
+      selectedOwners.forEach((row: any) => {
+        allIds.push(row._id);
+        if (row.properties && row.properties.length > 0) {
+          row.properties.forEach((prop: any) => {
+            if (prop._id) {
+              allIds.push(prop._id);
+            }
+          });
+        }
+      });
+
+      // 先设置全选状态标志
+      allDataSelected.value = true;
+      selectedIds.value = allIds;
+      selectedRows.value = selectedOwners;
+
+      // 设置批量选择标志，防止 toggleRowSelection 触发 handleSelectionChange 干扰
+      isBatchSelecting.value = true;
+
+      // 设置当前页所有行为选中状态（仅用于UI显示）
+      registryList.value.forEach((row) => {
+        // 只选中在 selectedOwners 中的行
+        const isSelected = selectedOwners.some(
+          (owner) => owner._id === row._id,
+        );
+        tableRef.value?.toggleRowSelection(row, isSelected);
+      });
+
+      // 解除批量选择标志
+      isBatchSelecting.value = false;
+      selectingAll.value = false;
+      ElMessage.success(
+        `已选择 ${selectedOwners.length} 个业主（共 ${allIds.length} 条房产记录）`,
+      );
+    } catch (err: any) {
+      selectingAll.value = false;
+      ElMessage.error("获取数据失败: " + (err.message || ""));
+    }
+  } catch (err) {
+    // 用户取消选择
+  }
+}
 
 function handleSelectionChange(selection: any[]) {
+  // 如果正在批量选择中，忽略此事件
+  if (isBatchSelecting.value) {
+    return;
+  }
+
+  // 如果是批量选择状态，处理用户手动调整选择的情况
+  if (allDataSelected.value) {
+    // 获取当前页的所有行ID
+    const currentPageIds = registryList.value.map((row) => row._id);
+
+    // 获取当前页被选中的行ID
+    const currentPageSelectedIds = selection.map((item) => item._id);
+
+    // 找出当前页被取消选择的行ID
+    const deselectedIds = currentPageIds.filter(
+      (id) => !currentPageSelectedIds.includes(id),
+    );
+
+    // 从全局选择中移除被取消的ID
+    selectedIds.value = selectedIds.value.filter(
+      (id) => !deselectedIds.includes(id),
+    );
+
+    // 从全局选择中移除被取消的行
+    selectedRows.value = selectedRows.value.filter(
+      (row) => !deselectedIds.includes(row._id),
+    );
+
+    // 如果没有选中任何数据了，退出批量选择模式
+    if (selectedIds.value.length === 0) {
+      allDataSelected.value = false;
+    }
+
+    return;
+  }
+
+  // 正常处理选择变化
   selectedIds.value = selection.map((item) => item._id);
   selectedRows.value = selection;
 }
@@ -1050,11 +1280,19 @@ async function handleBatchDelete() {
   }
 
   try {
-    await ElMessageBox.confirm(
-      `确定要删除选中的 ${selectedIds.value.length} 条记录吗？此操作不可恢复！`,
-      "批量删除确认",
-      { confirmButtonText: "确定", cancelButtonText: "取消", type: "warning" }
-    );
+    // 计算户主数量和总记录数
+    const ownerCount = selectedRows.value.length;
+    const recordCount = selectedIds.value.length;
+
+    const message = allDataSelected.value
+      ? `确定要删除全部 ${ownerCount} 个户主（共 ${recordCount} 条记录）吗？此操作不可恢复！`
+      : `确定要删除选中的 ${ownerCount} 个户主（共 ${recordCount} 条记录）吗？此操作不可恢复！`;
+
+    await ElMessageBox.confirm(message, "批量删除确认", {
+      confirmButtonText: "确定",
+      cancelButtonText: "取消",
+      type: "warning",
+    });
 
     // 收集所有需要删除的ID（包括主记录和额外房产记录）
     const allIdsToDelete: string[] = [];
@@ -1075,7 +1313,7 @@ async function handleBatchDelete() {
       request
         .delete(`/owner-registry/${id}`)
         .then(() => ({ success: true }))
-        .catch(() => ({ success: false }))
+        .catch(() => ({ success: false })),
     );
 
     const results = await Promise.all(deletePromises);
@@ -1084,16 +1322,17 @@ async function handleBatchDelete() {
 
     if (failCount === 0) {
       ElMessage.success(
-        `成功删除 ${selectedIds.value.length} 个户主的所有房产记录`
+        `成功删除 ${selectedIds.value.length} 个户主的所有房产记录`,
       );
     } else {
       ElMessage.warning(
-        `删除完成：成功 ${successCount} 条，失败 ${failCount} 条`
+        `删除完成：成功 ${successCount} 条，失败 ${failCount} 条`,
       );
     }
 
     selectedIds.value = [];
     selectedRows.value = [];
+    allDataSelected.value = false;
     loadList();
   } catch (err: any) {
     if (err !== "cancel") {
@@ -1134,7 +1373,7 @@ async function handleDelete(row: any) {
       request
         .delete(`/owner-registry/${id}`)
         .then(() => ({ success: true }))
-        .catch(() => ({ success: false }))
+        .catch(() => ({ success: false })),
     );
 
     const results = await Promise.all(deletePromises);
@@ -1165,6 +1404,12 @@ function getRowClassName({ row }: { row: any }) {
 
 // 处理实名认证审核
 function handleRealNameReview(row: any) {
+  // 检查是否已提交审核信息
+  if (row.realNameStatus !== "pending") {
+    ElMessage.info("该业主暂未提交实名认证审核信息");
+    return;
+  }
+
   const certTypeMap: any = {
     property: "房产证",
     contract: "购房合同",

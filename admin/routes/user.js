@@ -52,7 +52,7 @@ router.post("/users/:id/change-password", authMiddleware, async (req, res) => {
   try {
     const user = req.user;
     const userId = req.params.id;
-    const { newPassword } = req.body || {};
+    const { oldPassword, newPassword } = req.body || {};
 
     if (!newPassword) {
       return res.status(400).json({ success: false, error: "missing_params" });
@@ -61,6 +61,28 @@ router.post("/users/:id/change-password", authMiddleware, async (req, res) => {
     // 只有自己或超级管理员可以修改密码
     if (user._id !== userId && user.role !== "super") {
       return res.status(403).json({ success: false, error: "forbidden" });
+    }
+
+    // 如果提供了原始密码，需要验证原始密码是否正确
+    if (oldPassword) {
+      const userRes = await db.collection("users").doc(userId).get();
+      if (!userRes || !userRes.data || userRes.data.length === 0) {
+        return res
+          .status(404)
+          .json({ success: false, error: "user_not_found" });
+      }
+
+      const targetUser = userRes.data[0];
+      const oldHash = crypto
+        .createHash("sha256")
+        .update(oldPassword)
+        .digest("hex");
+
+      if (targetUser.passwordHash !== oldHash) {
+        return res
+          .status(400)
+          .json({ success: false, error: "invalid_old_password" });
+      }
     }
 
     const passwordHash = crypto
@@ -106,7 +128,7 @@ router.post("/register", async (req, res) => {
 
     const match = codes.data.find(
       (item) =>
-        item.code === verifyCode && new Date(item.expiresAt) > new Date()
+        item.code === verifyCode && new Date(item.expiresAt) > new Date(),
     );
 
     if (!match) {

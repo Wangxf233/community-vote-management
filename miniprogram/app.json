@@ -25,11 +25,11 @@
     "pages/repair-detail/index",
     "pages/profile-settings/index",
     "pages/switch-community/index",
-    "pages/bind-info/index",
     "pages/family-verify/index",
     "pages/login/index",
     "pages/owner-verify/index",
-    "pages/select-identity/index"
+    "pages/select-identity/index",
+    "pages/door/index"
   ],
   "window": {
     "backgroundTextStyle": "light",
@@ -56,6 +56,12 @@
         "selectedIconPath": "images/notification-active.png"
       },
       {
+        "pagePath": "pages/door/index",
+        "text": "开门",
+        "iconPath": "images/service.png",
+        "selectedIconPath": "images/service-active.png"
+      },
+      {
         "pagePath": "pages/profile/index",
         "text": "我的",
         "iconPath": "images/profile.png",
@@ -68,7 +74,6 @@
       "desc": "用于获取当前位置信息"
     }
   },
-  "requiredPrivateInfos": ["chooseLocation"],
   "lazyCodeLoading": "requiredComponents",
   "useExtendedLib": {
     "weui": true

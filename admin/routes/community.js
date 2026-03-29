@@ -1,7 +1,11 @@
 const express = require("express");
 const crypto = require("crypto");
 const { tcb, db } = require("../config/db");
-const { authMiddleware, ensureAdmin } = require("../middleware/auth");
+const {
+  authMiddleware,
+  ensureAdmin,
+  superAdminOnly,
+} = require("../middleware/auth");
 const { getTokenFromReq } = require("../utils/helpers");
 
 const router = express.Router();
@@ -40,10 +44,7 @@ router.get("/communities", async (req, res) => {
 /**
  * POST /api/communities - 创建小区（仅超级管理员）
  */
-/**
- * POST /api/communities - 创建小区（仅超级管理员）
- */
-router.post("/communities", authMiddleware, async (req, res) => {
+router.post("/communities", superAdminOnly, async (req, res) => {
   try {
     const user = req.user;
     const community = req.body;
@@ -65,9 +66,9 @@ router.post("/communities", authMiddleware, async (req, res) => {
 });
 
 /**
- * PUT /api/communities/:id - 更新小区信息
+ * PUT /api/communities/:id - 更新小区信息（仅超级管理员）
  */
-router.put("/communities/:id", authMiddleware, async (req, res) => {
+router.put("/communities/:id", superAdminOnly, async (req, res) => {
   try {
     const token = getTokenFromReq(req);
     const communityId = req.params.id;
@@ -85,9 +86,9 @@ router.put("/communities/:id", authMiddleware, async (req, res) => {
 });
 
 /**
- * DELETE /api/communities/:id - 删除小区
+ * DELETE /api/communities/:id - 删除小区（仅超级管理员）
  */
-router.delete("/communities/:id", authMiddleware, async (req, res) => {
+router.delete("/communities/:id", superAdminOnly, async (req, res) => {
   try {
     const token = getTokenFromReq(req);
     const communityId = req.params.id;
@@ -494,6 +495,84 @@ router.put(
         });
 
       return res.json({ success: true });
+    } catch (e) {
+      return res.status(500).json({ success: false, error: e.message || e });
+    }
+  },
+);
+
+/**
+ * GET /api/community-admins/:id/account - 获取小区管理员账号信息
+ */
+router.get(
+  "/community-admins/:id/account",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      res.header("Cache-Control", "no-store, no-cache, must-revalidate");
+      const { id } = req.params;
+
+      const userRes = await db.collection("users").doc(id).get();
+      if (!userRes || !userRes.data || userRes.data.length === 0) {
+        return res.status(404).json({ success: false, error: "not_found" });
+      }
+
+      const user = userRes.data[0];
+      return res.json({
+        success: true,
+        username: user.username || "",
+        name: user.name || "",
+        phone: user.phone || "",
+        department: user.department || "",
+        position: user.position || "",
+      });
+    } catch (e) {
+      return res.status(500).json({ success: false, error: e.message || e });
+    }
+  },
+);
+
+/**
+ * PUT /api/community-admins/:id/account - 更新小区管理员账号（用户名/密码）
+ */
+router.put(
+  "/community-admins/:id/account",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { username, newPassword, reset } = req.body;
+      const crypto = require("crypto");
+
+      const updateData = {
+        updatedAt: new Date(),
+      };
+
+      // 更新用户名
+      if (username !== undefined && username.trim()) {
+        updateData.username = username.trim();
+      }
+
+      // 更新密码
+      if (newPassword) {
+        const hash = crypto
+          .createHash("sha256")
+          .update(newPassword)
+          .digest("hex");
+        updateData.passwordHash = hash;
+
+        // 如果是重置密码，清除强制修改密码标记
+        if (reset) {
+          updateData.mustChangePassword = false;
+        }
+      }
+
+      await db.collection("users").doc(id).update(updateData);
+
+      return res.json({
+        success: true,
+        newPassword: newPassword || undefined,
+      });
     } catch (e) {
       return res.status(500).json({ success: false, error: e.message || e });
     }

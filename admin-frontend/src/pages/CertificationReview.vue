@@ -4,22 +4,6 @@
       <template #header>
         <div class="card-header">
           <span>认证审核</span>
-          <div>
-            <el-button
-              :type="autoReviewEnabled ? 'success' : 'info'"
-              @click="toggleAutoReview"
-            >
-              {{ autoReviewEnabled ? "关闭自动审核" : "开启自动审核" }}
-            </el-button>
-            <el-text
-              v-if="autoReviewEnabled"
-              type="success"
-              size="small"
-              style="margin-left: 12px"
-            >
-              已开启 · 每1分钟自动审核一次
-            </el-text>
-          </div>
         </div>
       </template>
 
@@ -117,16 +101,16 @@
                 row.status === 'approved'
                   ? 'success'
                   : row.status === 'rejected'
-                  ? 'danger'
-                  : 'warning'
+                    ? 'danger'
+                    : 'warning'
               "
             >
               {{
                 row.status === "approved"
                   ? "已通过"
                   : row.status === "rejected"
-                  ? "未通过"
-                  : "进行中"
+                    ? "未通过"
+                    : "进行中"
               }}
             </el-tag>
           </template>
@@ -209,7 +193,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted } from "vue";
+import { ref, reactive, onMounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import request from "@/utils/axios";
 import { formatRoom } from "@/utils/formatRoom";
@@ -218,9 +202,7 @@ const applicationList = ref<any[]>([]);
 const currentPage = ref(1);
 const pageSize = ref(20);
 const total = ref(0);
-const autoReviewEnabled = ref(false);
 const selectedRows = ref<any[]>([]);
-let autoRefreshTimer: NodeJS.Timeout | null = null; // 自动刷新定时器
 
 const searchForm = reactive({
   name: "",
@@ -306,7 +288,7 @@ async function submitReview() {
       {
         action: reviewForm.action,
         reason: rejectReason,
-      }
+      },
     );
 
     ElMessage.success("审核成功");
@@ -336,7 +318,7 @@ async function handleBatchApprove() {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
         type: "warning",
-      }
+      },
     );
 
     let successCount = 0;
@@ -382,7 +364,7 @@ async function handleBatchDelete() {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
         type: "warning",
-      }
+      },
     );
 
     let successCount = 0;
@@ -431,80 +413,6 @@ async function handleDelete(row: any) {
   }
 }
 
-async function toggleAutoReview() {
-  try {
-    const newEnabledState = !autoReviewEnabled.value;
-    const message = autoReviewEnabled.value
-      ? "确定要关闭自动审核功能吗？"
-      : "是否要开启此功能？开启后系统将每1分钟自动匹配户主提交的注册信息（姓名、楼栋号、单元号、房号）与业主名册进行比对，匹配成功则自动通过审核";
-
-    await ElMessageBox.confirm(message, "提示", {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      type: "warning",
-    });
-
-    const response = await request.post("/auto-review-config", {
-      enabled: newEnabledState,
-    });
-
-    autoReviewEnabled.value = newEnabledState;
-
-    // 如果是开启自动审核，立即执行一次并启动定时刷新
-    if (newEnabledState) {
-      try {
-        await request.post("/auto-review-execute");
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        await loadList();
-        ElMessage.success("已开启自动审核，并完成首次审核");
-      } catch (execErr) {
-        console.error("执行自动审核失败:", execErr);
-        ElMessage.success("已开启自动审核");
-      }
-      startAutoRefresh();
-    } else {
-      ElMessage.success("已关闭自动审核");
-      stopAutoRefresh();
-    }
-  } catch (err: any) {
-    if (err !== "cancel") {
-      console.error("操作失败:", err);
-      ElMessage.error("操作失败，请重试");
-    }
-  }
-}
-
-async function loadAutoReviewConfig() {
-  try {
-    const response = await request.get("/auto-review-config");
-    autoReviewEnabled.value = response.enabled || false;
-
-    // 如果开启了自动审核，启动定时刷新
-    if (autoReviewEnabled.value) {
-      startAutoRefresh();
-    }
-  } catch (err) {
-    console.error("加载自动审核配置失败:", err);
-    autoReviewEnabled.value = false;
-  }
-}
-
-// 启动自动刷新
-function startAutoRefresh() {
-  stopAutoRefresh();
-  autoRefreshTimer = setInterval(() => {
-    loadList();
-  }, 30000);
-}
-
-// 停止自动刷新
-function stopAutoRefresh() {
-  if (autoRefreshTimer) {
-    clearInterval(autoRefreshTimer);
-    autoRefreshTimer = null;
-  }
-}
-
 function formatTime(time: string) {
   if (!time) return "-";
   return new Date(time).toLocaleString("zh-CN");
@@ -512,11 +420,6 @@ function formatTime(time: string) {
 
 onMounted(() => {
   loadList();
-  loadAutoReviewConfig();
-});
-
-onUnmounted(() => {
-  stopAutoRefresh();
 });
 </script>
 

@@ -1,6 +1,16 @@
 <template>
-  <div class="residents-page">
-    <el-card>
+  <div
+    class="residents-page"
+    style="
+      height: calc(100vh - 96px);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    "
+  >
+    <el-card
+      style="flex: 1; display: flex; flex-direction: column; overflow: hidden"
+    >
       <template #header>
         <div class="card-header">
           <span>业主审核</span>
@@ -8,71 +18,96 @@
         </div>
       </template>
 
-      <el-table :data="residentsList" stripe style="width: 100%">
-        <el-table-column type="index" label="序号" width="60" />
-        <el-table-column prop="realName" label="实名姓名" width="100" />
-        <el-table-column prop="name" label="填写姓名" width="100" />
-        <el-table-column prop="phone" label="电话号码" width="120" />
-        <el-table-column prop="building" label="楼栋" width="80" />
-        <el-table-column prop="unit" label="单元" width="80" />
-        <el-table-column prop="room" label="房号" width="80">
-          <template #default="{ row }">
-            {{ formatRoom(row.room) }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="matchStatus" label="匹配状态" width="100">
-          <template #default="{ row }">
-            <el-tag v-if="row.matchStatus === 'matched'" type="success"
-              >已匹配</el-tag
-            >
-            <el-tag v-else-if="row.matchStatus === 'not_match'" type="warning"
-              >不匹配</el-tag
-            >
-            <el-tag v-else type="info">未检测</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="status" label="审核状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="getStatusType(row.status)">
-              {{ getStatusText(row.status) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="220" fixed="right">
-          <template #default="{ row }">
-            <el-button
-              type="primary"
-              size="small"
-              :disabled="row.status !== 'pending'"
-              @click="handleAudit(row)"
-            >
-              审核
-            </el-button>
-            <el-button
-              size="small"
-              @click="handleViewProof(row)"
-              v-if="row.proofImages && row.proofImages.length > 0"
-            >
-              查看证明
-            </el-button>
-            <el-button type="danger" size="small" @click="handleDelete(row)">
-              删除
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <div
+        style="flex: 1; display: flex; flex-direction: column; overflow: hidden"
+      >
+        <div style="flex: 1; overflow: hidden">
+          <el-table
+            :data="residentsList"
+            stripe
+            style="width: 100%"
+            height="100%"
+          >
+            <el-table-column type="index" label="序号" width="60" />
+            <el-table-column prop="realName" label="实名姓名" width="100" />
+            <el-table-column prop="name" label="填写姓名" width="100" />
+            <el-table-column prop="phone" label="电话号码" width="120" />
+            <el-table-column prop="building" label="楼栋" width="80" />
+            <el-table-column prop="unit" label="单元" width="80" />
+            <el-table-column prop="room" label="房号" width="80">
+              <template #default="{ row }">
+                {{ formatRoom(row.room) }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="matchStatus" label="匹配状态" width="100">
+              <template #default="{ row }">
+                <el-tag v-if="row.matchStatus === 'matched'" type="success"
+                  >已匹配</el-tag
+                >
+                <el-tag
+                  v-else-if="row.matchStatus === 'not_match'"
+                  type="warning"
+                  >不匹配</el-tag
+                >
+                <el-tag v-else type="info">未检测</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="status" label="审核状态" width="100">
+              <template #default="{ row }">
+                <el-tag :type="getStatusType(row.status)">
+                  {{ getStatusText(row.status) }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="220" fixed="right">
+              <template #default="{ row }">
+                <el-button
+                  type="primary"
+                  size="small"
+                  :disabled="row.status !== 'pending'"
+                  @click="handleAudit(row)"
+                >
+                  审核
+                </el-button>
+                <el-button
+                  size="small"
+                  @click="handleViewProof(row)"
+                  v-if="row.proofImages && row.proofImages.length > 0"
+                >
+                  查看证明
+                </el-button>
+                <el-button
+                  type="danger"
+                  size="small"
+                  @click="handleDelete(row)"
+                >
+                  删除
+                </el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
 
-      <el-pagination
-        v-model:current-page="currentPage"
-        v-model:page-size="pageSize"
-        :total="total"
-        :page-sizes="[10, 20, 50, 100]"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="loadList"
-        @current-change="loadList"
-        style="margin-top: 16px; justify-content: center"
-        :pager-count="7"
-      />
+        <div
+          style="
+            padding: 12px;
+            display: flex;
+            justify-content: center;
+            flex-shrink: 0;
+          "
+        >
+          <el-pagination
+            v-model:current-page="currentPage"
+            v-model:page-size="pageSize"
+            :total="total"
+            :page-sizes="[10, 20, 50, 100]"
+            layout="total, sizes, prev, pager, next, jumper"
+            @size-change="loadList"
+            @current-change="loadList"
+            :pager-count="7"
+          />
+        </div>
+      </div>
     </el-card>
 
     <!-- 审核对话框 -->

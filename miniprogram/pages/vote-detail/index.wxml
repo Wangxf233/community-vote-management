@@ -1,5 +1,9 @@
 <view class="vote-detail-container">
   <scroll-view class="detail-content" scroll-y>
+    <view class="guest-mode-tip" wx:if="{{isGuest}}">
+      <text class="tip-text">您当前处于游客演示模式，提交为演示数据</text>
+    </view>
+
     <!-- 投票标题和基本信息 -->
     <view class="vote-header">
       <text class="vote-title"># {{voteDetail.title}}</text>
@@ -58,7 +62,7 @@
       <text class="section-title">投票选项</text>
       <view class="content-box">
         <view class="vote-options">
-          <view class="option-item {{selectedOption === index ? 'selected' : ''}}" 
+              <view class="option-item {{selectedOption === index ? 'selected' : ''}}" 
                 wx:for="{{voteDetail.options}}" 
                 wx:key="id"
                 bindtap="selectOption"
@@ -148,3 +152,5 @@
     </view>
   </scroll-view>
 </view>
+
+<guest-tip></guest-tip>

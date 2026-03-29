@@ -44,3 +44,5 @@
     <text>加载中...</text>
   </view>
 </view>
+
+<guest-tip></guest-tip>

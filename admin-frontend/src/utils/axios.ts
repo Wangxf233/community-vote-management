@@ -66,6 +66,9 @@ instance.interceptors.response.use(
             window.location.href = "/#/login";
           }, 1000);
         }
+      } else if (status === 403 && data?.error === "community_expired") {
+        // 小区到期错误，不在这里处理，让调用方处理
+        // 直接抛出错误，不显示全局提示
       } else if (status >= 500) {
         // 500 错误显示服务器错误
         const errorMsg = data?.error || data?.message || "服务器错误";

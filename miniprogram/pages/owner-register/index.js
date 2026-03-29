@@ -75,7 +75,7 @@ Page({
     try {
       let [province, city, district] = this.data.region;
 
-      // 处理直辖市：如果city和province相同，说明picker返回了重复的省名，需要转换为"市辖区"
+      // 处理直辖市：如果city和province相同，说明是直辖市，将city改为"市辖区"
       const municipalities = ["北京市", "天津市", "上海市", "重庆市"];
       if (municipalities.includes(province) && city === province) {
         city = "市辖区";
@@ -298,7 +298,7 @@ Page({
       } else {
         this.setData({ buildings: [] });
         wx.showToast({
-          title: (result.result && result.result.message) || "获取房屋配置失败",
+          title: result.result?.message || "获取房屋配置失败",
           icon: "none",
           duration: 2000,
         });

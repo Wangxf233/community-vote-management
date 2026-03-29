@@ -21,6 +21,47 @@ Page({
     const that = this;
     that.setData({ loading: true });
 
+    const bindingStatus = getApp().globalData.bindingStatus || "none";
+    if (bindingStatus === "guest") {
+      const houses = [
+        {
+          _id: "guest-house-1",
+          building: "3",
+          unit: "2",
+          room: formatRoom("1001"),
+          area: "128.60",
+          status: "approved",
+          statusText: "已认证",
+          relation: "业主",
+        },
+        {
+          _id: "guest-house-2",
+          building: "8",
+          unit: "1",
+          room: formatRoom("0602"),
+          area: "89.30",
+          status: "approved",
+          statusText: "已认证",
+          relation: "业主",
+        },
+      ];
+
+      let totalArea = 0;
+      houses.forEach((house) => {
+        const area = parseFloat(house.area);
+        if (!isNaN(area)) {
+          totalArea += area;
+        }
+      });
+
+      that.setData({
+        houseList: houses,
+        totalArea: totalArea.toFixed(2),
+        loading: false,
+      });
+      return;
+    }
+
     wx.cloud
       .callFunction({
         name: "getMyHouses",
@@ -65,7 +106,7 @@ Page({
           });
         } else {
           wx.showToast({
-            title: (res.result && res.result.error) || "加载失败",
+            title: res.result?.error || "加载失败",
             icon: "none",
           });
           that.setData({ loading: false });

@@ -39,3 +39,5 @@
     <text class="empty-text">暂无信息</text>
   </view>
 </view>
+
+<guest-tip></guest-tip>

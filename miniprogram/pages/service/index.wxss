@@ -7,6 +7,7 @@
 }
 
 .header {
+  position: relative;
   background: linear-gradient(135deg, #1aad19, #4cd964);
   text-align: center;
   margin: -40rpx -30rpx 40rpx;
@@ -131,36 +132,36 @@
 }
 
 .guest-tip {
-  position: fixed;
-  bottom: 120rpx;
-  left: 30rpx;
-  right: 30rpx;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 16rpx;
-  padding: 24rpx 30rpx;
-  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
+  position: absolute;
+  top: 10rpx;
+  left: 20rpx;
+  right: 20rpx;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 12rpx;
+  padding: 10rpx 16rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.12);
 }
 
 .tip-content {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .tip-icon {
-  font-size: 32rpx;
-  margin-right: 10rpx;
+  font-size: 30rpx;
+  margin-right: 6rpx;
 }
 
 .tip-text {
-  font-size: 28rpx;
+  font-size: 26rpx;
   color: #666666;
 }
 
 .tip-link {
-  font-size: 28rpx;
+  font-size: 26rpx;
   color: #1aad19;
   font-weight: bold;
-  margin: 0 8rpx;
+  margin: 0 6rpx;
 }

@@ -7,9 +7,23 @@ Page({
     voteDetail: {},
     selectedOption: null,
     myVoteRecord: {},
+    isGuest: false,
   },
 
   onLoad(options) {
+    const bindingStatus = app.globalData.bindingStatus || "guest";
+    const { id, type } = options;
+    this.setData({
+      voteId: id,
+      voteType: type || "vote",
+      isGuest: bindingStatus === "guest",
+    });
+
+    if (bindingStatus === "guest") {
+      this.loadGuestVoteDetail();
+      return;
+    }
+
     // 检查是否是家属
     const bindingInfo = app.globalData.bindingInfo;
     if (bindingInfo && bindingInfo.type === "family") {
@@ -30,14 +44,76 @@ Page({
       return;
     }
 
-    const { id, type } = options;
-    this.setData({
-      voteId: id,
-      voteType: type || "vote",
-    });
-
     // 先检查实名认证状态
     this.checkRealNameStatus();
+  },
+
+  loadGuestVoteDetail() {
+    const isVote = this.data.voteType === "vote";
+    const options = [
+      {
+        id: "option-agree",
+        text: "同意",
+        count: isVote ? 128 : 96,
+        percent: isVote ? "56.1" : "45.7",
+      },
+      {
+        id: "option-disagree",
+        text: "不同意",
+        count: isVote ? 84 : 72,
+        percent: isVote ? "36.8" : "34.3",
+      },
+      {
+        id: "option-abstain",
+        text: "弃权",
+        count: isVote ? 16 : 42,
+        percent: isVote ? "7.0" : "20.0",
+      },
+    ];
+
+    const voteDetail = {
+      title: isVote
+        ? "关于2026年度电梯维保单位续签的业主表决"
+        : "2026年上半年物业服务满意度问卷",
+      status: "ongoing",
+      statusText: "进行中",
+      description: isVote
+        ? "根据业主委员会与物业服务中心联合会议结果，现就电梯维保单位是否续签一年向全体业主征求意见。\n\n如通过，将按现有服务标准执行并增加夜间故障2小时响应机制。"
+        : "本问卷用于收集住户对当前物业服务的真实体验，结果将作为季度考核与服务改进依据。\n\n请结合近3个月实际感受选择最符合的选项。",
+      attachments: [
+        {
+          id: "guest-attachment-1",
+          name: isVote
+            ? "电梯维保续签方案说明.pdf"
+            : "物业服务满意度问卷说明.pdf",
+          size: "1.2MB",
+          url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+        },
+        {
+          id: "guest-attachment-2",
+          name: isVote
+            ? "近12个月电梯维保记录汇总.png"
+            : "服务改进计划示意图.png",
+          size: "420KB",
+          url: "https://picsum.photos/640/360",
+        },
+      ],
+      sponsor: isVote ? "星河苑业主委员会" : "星河苑物业服务中心",
+      publishTime: "2026-03-10 09:30",
+      deadlineTime: "2026-04-30 23:59",
+      options,
+      totalVotes: options.reduce((sum, item) => sum + item.count, 0),
+      instruction: isVote
+        ? "本次表决采用一户一票制，提交后不可修改，请确认后再提交。"
+        : "本问卷采用匿名统计，仅用于服务改进，不涉及个人信息公开。",
+      hasVoted: false,
+      showResult: true,
+    };
+
+    this.setData({
+      voteDetail,
+      myVoteRecord: {},
+    });
   },
 
   // 检查实名认证状态
@@ -84,7 +160,7 @@ Page({
                   const redirectUrl = `/pages/vote-detail/index?id=${this.data.voteId}&type=${this.data.voteType}`;
                   wx.redirectTo({
                     url: `/pages/verification/index?redirect=${encodeURIComponent(
-                      redirectUrl
+                      redirectUrl,
                     )}`,
                   });
                 } else {
@@ -110,7 +186,7 @@ Page({
                   const redirectUrl = `/pages/vote-detail/index?id=${this.data.voteId}&type=${this.data.voteType}`;
                   wx.redirectTo({
                     url: `/pages/verification/index?redirect=${encodeURIComponent(
-                      redirectUrl
+                      redirectUrl,
                     )}`,
                   });
                 } else {
@@ -140,7 +216,7 @@ Page({
                 const redirectUrl = `/pages/vote-detail/index?id=${this.data.voteId}&type=${this.data.voteType}`;
                 wx.redirectTo({
                   url: `/pages/verification/index?redirect=${encodeURIComponent(
-                    redirectUrl
+                    redirectUrl,
                   )}`,
                 });
               } else {
@@ -171,7 +247,7 @@ Page({
               const redirectUrl = `/pages/vote-detail/index?id=${this.data.voteId}&type=${this.data.voteType}`;
               wx.redirectTo({
                 url: `/pages/verification/index?redirect=${encodeURIComponent(
-                  redirectUrl
+                  redirectUrl,
                 )}`,
               });
             } else {
@@ -252,6 +328,23 @@ Page({
       return;
     }
 
+    const selectedOption =
+      this.data.voteDetail.options[this.data.selectedOption];
+
+    if (this.data.isGuest) {
+      wx.showModal({
+        title: "确认提交",
+        content: `您确定要选择\"${selectedOption.text}\"吗？（演示数据）`,
+        confirmColor: "#1AAD19",
+        success: (res) => {
+          if (res.confirm) {
+            this.doGuestVote(selectedOption.id);
+          }
+        },
+      });
+      return;
+    }
+
     // 检查签名组件
     const signaturePad = this.selectComponent("#signaturePad");
     if (!signaturePad) {
@@ -270,9 +363,6 @@ Page({
       return;
     }
 
-    const selectedOption =
-      this.data.voteDetail.options[this.data.selectedOption];
-
     wx.showModal({
       title: "确认投票",
       content: `您确定要选择"${selectedOption.text}"吗？投票后不可更改。`,
@@ -282,6 +372,44 @@ Page({
           this.doVote(selectedOption.id, signaturePad);
         }
       },
+    });
+  },
+
+  doGuestVote(optionId) {
+    const options = [...(this.data.voteDetail.options || [])];
+    const selected = options.find((item) => item.id === optionId);
+
+    if (!selected) {
+      wx.showToast({ title: "选项不存在", icon: "none" });
+      return;
+    }
+
+    selected.count = (selected.count || 0) + 1;
+    const totalVotes = options.reduce(
+      (sum, item) => sum + (item.count || 0),
+      0,
+    );
+    const updatedOptions = options.map((item) => ({
+      ...item,
+      percent: totalVotes
+        ? (((item.count || 0) / totalVotes) * 100).toFixed(1)
+        : "0.0",
+    }));
+
+    this.setData({
+      "voteDetail.options": updatedOptions,
+      "voteDetail.totalVotes": totalVotes,
+      "voteDetail.hasVoted": true,
+      "voteDetail.showResult": true,
+      myVoteRecord: {
+        optionText: selected.text,
+        voteTime: new Date().toLocaleString(),
+      },
+    });
+
+    wx.showToast({
+      title: "提交成功（演示）",
+      icon: "success",
     });
   },
 
@@ -334,11 +462,9 @@ Page({
             this.setData({
               myVoteRecord: {
                 optionText:
-                  (
-                    (this.data.voteDetail.options || []).find(
-                      (o) => o.id === res.result.myVoteRecord.optionId
-                    ) || {}
-                  ).text || "",
+                  (this.data.voteDetail.options || []).find(
+                    (o) => o.id === res.result.myVoteRecord.optionId,
+                  )?.text || "",
                 voteTime: new Date().toLocaleString(),
               },
             });
@@ -361,7 +487,7 @@ Page({
                         100
                       ).toFixed(1)
                     : opt.percent || 0,
-              })
+              }),
             );
 
             this.setData({
@@ -386,7 +512,7 @@ Page({
         });
       } else {
         wx.showToast({
-          title: (res.result && res.result.error) || "投票失败",
+          title: res.result?.error || "投票失败",
           icon: "none",
         });
       }

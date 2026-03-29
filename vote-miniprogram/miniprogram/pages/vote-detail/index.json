@@ -1,9 +1,0 @@
-{
-  "navigationBarTitleText": "投票详情",
-  "enableShareAppMessage": true,
-  "backgroundColor": "#f5f5f5",
-  "pageOrientation": "auto",
-  "usingComponents": {
-    "signature-pad": "/components/signature-pad/signature-pad"
-  }
-}

@@ -1,16 +1,16 @@
 .guest-tip {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 20rpx 24rpx;
-  display: flex;
-  align-items: center;
+  left: 20rpx;
+  right: 20rpx;
+  bottom: 24rpx;
+  background: #fff8ef;
+  border: 1rpx solid #ffd9a8;
+  border-radius: 16rpx;
+  padding: 16rpx 20rpx;
   z-index: 1000;
-  transform: translateY(-100%);
+  transform: translateY(120%);
   transition: transform 0.3s ease;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8rpx 20rpx rgba(0, 0, 0, 0.12);
 }
 
 .guest-tip.show {
@@ -23,25 +23,22 @@
   width: 100%;
 }
 
-.tip-icon {
-  font-size: 40rpx;
-  margin-right: 16rpx;
-}
-
 .tip-text {
   flex: 1;
-  font-size: 26rpx;
-  color: white;
+  font-size: 24rpx;
+  color: #8a4d00;
   line-height: 1.4;
+  padding-right: 12rpx;
 }
 
 .tip-action {
-  margin-left: 16rpx;
+  background: #ff8a00;
+  border-radius: 999rpx;
+  padding: 8rpx 18rpx;
 }
 
 .tip-link {
-  font-size: 26rpx;
+  font-size: 24rpx;
   color: white;
-  font-weight: bold;
-  text-decoration: underline;
+  font-weight: 600;
 }

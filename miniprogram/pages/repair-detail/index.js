@@ -24,6 +24,51 @@ Page({
   // 加载详情
   loadDetail: function () {
     const that = this;
+
+    const bindingStatus = getApp().globalData.bindingStatus || "none";
+    if (bindingStatus === "guest") {
+      const map = {
+        "guest-repair-1": {
+          _id: "guest-repair-1",
+          type: "repair",
+          category: "电路维修",
+          content: "2单元10层公共走廊照明间歇性闪烁，夜间影响通行。",
+          status: "processing",
+          submitTime: "2026-03-16 08:30",
+          updatedAt: "2026-03-16 13:15",
+          images: [
+            "https://images.unsplash.com/photo-1487754180451-c456f719a1fc?w=1200&q=80",
+          ],
+          processRemark: "工程人员已上门排查，预计今日晚间完成线路更换。",
+        },
+        "guest-repair-2": {
+          _id: "guest-repair-2",
+          type: "report",
+          category: "环境卫生",
+          content: "北门垃圾分类点异味较重，建议增加清运频次。",
+          status: "completed",
+          submitTime: "2026-03-12 14:20",
+          updatedAt: "2026-03-13 09:40",
+          images: [],
+          processRemark: "已调整为每日两次清运，并增加除味处理。",
+        },
+      };
+
+      const detail = map[this.data.repairId];
+      if (!detail) {
+        wx.showToast({ title: "记录不存在", icon: "none" });
+        setTimeout(() => wx.navigateBack(), 1200);
+        return;
+      }
+
+      detail.submitTimeFormatted = that.formatDateTime(detail.submitTime);
+      detail.updatedAtFormatted = that.formatDateTime(detail.updatedAt);
+      detail.statusText = that.getStatusText(detail.status);
+      detail.statusClass = that.getStatusClass(detail.status);
+      that.setData({ detail });
+      return;
+    }
+
     wx.showLoading({ title: "加载中..." });
 
     wx.cloud
@@ -53,7 +98,7 @@ Page({
           that.setData({ detail });
         } else {
           wx.showToast({
-            title: (res.result && res.result.error) || "记录不存在",
+            title: res.result?.error || "记录不存在",
             icon: "none",
           });
           setTimeout(() => {
@@ -84,6 +129,16 @@ Page({
   cancelRepair: function () {
     const that = this;
     const tipText = that.data.detail.type === "report" ? "报事" : "报修";
+
+    const bindingStatus = getApp().globalData.bindingStatus || "none";
+    if (bindingStatus === "guest") {
+      wx.showToast({
+        title: "游客模式为演示数据",
+        icon: "none",
+      });
+      return;
+    }
+
     wx.showModal({
       title: "提示",
       content: `确认撤销此${tipText}吗？`,
@@ -112,7 +167,7 @@ Page({
                 }, 1500);
               } else {
                 wx.showToast({
-                  title: (result.result && result.result.error) || "操作失败",
+                  title: result.result?.error || "操作失败",
                   icon: "none",
                 });
               }

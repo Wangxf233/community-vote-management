@@ -50,36 +50,36 @@
     <el-card>
       <h3>添加小区</h3>
       <el-form :model="form" :rules="rules" ref="formRef" label-width="160px">
-        <el-form-item label="省/市/区">
+        <el-form-item label="省/市/区" prop="region">
           <el-cascader
             v-model="form.region"
             :options="regionOptions"
             clearable
           />
         </el-form-item>
-        <el-form-item label="详细地址">
+        <el-form-item label="详细地址" prop="address">
           <el-input
             v-model="form.address"
             placeholder="输入街道等详细地址信息"
           />
         </el-form-item>
-        <el-form-item label="小区名称">
+        <el-form-item label="小区名称" prop="name">
           <el-input v-model="form.name" />
         </el-form-item>
-        <el-form-item label="负责人姓名">
+        <el-form-item label="负责人姓名" prop="ownerName">
           <el-input v-model="form.ownerName" />
         </el-form-item>
-        <el-form-item label="负责人联系方式">
+        <el-form-item label="负责人联系方式" prop="ownerPhone">
           <el-input v-model="form.ownerPhone" />
         </el-form-item>
-        <el-form-item label="开通时间">
+        <el-form-item label="开通时间" prop="startDate">
           <el-date-picker
             v-model="form.startDate"
             type="date"
             placeholder="开通日期"
           />
         </el-form-item>
-        <el-form-item label="有效期/到期时间">
+        <el-form-item label="有效期/到期时间" prop="endDate">
           <div style="display: flex; align-items: center; gap: 12px">
             <el-select
               v-model="period"
@@ -103,25 +103,15 @@
           </div>
           <div style="margin-top: 8px">当前到期时间：{{ endDateDisplay }}</div>
         </el-form-item>
-        <el-form-item
-          label="默认总管理员账号"
-          prop="defaultAdminUsername"
-          :required="false"
-          class="no-asterisk"
-        >
+        <el-form-item label="默认总管理员账号" prop="defaultAdminUsername">
           <el-input
-            v-model="defaultAdmin.username"
+            v-model="form.defaultAdminUsername"
             placeholder="设置该小区的总管理员账号"
           />
         </el-form-item>
-        <el-form-item
-          label="默认总管理员密码"
-          prop="defaultAdminPassword"
-          :required="false"
-          class="no-asterisk"
-        >
+        <el-form-item label="默认总管理员密码" prop="defaultAdminPassword">
           <el-input
-            v-model="defaultAdmin.password"
+            v-model="form.defaultAdminPassword"
             :type="showPassword ? 'text' : 'password'"
             placeholder="设置初始密码（首次登录将强制修改）"
           >
@@ -183,11 +173,41 @@ const form = reactive({
   ownerPhone: "",
   startDate: today,
   endDate: null as Date | null,
+  defaultAdminUsername: "",
+  defaultAdminPassword: "",
 });
 const period = ref<number | null>(1);
-const defaultAdmin = reactive({ username: "", password: "" });
 const formRef = ref();
 const rules = reactive({
+  region: [
+    { required: true, message: "请选择省/市/区", trigger: "change" },
+    {
+      validator: (_: any, val: any[], cb: any) => {
+        if (!val || val.length === 0) return cb(new Error("请选择省/市/区"));
+        cb();
+      },
+      trigger: "change",
+    },
+  ],
+  address: [{ required: true, message: "请填写详细地址", trigger: "blur" }],
+  name: [{ required: true, message: "请填写小区名称", trigger: "blur" }],
+  ownerName: [{ required: true, message: "请填写负责人姓名", trigger: "blur" }],
+  ownerPhone: [
+    { required: true, message: "请填写负责人联系方式", trigger: "blur" },
+    {
+      validator: (_: any, val: string, cb: any) => {
+        if (!val) return cb();
+        const phoneRegex = /^1[3-9]\d{9}$/;
+        if (!phoneRegex.test(val)) {
+          return cb(new Error("请输入正确的手机号码"));
+        }
+        cb();
+      },
+      trigger: ["blur", "change"],
+    },
+  ],
+  startDate: [{ required: true, message: "请选择开通时间", trigger: "change" }],
+  endDate: [{ required: true, message: "请选择到期时间", trigger: "change" }],
   defaultAdminUsername: [
     { required: true, message: "请填写默认总管理员账号", trigger: "blur" },
     {
@@ -203,21 +223,6 @@ const rules = reactive({
   ],
   defaultAdminPassword: [
     { required: true, message: "请填写默认总管理员密码", trigger: "blur" },
-    {
-      validator: (_: any, val: string, cb: any) => {
-        if (!val) return cb();
-        if (val.length < 8 || val.length > 32)
-          return cb(new Error("密码需为8-32位"));
-        const cat = [/[a-z]/, /[A-Z]/, /\d/, /[^A-Za-z0-9]/].reduce(
-          (acc, r) => acc + (r.test(val) ? 1 : 0),
-          0,
-        );
-        if (cat < 2)
-          return cb(new Error("需至少包含两类字符(大小写/数字/符号)"));
-        cb();
-      },
-      trigger: ["blur", "change"],
-    },
   ],
 });
 
@@ -288,15 +293,14 @@ function computeDays(row: any) {
 }
 
 async function onCreate() {
-  if (!form.name) {
-    ElMessage.warning("请输入小区名称");
-    return;
-  }
-  // 校验默认管理员账号/密码
+  // 统一表单验证
   const ok = await new Promise<boolean>((resolve) => {
     (formRef.value as any)?.validate((valid: boolean) => resolve(valid));
   });
-  if (!ok) return;
+  if (!ok) {
+    ElMessage.warning("请填写完整所有必填项");
+    return;
+  }
   const token = localStorage.getItem("admin-token") || "";
   if (!token) {
     ElMessageBox.alert(
@@ -320,10 +324,10 @@ async function onCreate() {
         : undefined,
       endDate: form.endDate ? new Date(form.endDate).toISOString() : undefined,
       defaultAdmin:
-        defaultAdmin.username && defaultAdmin.password
+        form.defaultAdminUsername && form.defaultAdminPassword
           ? {
-              username: defaultAdmin.username.trim(),
-              password: defaultAdmin.password,
+              username: form.defaultAdminUsername.trim(),
+              password: form.defaultAdminPassword,
             }
           : undefined,
     };
@@ -348,8 +352,10 @@ function onReset() {
   form.startDate = new Date();
   period.value = 1;
   computeEndDate();
-  defaultAdmin.username = "";
-  defaultAdmin.password = "";
+  form.defaultAdminUsername = "";
+  form.defaultAdminPassword = "";
+  // 清除表单验证状态
+  formRef.value?.clearValidate();
 }
 
 // init

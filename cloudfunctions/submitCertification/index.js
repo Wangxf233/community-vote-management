@@ -74,25 +74,6 @@ async function handleOwnerCertification(openid, event) {
     return { code: -1, message: "手机号格式不正确" };
   }
 
-  // 检查该openid是否已有待审核或已通过的申请
-  const existingRes = await db
-    .collection("certification_applications")
-    .where({
-      openid,
-      status: db.command.in(["pending", "approved"]),
-    })
-    .limit(1)
-    .get();
-
-  if (existingRes.data && existingRes.data.length > 0) {
-    const existing = existingRes.data[0];
-    if (existing.status === "approved") {
-      return { code: -1, message: "您已完成认证" };
-    } else {
-      return { code: -1, message: "您已有待审核的申请，请等待审核结果" };
-    }
-  }
-
   // 处理每个房产
   const now = new Date().toISOString();
   const applications = [];
@@ -113,6 +94,30 @@ async function handleOwnerCertification(openid, event) {
 
     const community = communityRes.data[0];
     const communityId = community._id;
+
+    // 检查该用户在当前小区是否已有待审核或已通过的申请
+    const userApplicationRes = await db
+      .collection("certification_applications")
+      .where({
+        openid,
+        communityId,
+        type: "owner",
+        status: db.command.in(["pending", "approved"]),
+      })
+      .limit(1)
+      .get();
+
+    if (userApplicationRes.data && userApplicationRes.data.length > 0) {
+      const existing = userApplicationRes.data[0];
+      if (existing.status === "approved") {
+        return { code: -1, message: `您在${communityName}小区已完成认证` };
+      } else {
+        return {
+          code: -1,
+          message: `您在${communityName}小区已有待审核的申请，请等待审核结果`,
+        };
+      }
+    }
 
     // 检查该房号是否已被认证
     const houseRes = await db
@@ -205,25 +210,6 @@ async function handleFamilyCertification(openid, event) {
     return { code: -1, message: "邀请码已被使用" };
   }
 
-  // 检查该openid是否已有待审核或已通过的申请
-  const existingRes = await db
-    .collection("certification_applications")
-    .where({
-      openid,
-      status: db.command.in(["pending", "approved"]),
-    })
-    .limit(1)
-    .get();
-
-  if (existingRes.data && existingRes.data.length > 0) {
-    const existing = existingRes.data[0];
-    if (existing.status === "approved") {
-      return { code: -1, message: "您已完成认证" };
-    } else {
-      return { code: -1, message: "您已有待审核的申请，请等待审核结果" };
-    }
-  }
-
   // 获取户主信息
   const ownerRes = await db
     .collection("certification_applications")
@@ -240,6 +226,32 @@ async function handleFamilyCertification(openid, event) {
   }
 
   const owner = ownerRes.data[0];
+
+  // 检查该用户在当前小区是否已有待审核或已通过的申请
+  const existingRes = await db
+    .collection("certification_applications")
+    .where({
+      openid,
+      communityId: owner.communityId,
+      status: db.command.in(["pending", "approved"]),
+    })
+    .limit(1)
+    .get();
+
+  if (existingRes.data && existingRes.data.length > 0) {
+    const existing = existingRes.data[0];
+    if (existing.status === "approved") {
+      return {
+        code: -1,
+        message: `您在${owner.communityName}小区已完成认证`,
+      };
+    } else {
+      return {
+        code: -1,
+        message: `您在${owner.communityName}小区已有待审核的申请，请等待审核结果`,
+      };
+    }
+  }
 
   // 创建家属认证申请（自动通过）
   const now = new Date().toISOString();
@@ -440,7 +452,7 @@ async function handleRealNameCertification(openid, event) {
       },
     });
 
-  // 同时更新 owner_list 集合（如果存在）
+  // 同时更新 owner_list 集合（如果存在）- 更新该用户的所有房产记录
   const ownerListRes = await db
     .collection("owner_list")
     .where({
@@ -449,22 +461,20 @@ async function handleRealNameCertification(openid, event) {
     .get();
 
   if (ownerListRes.data && ownerListRes.data.length > 0) {
-    const ownerListId = ownerListRes.data[0]._id;
-    await db
-      .collection("owner_list")
-      .doc(ownerListId)
-      .update({
-        data: {
-          realNameStatus: "pending",
-          realNameIdCardFront: idCardFront,
-          realNameIdCardBack: idCardBack,
-          realNameCertType: certType,
-          realNameCertImage: certImage,
-          realNameSubmitTime: now,
-          realNameRejectReason: "",
-          updatedAt: now,
-        },
-      });
+    // 更新所有匹配的记录（用户可能有多套房产）
+    const updatePromises = ownerListRes.data.map((owner) =>
+      db.collection("owner_list").doc(owner._id).update({
+        realNameStatus: "pending",
+        realNameIdCardFront: idCardFront,
+        realNameIdCardBack: idCardBack,
+        realNameCertType: certType,
+        realNameCertImage: certImage,
+        realNameSubmitTime: now,
+        realNameRejectReason: "",
+        updatedAt: now,
+      }),
+    );
+    await Promise.all(updatePromises);
   }
 
   return {

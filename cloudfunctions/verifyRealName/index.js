@@ -13,16 +13,41 @@ exports.main = async (event, context) => {
   const openid = wxContext.OPENID;
 
   try {
-    // 优先查询 owner_list 集合（通过 openid 直接查询）
+    // 1. 先查询用户的认证申请，获取房号信息
+    const certAppRes = await db
+      .collection("certification_applications")
+      .where({
+        openid: openid,
+        status: "approved", // 只查询已通过的认证
+      })
+      .orderBy("createdAt", "desc")
+      .limit(1)
+      .get();
+
+    if (certAppRes.data.length === 0) {
+      return {
+        success: true,
+        data: {
+          status: "unverified",
+          reason: "请先完成户主认证",
+        },
+      };
+    }
+
+    const certApp = certAppRes.data[0];
+
+    // 2. 使用房号信息查询 owner_list 获取实名认证状态
     const ownerListRes = await db
       .collection("owner_list")
       .where({
-        openid: openid,
+        communityId: certApp.communityId,
+        building: certApp.building,
+        unit: certApp.unit,
+        room: certApp.room,
       })
       .get();
 
     if (ownerListRes.data.length > 0) {
-      // 从 owner_list 获取实名认证状态
       const owner = ownerListRes.data[0];
       const realNameStatus = owner.realNameStatus || "unverified";
       const rejectReason = owner.realNameRejectReason || "";
@@ -36,6 +61,17 @@ exports.main = async (event, context) => {
       };
     }
 
+    // 3. 如果 owner_list 没有数据，返回未认证状态
+    return {
+      success: true,
+      data: {
+        status: "unverified",
+        reason: "",
+      },
+    };
+
+    // 下面的代码已废弃，保留仅为兼容旧版本
+    /*
     // 如果 owner_list 没有数据，尝试查询 certification_applications 和 owner_registry
     const certAppRes = await db
       .collection("certification_applications")
@@ -107,6 +143,7 @@ exports.main = async (event, context) => {
         reason: rejectReason,
       },
     };
+    */
   } catch (err) {
     console.error("验证实名状态失败:", err);
     return {

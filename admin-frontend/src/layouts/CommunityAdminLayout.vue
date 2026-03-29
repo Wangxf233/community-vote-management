@@ -128,6 +128,12 @@
                   }}</span>
                 </div>
                 <div class="footer">
+                  <el-button
+                    size="small"
+                    type="primary"
+                    @click="openChangePwdDialog"
+                    >修改密码</el-button
+                  >
                   <el-button size="small" type="danger" @click="logout"
                     >退出登录</el-button
                   >
@@ -170,6 +176,37 @@
       </el-form>
       <template #footer>
         <el-button type="primary" @click="submitPwd">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 主动修改密码 -->
+    <el-dialog v-model="changePwdDialog" title="修改密码" width="420px">
+      <el-form :model="changePwdForm" label-width="120px">
+        <el-form-item label="原始密码">
+          <el-input
+            v-model="changePwdForm.oldPassword"
+            type="password"
+            show-password
+          />
+        </el-form-item>
+        <el-form-item label="新密码">
+          <el-input
+            v-model="changePwdForm.newPassword"
+            type="password"
+            show-password
+          />
+        </el-form-item>
+        <el-form-item label="确认新密码">
+          <el-input
+            v-model="changePwdForm.confirm"
+            type="password"
+            show-password
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="changePwdDialog = false">取消</el-button>
+        <el-button type="primary" @click="submitChangePwd">确认修改</el-button>
       </template>
     </el-dialog>
   </div>
@@ -293,10 +330,10 @@ async function loadCommunityInfo() {
     if (myCommunity && myCommunity.name) {
       communityName.value = myCommunity.name;
 
-      // 计算到期时间和剩余天数
+      // 计算到期时间和剩余天数（字段优先级与 CommunityList 保持一致）
       const endDate =
-        myCommunity.endDate ||
         myCommunity.productEnd ||
+        myCommunity.endDate ||
         myCommunity.product_end ||
         myCommunity.end;
       if (endDate) {
@@ -375,6 +412,64 @@ function refresh() {
 // 强制修改密码
 const pwdDialog = ref(false);
 const pwdForm = reactive({ newPassword: "", confirm: "" });
+
+// 主动修改密码
+const changePwdDialog = ref(false);
+const changePwdForm = reactive({
+  oldPassword: "",
+  newPassword: "",
+  confirm: "",
+});
+
+function openChangePwdDialog() {
+  changePwdForm.oldPassword = "";
+  changePwdForm.newPassword = "";
+  changePwdForm.confirm = "";
+  changePwdDialog.value = true;
+}
+
+async function submitChangePwd() {
+  if (!changePwdForm.oldPassword) {
+    ElMessage.warning("请输入原始密码");
+    return;
+  }
+  if (!changePwdForm.newPassword || !changePwdForm.confirm) {
+    ElMessage.warning("请填写新密码并确认");
+    return;
+  }
+  if (changePwdForm.newPassword !== changePwdForm.confirm) {
+    ElMessage.error("两次输入的密码不一致");
+    return;
+  }
+  try {
+    const raw = localStorage.getItem("admin-user");
+    const me = raw ? JSON.parse(raw) : null;
+    const uid = me && me._id;
+    if (!uid) {
+      ElMessage.error("用户信息缺失，请重新登录");
+      router.push("/login");
+      return;
+    }
+    await request.post(`/users/${uid}/change-password`, {
+      oldPassword: changePwdForm.oldPassword,
+      newPassword: changePwdForm.newPassword,
+    });
+
+    ElMessage.success("密码修改成功，请牢记新密码");
+    changePwdDialog.value = false;
+    changePwdForm.oldPassword = "";
+    changePwdForm.newPassword = "";
+    changePwdForm.confirm = "";
+  } catch (e: any) {
+    console.error(e);
+    const errorMsg = e?.response?.data?.error || e?.message || "修改失败";
+    if (errorMsg === "invalid_old_password") {
+      ElMessage.error("原始密码错误");
+    } else {
+      ElMessage.error("修改失败，请稍后重试");
+    }
+  }
+}
 
 async function submitPwd() {
   if (!pwdForm.newPassword || !pwdForm.confirm) {

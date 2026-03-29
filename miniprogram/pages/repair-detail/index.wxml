@@ -86,3 +86,5 @@
     <button class="cancel-btn" wx:if="{{detail.status === 'pending'}}" bindtap="cancelRepair">撤销{{detail.type === 'report' ? '报事' : '报修'}}</button>
   </view>
 </view>
+
+<guest-tip></guest-tip>

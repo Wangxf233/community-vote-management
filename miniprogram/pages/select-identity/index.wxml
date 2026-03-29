@@ -49,3 +49,5 @@
     <text class="tips-text">• 请如实选择身份，虚假信息将无法通过审核</text>
   </view>
 </view>
+
+<guest-tip></guest-tip>

@@ -144,7 +144,11 @@ router.get("/cycles", verifyToken, async (req, res) => {
       return res.status(400).json({ success: false, error: "缺少小区ID" });
     }
 
-    const where = { communityId };
+    // 只查询服务人员评价周期（type为staff或不存在type字段的旧数据）
+    const where = {
+      communityId,
+      _: _.or({ type: _.eq("staff") }, { type: _.exists(false) }),
+    };
     const skip = (parseInt(page) - 1) * parseInt(pageSize);
     const limit = parseInt(pageSize);
 
@@ -195,7 +199,7 @@ router.get("/cycles", verifyToken, async (req, res) => {
 
         // 使用 Set 去重统计参与人数
         const uniqueUsers = new Set(
-          evaluationsResult.data.map((e) => e.userId || e.openid)
+          evaluationsResult.data.map((e) => e.userId || e.openid),
         );
         const participantCount = uniqueUsers.size;
 
@@ -213,7 +217,7 @@ router.get("/cycles", verifyToken, async (req, res) => {
           participantCount: participantCount,
           totalUsers: totalUsersCount.total,
         };
-      })
+      }),
     );
 
     res.json({
@@ -269,11 +273,14 @@ router.post("/cycles", verifyToken, async (req, res) => {
       title,
       startDate,
       endDate,
-      startSubmitTime: startSubmitTime || now.toISOString(),
-      deadline,
+      startSubmitTime: startSubmitTime
+        ? new Date(startSubmitTime).toISOString()
+        : now.toISOString(),
+      deadline: new Date(deadline).toISOString(),
       staffIds,
       dimensions,
       status,
+      type: "staff",
       communityId,
       createdAt: now,
       updatedAt: now,
@@ -305,8 +312,9 @@ router.put("/cycles/:id", verifyToken, async (req, res) => {
       dimensions,
     } = req.body;
 
+    const now = new Date();
     const updateData = {
-      updatedAt: new Date(),
+      updatedAt: now,
     };
 
     if (title) updateData.title = title;
@@ -314,9 +322,38 @@ router.put("/cycles/:id", verifyToken, async (req, res) => {
     if (endDate) updateData.endDate = endDate;
     if (startSubmitTime !== undefined)
       updateData.startSubmitTime = startSubmitTime;
-    if (deadline) updateData.deadline = deadline;
+    if (deadline) {
+      // 确保 deadline 是标准的 ISO 格式
+      updateData.deadline = new Date(deadline).toISOString();
+    }
     if (staffIds) updateData.staffIds = staffIds;
     if (dimensions) updateData.dimensions = dimensions;
+
+    // 重新计算状态
+    if (deadline || startSubmitTime !== undefined) {
+      // 获取当前周期数据
+      const cycleResult = await db
+        .collection("evaluation_cycles")
+        .doc(id)
+        .get();
+      const cycle = cycleResult.data[0];
+
+      const startTime = startSubmitTime
+        ? new Date(startSubmitTime)
+        : new Date(cycle.startSubmitTime || cycle.createdAt);
+      const deadlineTime = deadline
+        ? new Date(deadline)
+        : new Date(cycle.deadline);
+
+      let status = "draft";
+      if (now >= startTime && now < deadlineTime) {
+        status = "ongoing";
+      } else if (now >= deadlineTime) {
+        status = "closed";
+      }
+
+      updateData.status = status;
+    }
 
     await db.collection("evaluation_cycles").doc(id).update(updateData);
 
@@ -374,7 +411,11 @@ router.get("/results", verifyToken, async (req, res) => {
       return res.status(400).json({ success: false, error: "缺少小区ID" });
     }
 
-    const where = { communityId };
+    // 只查询服务人员评价周期（type为staff或不存在type字段的旧数据）
+    const where = {
+      communityId,
+      _: _.or({ type: _.eq("staff") }, { type: _.exists(false) }),
+    };
     if (cycleId) {
       where._id = cycleId;
     }
@@ -397,7 +438,7 @@ router.get("/results", verifyToken, async (req, res) => {
 
         // 获取参与人数（使用 openid 去重）
         const participantCount = new Set(
-          evaluationsResult.data.map((e) => e.openid || e.userId)
+          evaluationsResult.data.map((e) => e.openid || e.userId),
         ).size;
 
         // 获取小区总用户数
@@ -411,7 +452,7 @@ router.get("/results", verifyToken, async (req, res) => {
 
         for (const staffId of cycle.staffIds) {
           const staffEvaluations = evaluationsResult.data.filter(
-            (e) => e.staffId === staffId
+            (e) => e.staffId === staffId,
           );
 
           // 只处理有评价记录的人员
@@ -466,7 +507,7 @@ router.get("/results", verifyToken, async (req, res) => {
           totalUsers: usersCount.total,
           staffResults: Object.values(staffResults),
         };
-      })
+      }),
     );
 
     res.json({
@@ -554,7 +595,7 @@ router.get(
               userName: "未知业主",
             };
           }
-        })
+        }),
       );
 
       res.json({
@@ -571,7 +612,7 @@ router.get(
       console.error("获取评价详情失败:", error);
       res.status(500).json({ success: false, error: error.message });
     }
-  }
+  },
 );
 
 // ==================== 物业公司评价管理 ====================
@@ -636,7 +677,7 @@ router.get("/company-cycles", verifyToken, async (req, res) => {
 
         // 使用 Set 去重统计参与人数
         const uniqueUsers = new Set(
-          evaluationsResult.data.map((e) => e.userId || e.openid)
+          evaluationsResult.data.map((e) => e.userId || e.openid),
         );
         const participantCount = uniqueUsers.size;
 
@@ -654,7 +695,7 @@ router.get("/company-cycles", verifyToken, async (req, res) => {
           participantCount: participantCount,
           totalUsers: totalUsersCount.total,
         };
-      })
+      }),
     );
 
     res.json({
@@ -708,8 +749,10 @@ router.post("/company-cycles", verifyToken, async (req, res) => {
       title,
       startDate,
       endDate,
-      startSubmitTime: startSubmitTime || now.toISOString(),
-      deadline,
+      startSubmitTime: startSubmitTime
+        ? new Date(startSubmitTime).toISOString()
+        : now.toISOString(),
+      deadline: new Date(deadline).toISOString(),
       dimensions,
       status,
       type: "company",
@@ -737,17 +780,47 @@ router.put("/company-cycles/:id", verifyToken, async (req, res) => {
     const { title, startDate, endDate, startSubmitTime, deadline, dimensions } =
       req.body;
 
+    const now = new Date();
     const updateData = {
-      updatedAt: new Date(),
+      updatedAt: now,
     };
 
     if (title) updateData.title = title;
     if (startDate) updateData.startDate = startDate;
     if (endDate) updateData.endDate = endDate;
     if (startSubmitTime !== undefined)
-      updateData.startSubmitTime = startSubmitTime;
-    if (deadline) updateData.deadline = deadline;
+      updateData.startSubmitTime = new Date(startSubmitTime).toISOString();
+    if (deadline) {
+      // 确保 deadline 是标准的 ISO 格式
+      updateData.deadline = new Date(deadline).toISOString();
+    }
     if (dimensions) updateData.dimensions = dimensions;
+
+    // 重新计算状态
+    if (deadline || startSubmitTime !== undefined) {
+      // 获取当前周期数据
+      const cycleResult = await db
+        .collection("evaluation_cycles")
+        .doc(id)
+        .get();
+      const cycle = cycleResult.data[0];
+
+      const startTime = startSubmitTime
+        ? new Date(startSubmitTime)
+        : new Date(cycle.startSubmitTime || cycle.createdAt);
+      const deadlineTime = deadline
+        ? new Date(deadline)
+        : new Date(cycle.deadline);
+
+      let status = "draft";
+      if (now >= startTime && now < deadlineTime) {
+        status = "ongoing";
+      } else if (now >= deadlineTime) {
+        status = "closed";
+      }
+
+      updateData.status = status;
+    }
 
     await db.collection("evaluation_cycles").doc(id).update(updateData);
 
@@ -776,7 +849,90 @@ router.delete("/company-cycles/:id", verifyToken, async (req, res) => {
   }
 });
 
-// 获取物业公司评价结果
+// 获取物业公司评价结果列表（所有周期）
+router.get("/company-results", verifyToken, async (req, res) => {
+  try {
+    const { communityId, cycleId } = req.query;
+
+    if (!communityId) {
+      return res.status(400).json({ success: false, error: "缺少小区ID" });
+    }
+
+    const where = { communityId, type: "company" };
+    if (cycleId) {
+      where._id = cycleId;
+    }
+
+    // 获取评价周期
+    const cyclesResult = await db
+      .collection("evaluation_cycles")
+      .where(where)
+      .orderBy("createdAt", "desc")
+      .get();
+
+    // 为每个周期计算结果
+    const resultsWithData = await Promise.all(
+      cyclesResult.data.map(async (cycle) => {
+        // 获取该周期的所有评价
+        const evaluationsResult = await db
+          .collection("evaluations")
+          .where({ cycleId: cycle._id })
+          .get();
+
+        // 获取参与人数（使用 openid 去重）
+        const participantCount = new Set(
+          evaluationsResult.data.map((e) => e.openid || e.userId),
+        ).size;
+
+        // 获取小区总用户数
+        const usersCount = await db
+          .collection("owner_list")
+          .where({ communityId })
+          .count();
+
+        // 计算各维度平均分
+        const dimensionScores = {};
+        let totalScore = 0;
+
+        (cycle.dimensions || []).forEach((dim) => {
+          const scores = evaluationsResult.data
+            .map((e) => e.scores && e.scores[dim.name])
+            .filter((s) => s !== undefined && s !== null);
+
+          if (scores.length > 0) {
+            const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+            dimensionScores[dim.name] = avg;
+            totalScore += avg;
+          }
+        });
+
+        const averageScore =
+          (cycle.dimensions || []).length > 0
+            ? totalScore / cycle.dimensions.length
+            : 0;
+
+        return {
+          ...cycle,
+          participantCount,
+          totalUsers: usersCount.total,
+          dimensionScores,
+          averageScore,
+          evaluationCount: evaluationsResult.data.length,
+        };
+      }),
+    );
+
+    res.json({
+      success: true,
+      data: resultsWithData,
+    });
+  } catch (error) {
+    console.error("获取物业公司评价结果列表失败:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 获取物业公司评价结果（单个周期详情）
 router.get("/company-results/:cycleId", verifyToken, async (req, res) => {
   try {
     const { cycleId } = req.params;
@@ -826,7 +982,7 @@ router.get("/company-results/:cycleId", verifyToken, async (req, res) => {
       .get();
 
     const participantCount = new Set(
-      allEvaluationsResult.data.map((e) => e.openid || e.userId)
+      allEvaluationsResult.data.map((e) => e.openid || e.userId),
     ).size;
 
     // 获取小区总用户数
@@ -875,7 +1031,7 @@ router.get("/company-results/:cycleId", verifyToken, async (req, res) => {
             userName: "未知业主",
           };
         }
-      })
+      }),
     );
 
     res.json({

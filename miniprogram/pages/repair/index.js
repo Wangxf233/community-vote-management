@@ -1,6 +1,7 @@
 Page({
   data: {
     currentTab: 0, // 0: 新的报修, 1: 新的报事
+    isGuest: false,
 
     // 报修数据
     isUrgent: false, // 报修紧急状态
@@ -25,13 +26,87 @@ Page({
   },
 
   onLoad() {
+    const app = getApp();
+    const bindingStatus = app.globalData.bindingStatus || "guest";
+
+    this.setData({
+      isGuest: bindingStatus === "guest",
+    });
+
     // 初始化页面
+    if (bindingStatus === "guest") {
+      this.loadGuestMockData();
+      return;
+    }
+
     this.loadProgressData();
   },
 
   onShow() {
+    if (this.data.isGuest) {
+      this.loadGuestMockData();
+      return;
+    }
+
     // 页面显示时刷新进度数据
     this.loadProgressData();
+  },
+
+  loadGuestMockData() {
+    this.setData({
+      equipment: "2号楼东单元客梯",
+      location: "2号楼1单元电梯厅",
+      description:
+        "电梯运行至中高层时有明显异响，偶发停靠不平层，建议尽快安排维保人员排查。",
+      images: ["/images/default-goods-image.png", "/images/ai_example1.png"],
+      video:
+        "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
+      canSubmit: true,
+      reportTitle: "地下车库B2照明故障",
+      reportDescription:
+        "B2西侧通道连续3盏照明灯不亮，夜间通行较暗，影响业主取车安全。",
+      reportImages: [
+        "/images/default-goods-image.png",
+        "/images/ai_example2.png",
+      ],
+      reportVideo:
+        "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
+      canSubmitReport: true,
+      repairProgress: [
+        {
+          _id: "guest-repair-1",
+          equipment: "2号楼东单元客梯",
+          location: "2号楼1单元电梯厅",
+          submitTime: "2026-03-16 09:42",
+          status: "processing",
+          statusText: "处理中",
+        },
+        {
+          _id: "guest-repair-2",
+          equipment: "4号楼门禁系统",
+          location: "4号楼北门",
+          submitTime: "2026-03-08 19:15",
+          status: "completed",
+          statusText: "已完成",
+        },
+      ],
+      reportProgress: [
+        {
+          _id: "guest-report-1",
+          title: "地下车库B2照明故障",
+          submitTime: "2026-03-15 20:06",
+          status: "pending",
+          statusText: "待处理",
+        },
+        {
+          _id: "guest-report-2",
+          title: "南门快递架区域积水",
+          submitTime: "2026-03-10 08:28",
+          status: "processing",
+          statusText: "处理中",
+        },
+      ],
+    });
   },
 
   switchTab(e) {
@@ -65,7 +140,7 @@ Page({
       {
         equipment: e.detail.value,
       },
-      this.checkCanSubmit
+      this.checkCanSubmit,
     );
   },
 
@@ -74,7 +149,7 @@ Page({
       {
         location: e.detail.value,
       },
-      this.checkCanSubmit
+      this.checkCanSubmit,
     );
   },
 
@@ -83,7 +158,7 @@ Page({
       {
         description: e.detail.value,
       },
-      this.checkCanSubmit
+      this.checkCanSubmit,
     );
   },
 
@@ -93,7 +168,7 @@ Page({
       {
         reportTitle: e.detail.value,
       },
-      this.checkCanSubmitReport
+      this.checkCanSubmitReport,
     );
   },
 
@@ -102,7 +177,7 @@ Page({
       {
         reportDescription: e.detail.value,
       },
-      this.checkCanSubmitReport
+      this.checkCanSubmitReport,
     );
   },
 
@@ -230,6 +305,16 @@ Page({
 
   // 提交报修
   async submitRepair() {
+    if (this.data.isGuest) {
+      wx.showToast({
+        title: "报修提交成功（演示）",
+        icon: "success",
+      });
+      this.resetRepairForm();
+      this.loadGuestMockData();
+      return;
+    }
+
     if (!this.data.canSubmit) return;
 
     const app = getApp();
@@ -285,7 +370,7 @@ Page({
         // 重新加载进度
         this.loadProgressData();
       } else {
-        const errorMsg = (res.result && res.result.error) || "提交失败";
+        const errorMsg = res.result?.error || "提交失败";
         throw new Error(errorMsg);
       }
     } catch (err) {
@@ -300,6 +385,16 @@ Page({
 
   // 提交报事
   async submitReport() {
+    if (this.data.isGuest) {
+      wx.showToast({
+        title: "报事提交成功（演示）",
+        icon: "success",
+      });
+      this.resetReportForm();
+      this.loadGuestMockData();
+      return;
+    }
+
     if (!this.data.canSubmitReport) return;
 
     const app = getApp();
@@ -354,7 +449,7 @@ Page({
         // 重新加载进度
         this.loadProgressData();
       } else {
-        throw new Error((res.result && res.result.error) || "提交失败");
+        throw new Error(res.result?.error || "提交失败");
       }
     } catch (err) {
       wx.hideLoading();
@@ -513,9 +608,9 @@ Page({
         const d = new Date(date);
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
           2,
-          "0"
+          "0",
         )}-${String(d.getDate()).padStart(2, "0")} ${String(
-          d.getHours()
+          d.getHours(),
         ).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
       };
 

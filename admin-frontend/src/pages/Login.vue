@@ -1,7 +1,9 @@
 <template>
   <div class="login-modal">
     <el-card class="login-card-simple">
-      <h3 style="text-align: center; margin-bottom: 12px">业主投票评价系统管理后台登录</h3>
+      <h3 style="text-align: center; margin-bottom: 12px">
+        众议票评管理后台登录
+      </h3>
 
       <el-form :model="form" @submit.native.prevent>
         <el-form-item>
@@ -74,7 +76,17 @@ async function onLogin() {
     }
   } catch (e) {
     console.error(e);
-    ElMessage.error("登录失败，请稍后重试");
+    // 处理小区到期的特殊错误
+    if (e?.response?.data?.error === "community_expired") {
+      ElMessage.error({
+        message:
+          e.response.data.message ||
+          "该小区服务已到期，请尽快联系管理员续费以继续使用",
+        duration: 5000,
+      });
+    } else {
+      ElMessage.error("登录失败，用户名或密码错误");
+    }
   }
 }
 </script>

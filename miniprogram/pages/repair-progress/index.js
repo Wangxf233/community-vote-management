@@ -19,6 +19,42 @@ Page({
     const that = this;
     that.setData({ loading: true });
 
+    const bindingStatus = getApp().globalData.bindingStatus || "none";
+    if (bindingStatus === "guest") {
+      const repairs = [
+        {
+          _id: "guest-repair-1",
+          type: "repair",
+          category: "电路维修",
+          content: "2单元10层公共走廊照明间歇性闪烁，夜间影响通行。",
+          status: "processing",
+          submitTime: "2026-03-16 08:30",
+          submitTimeFormatted: "2026-03-16 08:30",
+        },
+        {
+          _id: "guest-repair-2",
+          type: "report",
+          category: "环境卫生",
+          content: "北门垃圾分类点异味较重，建议增加清运频次。",
+          status: "completed",
+          submitTime: "2026-03-12 14:20",
+          submitTimeFormatted: "2026-03-12 14:20",
+        },
+      ];
+
+      repairs.forEach((repair) => {
+        repair.statusText = that.getStatusText(repair.status);
+        repair.statusClass = that.getStatusClass(repair.status);
+      });
+
+      that.setData({
+        repairList: repairs,
+        loading: false,
+      });
+      that.filterList();
+      return;
+    }
+
     // 直接使用 openid 查询报修记录
     wx.cloud
       .callFunction({
@@ -34,7 +70,7 @@ Page({
           repairs.forEach((repair) => {
             if (repair.submitTime) {
               repair.submitTimeFormatted = that.formatDateTime(
-                repair.submitTime
+                repair.submitTime,
               );
             }
             repair.statusText = that.getStatusText(repair.status);
@@ -49,7 +85,7 @@ Page({
           that.filterList();
         } else {
           wx.showToast({
-            title: (res.result && res.result.error) || "加载失败",
+            title: res.result?.error || "加载失败",
             icon: "none",
           });
           that.setData({ loading: false });
@@ -85,7 +121,7 @@ Page({
       filteredList = repairList.filter((item) => item.status === "processing");
     } else if (currentTab === "completed") {
       filteredList = repairList.filter(
-        (item) => item.status === "completed" || item.status === "rejected"
+        (item) => item.status === "completed" || item.status === "rejected",
       );
     }
 

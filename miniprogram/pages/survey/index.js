@@ -6,9 +6,15 @@ Page({
     page: 1,
     hasMore: true,
     loading: false,
+    isGuest: false,
   },
 
   onLoad(options) {
+    const bindingStatus = app.globalData.bindingStatus || "guest";
+    this.setData({
+      isGuest: bindingStatus === "guest",
+    });
+
     // 检查是否是家属
     const bindingInfo = app.globalData.bindingInfo;
     if (bindingInfo && bindingInfo.type === "family") {
@@ -38,6 +44,15 @@ Page({
 
   loadSurveyList(refresh = false) {
     if (this.data.loading) return;
+
+    if (this.data.isGuest) {
+      this.setData({
+        surveyList: this.getGuestMockSurveyList(),
+        loading: false,
+        hasMore: false,
+      });
+      return;
+    }
 
     this.setData({ loading: true });
 
@@ -98,6 +113,31 @@ Page({
     }
   },
 
+  getGuestMockSurveyList() {
+    return [
+      {
+        id: "guest-survey-1",
+        title: "2026年上半年物业服务满意度问卷",
+        description:
+          "围绕保洁、安保、客服响应、公共设施维护等维度收集住户反馈。",
+        deadline: "2026-05-20",
+        voteCount: 132,
+        status: "ongoing",
+        statusText: "进行中",
+      },
+      {
+        id: "guest-survey-2",
+        title: "小区公共活动空间使用需求调研",
+        description:
+          "了解居民对儿童活动区、长者休闲区及共享阅读角的使用偏好与建议。",
+        deadline: "2026-01-31",
+        voteCount: 208,
+        status: "ended",
+        statusText: "已结束",
+      },
+    ];
+  },
+
   getSurveyStatus(survey) {
     const now = new Date();
     const deadline = new Date(survey.deadlineTime);
@@ -138,7 +178,7 @@ Page({
         },
         () => {
           this.loadSurveyList();
-        }
+        },
       );
     }
   },

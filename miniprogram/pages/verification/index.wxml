@@ -137,3 +137,5 @@
     <button class="action-btn" bindtap="goBack">返回</button>
   </view>
 </view>
+
+<guest-tip></guest-tip>

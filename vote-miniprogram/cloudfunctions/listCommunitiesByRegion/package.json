@@ -1,9 +1,0 @@
-{
-  "name": "listCommunitiesByRegion",
-  "version": "1.0.0",
-  "description": "根据省市区查询已注册的小区列表",
-  "main": "index.js",
-  "dependencies": {
-    "wx-server-sdk": "latest"
-  }
-}

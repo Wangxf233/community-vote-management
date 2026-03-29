@@ -6,15 +6,24 @@ const _ = db.command;
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
   const openid = wxContext.OPENID;
+  const { communityId } = event;
 
   try {
+    // 构建查询条件
+    const whereCondition = {
+      openid: openid,
+      deleted: _.neq(true),
+    };
+
+    // 如果提供了 communityId，则添加小区过滤
+    if (communityId) {
+      whereCondition.communityId = communityId;
+    }
+
     // 首先通过 openid 查询 owner_list 表
     let ownerListRes = await db
       .collection("owner_list")
-      .where({
-        openid: openid,
-        deleted: _.neq(true),
-      })
+      .where(whereCondition)
       .get();
 
     // 如果通过 openid 查到数据，直接返回
@@ -41,12 +50,19 @@ exports.main = async (event, context) => {
 
       // 通过手机号查询 owner_list
       if (phone) {
+        const phoneWhereCondition = {
+          phone: phone,
+          deleted: _.neq(true),
+        };
+
+        // 如果提供了 communityId，则添加小区过滤
+        if (communityId) {
+          phoneWhereCondition.communityId = communityId;
+        }
+
         ownerListRes = await db
           .collection("owner_list")
-          .where({
-            phone: phone,
-            deleted: _.neq(true),
-          })
+          .where(phoneWhereCondition)
           .get();
 
         if (ownerListRes.data && ownerListRes.data.length > 0) {

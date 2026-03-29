@@ -35,7 +35,12 @@ router.get("/:communityId", authMiddleware, async (req, res) => {
 router.put("/:communityId", authMiddleware, async (req, res) => {
   try {
     const { communityId } = req.params;
-    const updateData = req.body;
+    const updateData = { ...req.body };
+
+    // 移除不能更新的字段
+    delete updateData._id;
+    delete updateData.communityId;
+    delete updateData.createdAt;
 
     const collection = db.collection("community_info");
 
@@ -47,7 +52,6 @@ router.put("/:communityId", authMiddleware, async (req, res) => {
       const docId = existing.data[0]._id;
       await collection.doc(docId).update({
         ...updateData,
-        communityId,
         updatedAt: new Date(),
       });
     } else {
