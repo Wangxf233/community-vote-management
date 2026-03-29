@@ -4,8 +4,7 @@
   "description": "Admin service example for community-vote-management (Express + CloudBase Node SDK)",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "start:gateway": "node gateway/door-gateway.js"
+    "start": "node server.js"
   },
   "dependencies": {
     "@cloudbase/node-sdk": "^2.0.0",

@@ -4,7 +4,7 @@
 
 - 小程序 -> 云函数 openDoor
 - 云函数 -> Admin API `/api/door/open-from-cloud`
-- Admin API -> 本机常驻进程 `admin/gateway/door-gateway.js`
+- Admin API -> 独立 Gateway 服务 `door-gateway-service/server.js`
 - Gateway -> MQTT Broker -> 门禁设备
 
 ## 2. 进程与资源隔离建议

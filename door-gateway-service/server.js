@@ -1,6 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const mqtt = require("mqtt");
+require("dotenv").config();
 
 const app = express();
 app.use(bodyParser.json({ limit: "512kb" }));
@@ -209,7 +210,7 @@ app.post("/internal/door/open", async (req, res) => {
 });
 
 const port = Number(process.env.DOOR_GATEWAY_PORT || 9101);
-const host = process.env.DOOR_GATEWAY_HOST || "127.0.0.1";
+const host = process.env.DOOR_GATEWAY_HOST || "0.0.0.0";
 app.listen(port, host, () => {
   console.log(`[door-gateway] listening on http://${host}:${port}`);
 });
