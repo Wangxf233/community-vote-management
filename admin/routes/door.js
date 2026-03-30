@@ -152,34 +152,43 @@ router.post("/door/open-from-cloud", async (req, res) => {
       source,
     });
 
-    await db.collection("door_open_logs").add({
-      data: {
-        openid,
-        serial,
-        communityId,
-        requestId,
-        source,
-        status: "sent",
-        execution: "fondcard_http",
-        method: openRes.method,
-        requestMeta: openRes.request,
-        resultCode:
-          openRes.result && openRes.result.code !== undefined
-            ? Number(openRes.result.code)
-            : null,
-        resultMessage: openRes.result ? openRes.result.message : null,
-        rawResult: openRes.result || null,
-        createdAt: new Date(),
-      },
-    });
+    let logPersisted = true;
+    try {
+      await db.collection("door_open_logs").add({
+        data: {
+          openid,
+          serial,
+          communityId,
+          requestId,
+          source,
+          status: "sent",
+          execution: "fondcard_http",
+          method: openRes.method,
+          requestMeta: openRes.request,
+          resultCode:
+            openRes.result && openRes.result.code !== undefined
+              ? Number(openRes.result.code)
+              : null,
+          resultMessage: openRes.result ? openRes.result.message : null,
+          rawResult: openRes.result || null,
+          createdAt: new Date(),
+        },
+      });
+    } catch (logError) {
+      logPersisted = false;
+      console.error("door_open_logs add failed:", logError);
+    }
 
     return res.json({
       success: true,
       data: {
         method: openRes.method,
         result: openRes.result,
+        logPersisted,
       },
-      message: "开门HTTP请求已提交",
+      message: logPersisted
+        ? "开门HTTP请求已提交"
+        : "开门HTTP请求已提交（日志写入失败）",
     });
   } catch (error) {
     console.error("/door/open-from-cloud error:", error);
