@@ -61,6 +61,11 @@ admin/.env 里需配置：
 - FONDCARD_API_BASE_URL
 - FONDCARD_API_TIMEOUT_MS
 
+开门密码策略：
+
+- 开门密码必须存放在 door_devices 的设备记录里（password/devicePassword，或 openParams.password）。
+- 不再使用全局 FONDCARD_OPEN_DEVICE_PASSWORD，避免多设备权限串用。
+
 ## 6. 直接调用示例（algorithm=1）
 
 请求地址：

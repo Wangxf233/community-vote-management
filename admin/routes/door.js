@@ -1,58 +1,103 @@
 const express = require("express");
-const http = require("http");
-const https = require("https");
 const { db } = require("../config/db");
+const { FondcardClient } = require("../utils/fondcard-client");
 
 const router = express.Router();
 
-function postJson(url, body, headers = {}, timeout = 10000) {
-  return new Promise((resolve, reject) => {
-    const target = new URL(url);
-    const isHttps = target.protocol === "https:";
-    const payload = JSON.stringify(body);
-    const request = (isHttps ? https : http).request(
-      {
-        hostname: target.hostname,
-        port: target.port || (isHttps ? 443 : 80),
-        path: `${target.pathname}${target.search}`,
-        method: "POST",
-        timeout,
-        headers: {
-          "Content-Type": "application/json",
-          "Content-Length": Buffer.byteLength(payload),
-          ...headers,
-        },
-      },
-      (res) => {
-        let raw = "";
-        res.on("data", (chunk) => {
-          raw += chunk;
-        });
-        res.on("end", () => {
-          try {
-            const parsed = raw ? JSON.parse(raw) : {};
-            if (res.statusCode >= 200 && res.statusCode < 300) {
-              resolve(parsed);
-            } else {
-              reject(
-                new Error(parsed.error || `gateway_http_${res.statusCode}`),
-              );
-            }
-          } catch (e) {
-            reject(new Error("gateway_response_invalid_json"));
-          }
-        });
-      },
-    );
+function pickFirst(...values) {
+  for (const value of values) {
+    if (value === undefined || value === null || value === "") {
+      continue;
+    }
+    return value;
+  }
+  return undefined;
+}
 
-    request.on("timeout", () => {
-      request.destroy(new Error("gateway_request_timeout"));
-    });
+function buildOpenParams({
+  device,
+  serial,
+  openid,
+  communityId,
+  requestId,
+  source,
+}) {
+  const now = Math.floor(Date.now() / 1000);
+  const base =
+    device && typeof device.openParams === "object" && device.openParams
+      ? { ...device.openParams }
+      : {};
 
-    request.on("error", reject);
-    request.write(payload);
-    request.end();
+  const loginId = pickFirst(
+    base.loginId,
+    device.loginId,
+    process.env.FONDCARD_OPEN_LOGIN_ID,
+  );
+
+  const password = pickFirst(
+    base.password,
+    base.devicePassword,
+    device.password,
+    device.devicePassword,
+  );
+
+  return {
+    ...base,
+    serial,
+    password,
+    platform: pickFirst(
+      base.platform,
+      device.platform,
+      process.env.FONDCARD_OPEN_PLATFORM,
+    ),
+    loginId,
+    userId: pickFirst(base.userId, loginId),
+    openid,
+    communityId,
+    requestId,
+    source,
+    timestamp: now,
+  };
+}
+
+async function openDoorViaFondcard({
+  device,
+  serial,
+  openid,
+  communityId,
+  requestId,
+  source,
+}) {
+  const method = pickFirst(device.openMethod, process.env.FONDCARD_OPEN_METHOD);
+  if (!method) {
+    throw new Error("fondcard_open_method_missing");
+  }
+
+  const client = new FondcardClient();
+  const params = buildOpenParams({
+    device,
+    serial,
+    openid,
+    communityId,
+    requestId,
+    source,
   });
+
+  if (!params.password) {
+    throw new Error("fondcard_open_password_missing_in_device");
+  }
+
+  const result = await client.call(method, params);
+  return {
+    method,
+    result,
+    request: {
+      serial,
+      platform: params.platform,
+      loginId: params.loginId,
+      userId: params.userId,
+    },
+  };
 }
 
 router.post("/door/open-from-cloud", async (req, res) => {
@@ -98,32 +143,14 @@ router.post("/door/open-from-cloud", async (req, res) => {
     }
 
     const device = deviceRes.data[0];
-    const now = Date.now();
-    const payloadObj = {
-      cmd: "open_door",
+    const openRes = await openDoorViaFondcard({
+      device,
       serial,
-      requestId,
-      timestamp: now,
       openid,
+      communityId,
+      requestId,
       source,
-    };
-
-    const gatewayUrl = process.env.DOOR_GATEWAY_URL || "http://127.0.0.1:9101";
-    const gatewayTimeout = Number(process.env.DOOR_GATEWAY_TIMEOUT_MS || 12000);
-
-    const gatewayRes = await postJson(
-      `${gatewayUrl}/internal/door/open`,
-      {
-        requestId,
-        serial,
-        payloadObj,
-        device,
-      },
-      {
-        "x-gateway-key": process.env.DOOR_GATEWAY_KEY || "",
-      },
-      gatewayTimeout,
-    );
+    });
 
     await db.collection("door_open_logs").add({
       data: {
@@ -132,28 +159,33 @@ router.post("/door/open-from-cloud", async (req, res) => {
         communityId,
         requestId,
         source,
-        status:
-          gatewayRes &&
-          gatewayRes.data &&
-          gatewayRes.data.ack &&
-          gatewayRes.data.ack.ok === false
-            ? "timeout"
-            : "sent",
-        ack: gatewayRes ? gatewayRes.data && gatewayRes.data.ack : null,
+        status: "sent",
+        execution: "fondcard_http",
+        method: openRes.method,
+        requestMeta: openRes.request,
+        resultCode:
+          openRes.result && openRes.result.code !== undefined
+            ? Number(openRes.result.code)
+            : null,
+        resultMessage: openRes.result ? openRes.result.message : null,
+        rawResult: openRes.result || null,
         createdAt: new Date(),
       },
     });
 
     return res.json({
       success: true,
-      data: gatewayRes.data || {},
-      message: gatewayRes.message || "开门指令已发送",
+      data: {
+        method: openRes.method,
+        result: openRes.result,
+      },
+      message: "开门HTTP请求已提交",
     });
   } catch (error) {
     console.error("/door/open-from-cloud error:", error);
     return res.status(500).json({
       success: false,
-      error: error.message || "door_gateway_error",
+      error: error.message || "door_open_http_error",
     });
   }
 });
