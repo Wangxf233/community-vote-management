@@ -1,12 +1,12 @@
 module.exports = {
   testEnvironment: "node",
-  roots: ["<rootDir>"],
-  testMatch: ["**/__tests__/**/*.test.js"],
+  rootDir: "..",
+  testMatch: ["<rootDir>/admin/__tests__/**/*.test.js"],
   clearMocks: true,
   collectCoverageFrom: [
-    "routes/**/*.js",
-    "middleware/**/*.js",
-    "utils/**/*.js",
+    "admin/routes/**/*.js",
+    "admin/middleware/**/*.js",
+    "admin/utils/**/*.js",
     "!**/node_modules/**",
   ],
 };

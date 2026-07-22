@@ -2,6 +2,9 @@
 const bodyParser = require("body-parser");
 require("dotenv").config();
 
+// 环境变量校验（缺少必需变量时进程拒绝启动）
+require("./config/env");
+
 const authRoutes = require("./routes/auth");
 const ownerRoutes = require("./routes/owner");
 const bindingRoutes = require("./routes/binding");
@@ -75,6 +78,11 @@ app.use("/api/community-info", communityInfoRoutes);
 app.use("/api", regionRoutes);
 app.use("/api", doorRoutes);
 app.use("/api", fondcardRoutes);
+
+// 全局错误处理（在所有路由之后注册）
+const { errorHandler, notFoundHandler } = require("./middleware/error-handler");
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 const PORT = Number(process.env.PORT || 3000);
 

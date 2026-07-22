@@ -1,0 +1,34 @@
+/**
+ * 统一隐私数据脱敏 — 微信小程序 WXS 版本（WXML 模板层使用）
+ *
+ * 使用方法：
+ *   <wxs module="privacy" src="../../utils/privacy.wxs"></wxs>
+ *   <text>{{privacy.maskPhone(phone)}}</text>
+ */
+
+function maskPhone(phone) {
+  if (!phone || phone.length < 7) return phone || "";
+  var reg = getRegExp("(\\d{3})\\d{4}(\\d{4})", "g");
+  return phone.replace(reg, "$1****$2");
+}
+
+function maskIdCard(idCard) {
+  if (!idCard || idCard.length < 15) return idCard || "";
+  var reg = getRegExp("(\\d{4})\\d{10}(\\d{4})", "g");
+  return idCard.replace(reg, "$1**********$2");
+}
+
+function maskName(name) {
+  if (!name || name.length <= 1) return name || "";
+  var stars = "";
+  for (var i = 1; i < name.length; i++) {
+    stars += "*";
+  }
+  return name[0] + stars;
+}
+
+module.exports = {
+  maskPhone: maskPhone,
+  maskIdCard: maskIdCard,
+  maskName: maskName,
+};
