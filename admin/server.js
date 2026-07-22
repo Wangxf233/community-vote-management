@@ -1,5 +1,7 @@
 ﻿const express = require("express");
 const bodyParser = require("body-parser");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 require("dotenv").config();
 
 // 环境变量校验（缺少必需变量时进程拒绝启动）
@@ -34,15 +36,52 @@ process.on("unhandledRejection", (reason) => {
 });
 
 const app = express();
+
+// === 安全中间件 ===
+
+// 安全响应头（CSP, X-Frame-Options, X-Content-Type-Options 等）
+app.use(helmet());
+
+// 全局限流：每个 IP 每分钟最多 100 次请求
+const globalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: "rate_limit_exceeded",
+  },
+});
+app.use(globalLimiter);
+
+// 登录接口严格限流：每个 IP 每分钟最多 10 次
+const loginLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: "rate_limit_exceeded",
+  },
+});
+app.use("/api/login", loginLimiter);
+
 app.use(bodyParser.json());
 
+// CORS — 仅允许已知来源
+const ALLOWED_ORIGINS = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "https://cloud1-6ghienoi526fff51.tcloudbaseapp.com",
+];
 app.use((req, res, next) => {
-  const origin = req.headers.origin || "*";
-  res.header("Access-Control-Allow-Origin", origin);
-  res.header(
-    "Access-Control-Allow-Methods",
-    "GET,POST,PUT,PATCH,DELETE,OPTIONS",
-  );
+  const origin = req.headers.origin || "";
+  if (ALLOWED_ORIGINS.includes(origin) || !origin) {
+    res.header("Access-Control-Allow-Origin", origin || "*");
+  }
+  res.header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
   res.header(
     "Access-Control-Allow-Headers",
     "Content-Type, Authorization, X-Requested-With",
