@@ -7,13 +7,22 @@
     "dev:admin": "cd admin && node server.js",
     "dev:frontend": "cd admin-frontend && npm run dev",
     "build:frontend": "cd admin-frontend && npm run build",
-    "lint": "eslint ."
+    "lint": "cd admin-frontend && npm run lint && cd ../admin && npm run lint",
+    "lint:fix": "cd admin-frontend && npm run lint:fix && cd ../admin && npm run lint:fix",
+    "prepare": "husky",
+    "test": "cd admin-frontend && npm test && cd ../admin && npm test",
+    "test:frontend": "cd admin-frontend && npm test",
+    "test:admin": "cd admin && npm test"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.2.1",
+    "@commitlint/config-conventional": "^21.2.0",
     "eslint": "^5.5.0",
     "eslint-config-airbnb-base": "13.1.0",
     "eslint-plugin-import": "^2.14.0",
     "eslint-plugin-node": "^7.0.1",
-    "eslint-plugin-promise": "^4.0.0"
+    "eslint-plugin-promise": "^4.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0"
   }
 }

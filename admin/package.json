@@ -4,7 +4,10 @@
   "description": "Admin service example for community-vote-management (Express + CloudBase Node SDK)",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "lint": "eslint routes/ middleware/ utils/ config/ server.js",
+    "lint:fix": "eslint routes/ middleware/ utils/ config/ server.js --fix",
+    "test": "jest"
   },
   "dependencies": {
     "@cloudbase/node-sdk": "^3.0.0",
@@ -14,5 +17,10 @@
     "express": "^4.18.2",
     "mqtt": "^5.10.3",
     "multer": "^2.0.2"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.1",
+    "jest": "^30.4.2",
+    "supertest": "^7.2.2"
   }
 }
