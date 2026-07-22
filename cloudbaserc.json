@@ -1,4 +1,5 @@
 {
+  "_scope": "admin-frontend 前端静态网站托管部署（权威）。admin 后端云托管部署配置见 admin/cloudbaserc.json",
   "envId": "cloud1-6ghienoi526fff51",
   "version": "2.0",
   "framework": {

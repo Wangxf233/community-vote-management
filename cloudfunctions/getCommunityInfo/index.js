@@ -55,11 +55,29 @@ exports.main = async (event, context) => {
       .limit(1)
       .get();
 
+    // 2b. 查询 communities 集合获取门禁开关状态
+    let doorManagementEnabled = false;
+    try {
+      const commRes = await db.collection("communities").doc(communityId).get();
+      const commDoc = Array.isArray(commRes.data)
+        ? commRes.data[0]
+        : commRes.data;
+      doorManagementEnabled = !!(
+        commDoc && commDoc.doorManagementEnabled === true
+      );
+    } catch (e) {
+      console.warn(
+        "getCommunityInfo: failed to load communities doc",
+        e.message,
+      );
+    }
+
     // 如果没有找到小区信息，返回空数据而不是报错
     if (!infoResult.data || infoResult.data.length === 0) {
       return {
         success: true,
         communityName: communityName,
+        doorManagementEnabled,
         data: {
           propertyName: "",
           buildingCount: 0,
@@ -80,6 +98,7 @@ exports.main = async (event, context) => {
           vehicleCount: 0,
           planImage: "",
           effectImage: "",
+          adImages: [],
         },
       };
     }
@@ -90,6 +109,7 @@ exports.main = async (event, context) => {
     return {
       success: true,
       communityName: communityName,
+      doorManagementEnabled,
       data: {
         propertyName: communityInfo.propertyName || "",
         buildingCount: communityInfo.buildingCount || 0,
@@ -110,6 +130,7 @@ exports.main = async (event, context) => {
         vehicleCount: communityInfo.vehicleCount || 0,
         planImage: communityInfo.planImage || "",
         effectImage: communityInfo.effectImage || "",
+        adImages: communityInfo.adImages || [],
       },
     };
   } catch (err) {

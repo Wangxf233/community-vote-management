@@ -1,5 +1,6 @@
 const express = require("express");
 const { verifyToken } = require("../middleware/auth");
+const { db } = require("../config/db");
 const { FondcardClient } = require("../utils/fondcard-client");
 
 const router = express.Router();
@@ -114,6 +115,76 @@ router.post(
       return res.json({ success: true, result });
     } catch (error) {
       console.error("fondcard login.device.add error:", error);
+      return res.status(500).json({ success: false, error: error.message });
+    }
+  },
+);
+
+router.post(
+  "/door/fondcard/login-device/delete",
+  verifyToken,
+  async (req, res) => {
+    try {
+      const missing = required(req.body || {}, [
+        "loginId",
+        "password",
+        "serial",
+      ]);
+      if (missing.length) {
+        return res
+          .status(400)
+          .json({ success: false, error: "missing_required_fields", missing });
+      }
+
+      const client = new FondcardClient();
+      const result = await client.call("data.login.device.delete", {
+        loginId: req.body.loginId,
+        password: req.body.password,
+        serial: req.body.serial,
+      });
+      return res.json({ success: true, result });
+    } catch (error) {
+      console.error("fondcard login.device.delete error:", error);
+      return res.status(500).json({ success: false, error: error.message });
+    }
+  },
+);
+
+router.post(
+  "/door/fondcard/login-devices/get",
+  verifyToken,
+  async (req, res) => {
+    try {
+      const missing = required(req.body || {}, ["loginId", "password"]);
+      if (missing.length) {
+        return res
+          .status(400)
+          .json({ success: false, error: "missing_required_fields", missing });
+      }
+
+      const payload = {
+        loginId: req.body.loginId,
+        password: req.body.password,
+      };
+      if (req.body.pageIndex !== undefined && req.body.pageIndex !== null) {
+        payload.pageIndex = Number(req.body.pageIndex);
+      }
+      if (req.body.pageSize !== undefined && req.body.pageSize !== null) {
+        payload.pageSize = Number(req.body.pageSize);
+      }
+      if (
+        req.body.serial !== undefined &&
+        req.body.serial !== null &&
+        req.body.serial !== ""
+      ) {
+        payload.serial = req.body.serial;
+      }
+
+      const client = new FondcardClient();
+      const result = await client.call("data.login.devices.get", payload);
+      return res.json({ success: true, result });
+    } catch (error) {
+      console.error("fondcard login.devices.get error:", error);
       return res.status(500).json({ success: false, error: error.message });
     }
   },
@@ -295,6 +366,7 @@ router.post("/door/fondcard/bootstrap", verifyToken, async (req, res) => {
   try {
     const body = req.body || {};
     const requiredKeys = [
+      "loginId",
       "loginPassword",
       "platform",
       "serial",
@@ -303,14 +375,14 @@ router.post("/door/fondcard/bootstrap", verifyToken, async (req, res) => {
       "deviceType",
       "mac",
       "algorithm",
+      "sourceid",
+      "id",
+      "keyId",
+      "keyType",
+      "keyCount",
       "startDate",
       "keyDate",
     ];
-
-    // 允许传入已存在的 loginId，跳过 data.login.add，便于重试后续步骤。
-    if (!body.loginId) {
-      requiredKeys.push("name", "company");
-    }
 
     const missing = required(body, requiredKeys);
 
@@ -322,39 +394,14 @@ router.post("/door/fondcard/bootstrap", verifyToken, async (req, res) => {
 
     const client = new FondcardClient();
 
-    let loginId = body.loginId || null;
-    let loginRes = null;
-
-    if (!loginId) {
-      loginRes = await client.addLogin({
-        name: body.name,
-        password: body.loginPassword,
-        company: body.company,
-        platform: body.platform,
-        domainMqtt: body.domainMqtt,
-        domainQr: body.domainQr,
-        urlAdmin: body.urlAdmin,
-      });
-
-      loginId = loginRes && loginRes.data ? loginRes.data.id : null;
-      debug.loginId = loginId || null;
-      debug.stepResults.loginRes = loginRes;
-      if (!loginId) {
-        return res.status(500).json({
-          success: false,
-          error: "login_id_missing_in_response",
-          raw: loginRes,
-        });
-      }
-    } else {
-      loginRes = {
-        skipped: true,
-        reason: "use_provided_loginId",
-        data: { id: loginId },
-      };
-      debug.loginId = loginId;
-      debug.stepResults.loginRes = loginRes;
-    }
+    const loginId = body.loginId;
+    const loginRes = {
+      skipped: true,
+      reason: "use_provided_loginId",
+      data: { id: loginId },
+    };
+    debug.loginId = loginId;
+    debug.stepResults.loginRes = loginRes;
 
     const devicePayload = {
       serial: body.serial,
@@ -367,15 +414,19 @@ router.post("/door/fondcard/bootstrap", verifyToken, async (req, res) => {
     };
 
     // 默认仅提交文档必填参数，避免可选字段格式差异导致 1006。
-    if (body.includeDeviceMeta === true) {
-      devicePayload.deviceId = body.deviceId;
-      devicePayload.sourceid = body.sourceid;
+    devicePayload.sourceid = body.sourceid;
+    devicePayload.id = body.id;
+    if (body.sn !== undefined) {
       devicePayload.sn = body.sn;
-      devicePayload.mac = body.mac;
+    }
+    if (body.btkey !== undefined) {
       devicePayload.btkey = body.btkey;
+    }
+    if (body.btkeyType !== undefined) {
       devicePayload.btkeyType = body.btkeyType;
+    }
+    if (body.scanOpen !== undefined) {
       devicePayload.scanOpen = body.scanOpen;
-      devicePayload.id = body.id;
     }
 
     let deviceRes = null;
@@ -413,20 +464,95 @@ router.post("/door/fondcard/bootstrap", verifyToken, async (req, res) => {
 
     const mqttUser = userRes && userRes.data ? userRes.data : {};
     const appUserId = mqttUser.id;
-    const keyId = toHex8(appUserId);
 
-    if (!keyId) {
+    const keyIds = String(body.keyId || "")
+      .split(",")
+      .map((x) => x.trim())
+      .filter(Boolean);
+    const keyDates = String(body.keyDate || "")
+      .split(",")
+      .map((x) => x.trim())
+      .filter(Boolean);
+    const startDates = String(body.startDate || "")
+      .split(",")
+      .map((x) => x.trim())
+      .filter(Boolean);
+
+    const fallbackKeyId = toHex8(loginId);
+    if (!keyIds.length && fallbackKeyId) {
+      keyIds.push(fallbackKeyId);
+    }
+
+    if (!keyIds.length) {
       return res.status(400).json({
         success: false,
         error: "key_id_missing",
-        message:
-          "data.user.add 返回 id 非数字，无法按文档转换为 8 位16进制 keyId",
+        message: "keyId 为空，且无法从 loginId 自动生成有效的 8 位16进制 keyId",
       });
     }
 
-    const keyType = 1;
-    const keyCount = body.keyCount || 1;
+    if (keyIds.some((x) => !/^[0-9A-Fa-f]{8}$/.test(x))) {
+      return res.status(400).json({
+        success: false,
+        error: "invalid_key_id",
+        message: "keyId 必须是半角逗号分隔的 8 位16进制字符串",
+      });
+    }
+
+    if (!keyDates.length || !startDates.length) {
+      return res.status(400).json({
+        success: false,
+        error: "missing_key_dates",
+        message: "keyDate 与 startDate 必须传入UTC秒，支持半角逗号分隔",
+      });
+    }
+
+    if (
+      keyDates.some((x) => !/^\d+$/.test(x)) ||
+      startDates.some((x) => !/^\d+$/.test(x))
+    ) {
+      return res.status(400).json({
+        success: false,
+        error: "invalid_key_dates",
+        message: "keyDate 与 startDate 必须为UTC秒数字，多个值请用半角逗号分隔",
+      });
+    }
+
+    const keyId = keyIds.join(",");
+
+    const keyType = Number(body.keyType);
+    const keyCount = Number(body.keyCount || 1);
     const periodNo = body.periodNo || "0";
+
+    if (!Number.isFinite(keyType) || keyType <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: "invalid_key_type",
+      });
+    }
+
+    if (!Number.isFinite(keyCount) || keyCount <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: "invalid_key_count",
+      });
+    }
+
+    if (keyIds.length !== keyCount) {
+      return res.status(400).json({
+        success: false,
+        error: "invalid_key_count_mismatch",
+        message: "keyCount 必须与 keyId 个数一致",
+      });
+    }
+
+    if (keyDates.length !== keyCount || startDates.length !== keyCount) {
+      return res.status(400).json({
+        success: false,
+        error: "invalid_key_dates_count_mismatch",
+        message: "keyDate/startDate 的个数必须与 keyCount 一致",
+      });
+    }
 
     const keyRes = await client.addKey({
       serial: body.serial,
@@ -434,8 +560,8 @@ router.post("/door/fondcard/bootstrap", verifyToken, async (req, res) => {
       keyType,
       keyCount,
       keyId,
-      keyDate: body.keyDate,
-      startDate: body.startDate,
+      keyDate: keyDates.join(","),
+      startDate: startDates.join(","),
       periodNo,
     });
     debug.stepResults.keyRes = keyRes;
@@ -447,6 +573,54 @@ router.post("/door/fondcard/bootstrap", verifyToken, async (req, res) => {
     });
     debug.stepResults.updateRes = updateRes;
 
+    const user = req.user || {};
+    const effectiveCommunityId = user.communityId || body.communityId || null;
+    if (effectiveCommunityId) {
+      const now = new Date().toISOString();
+      const existing = await db
+        .collection("door_devices")
+        .where({
+          communityId: effectiveCommunityId,
+          serial: body.serial,
+        })
+        .limit(1)
+        .get();
+
+      const snapshot = {
+        communityId: effectiveCommunityId,
+        serial: body.serial,
+        password: body.devicePassword,
+        platform: body.platform,
+        loginId: String(loginId),
+        deviceName: body.deviceName || body.serial || "未命名门禁",
+        enabled: true,
+        locationType: "community_gate",
+        sourceid: body.sourceid,
+        deviceType: Number(body.deviceType),
+        algorithm: Number(body.algorithm),
+        keyType,
+        keyCount,
+        keyId,
+        startDate: startDates.join(","),
+        keyDate: keyDates.join(","),
+        updatedAt: now,
+        updatedBy: user._id || user.id || user.username || "",
+      };
+
+      if (existing.data && existing.data.length > 0) {
+        await db
+          .collection("door_devices")
+          .doc(existing.data[0]._id)
+          .update(snapshot);
+      } else {
+        await db.collection("door_devices").add({
+          ...snapshot,
+          createdAt: now,
+          createdBy: user._id || user.id || user.username || "",
+        });
+      }
+    }
+
     return res.json({
       success: true,
       data: {
@@ -454,6 +628,12 @@ router.post("/door/fondcard/bootstrap", verifyToken, async (req, res) => {
         deviceExists,
         appUserId,
         keyId,
+        operator: {
+          userId: req.user ? req.user._id || req.user.id || null : null,
+          communityId: req.user
+            ? req.user.communityId || req.body?.communityId || null
+            : null,
+        },
         mqttUser,
         stepResults: {
           loginRes,

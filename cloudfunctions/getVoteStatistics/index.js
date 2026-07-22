@@ -2,6 +2,7 @@ const cloud = require("wx-server-sdk");
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
+const $ = db.command.aggregate;
 
 exports.main = async (event, context) => {
   const { voteId } = event;
@@ -19,9 +20,104 @@ exports.main = async (event, context) => {
 
     const vote = voteRes.data;
 
-    console.log("Vote communityId:", vote.communityId);
+    // 并行执行三条聚合，全部在数据库侧完成，不拉取原始记录到内存
+    const [ownerCountRes, ownerAreaRes, voteGroupRes] = await Promise.all([
+      // 1. 去重户主数（按 openid 去重，排除空 openid）
+      db
+        .collection("owner_list")
+        .aggregate()
+        .match({
+          communityId: vote.communityId,
+          deleted: _.neq(true),
+          openid: _.neq(""),
+        })
+        .group({ _id: "$openid" })
+        .group({ _id: null, totalCount: $.sum(1) })
+        .end(),
 
-    // 获取该小区的户主名单
+      // 2. 小区总专有面积（所有房产之和，保留多产权户的全部面积）
+      db
+        .collection("owner_list")
+        .aggregate()
+        .match({ communityId: vote.communityId, deleted: _.neq(true) })
+        .group({ _id: null, totalArea: $.sum("$area") })
+        .end(),
+
+      // 3. 各选项投票人数和面积
+      //    area 在投票时已从 owner_list 写入 vote_records，无需联表
+      db
+        .collection("vote_records")
+        .aggregate()
+        .match({ voteId, deleted: _.neq(true) })
+        .group({ _id: "$optionId", count: $.sum(1), area: $.sum("$area") })
+        .end(),
+    ]);
+
+    const totalCount =
+      ownerCountRes.list && ownerCountRes.list[0]
+        ? ownerCountRes.list[0].totalCount
+        : 0;
+    const totalArea =
+      ownerAreaRes.list && ownerAreaRes.list[0]
+        ? parseFloat((ownerAreaRes.list[0].totalArea || 0).toFixed(2))
+        : 0;
+
+    // 将聚合结果转为 optionId → { count, area } 映射
+    const optionMap = {};
+    (voteGroupRes.list || []).forEach((g) => {
+      if (g._id) {
+        optionMap[g._id] = {
+          count: g.count || 0,
+          area: parseFloat(g.area) || 0,
+        };
+      }
+    });
+
+    const agreeCount = (optionMap.option1 || {}).count || 0;
+    const disagreeCount = (optionMap.option2 || {}).count || 0;
+    const abstainCount = (optionMap.option3 || {}).count || 0;
+    const participantCount = agreeCount + disagreeCount + abstainCount;
+
+    const agreeArea = (optionMap.option1 || {}).area || 0;
+    const disagreeArea = (optionMap.option2 || {}).area || 0;
+    const abstainArea = (optionMap.option3 || {}).area || 0;
+    const participantArea = parseFloat(
+      (agreeArea + disagreeArea + abstainArea).toFixed(2)
+    );
+
+    const pct = (n, d) => (d > 0 ? ((n / d) * 100).toFixed(1) : "0.0");
+
+    return {
+      success: true,
+      data: {
+        totalCount,
+        participantCount,
+        participantRatio: pct(participantCount, totalCount),
+        agreeCount,
+        disagreeCount,
+        abstainCount,
+        agreePercent: pct(agreeCount, participantCount),
+        disagreePercent: pct(disagreeCount, participantCount),
+        abstainPercent: pct(abstainCount, participantCount),
+        totalArea,
+        participantArea,
+        participantAreaRatio: pct(participantArea, totalArea),
+        agreeArea: agreeArea.toFixed(2),
+        disagreeArea: disagreeArea.toFixed(2),
+        abstainArea: abstainArea.toFixed(2),
+        agreeAreaPercent: pct(agreeArea, participantArea),
+        disagreeAreaPercent: pct(disagreeArea, participantArea),
+        abstainAreaPercent: pct(abstainArea, participantArea),
+      },
+    };
+  } catch (err) {
+    console.error("getVoteStatistics error:", err);
+    return {
+      success: false,
+      error: err.message || "Failed to get statistics",
+    };
+  }
+};
     const ownerListRes = await db
       .collection("owner_list")
       .where({

@@ -12,30 +12,33 @@
 - ✅ `middleware/auth.js` - 认证中间件
 - ✅ `utils/helpers.js` - 通用工具函数
 
-### 2. 路由模块
+### 2. 路由模块（全部完成，共 18 个）
 
-- ✅ `routes/auth.js` - 认证路由
-
-  - POST /api/login/sms - 短信验证码登录
-  - POST /api/login/password - 用户名密码登录
-
-- ✅ `routes/owner.js` - 业主管理路由
-  - GET /api/owner-registry - 获取业主名册列表
-  - POST /api/owner-registry - 添加单个业主
-  - POST /api/owner-registry/import - 批量导入
-  - PUT /api/owner-registry/:id - 更新业主信息
-  - DELETE /api/owner-registry/:id - 删除业主
-  - GET /api/owner-list - 获取户主列表
-  - PUT /api/owner-list/:id - 更新户主信息
-  - DELETE /api/owner-list/:id - 删除户主
-  - POST /api/owner-list/:id/verify - 实名认证
+- ✅ `routes/auth.js` - 认证路由（登录相关）
+- ✅ `routes/owner.js` - 业主管理路由（名册 + 户主列表）
+- ✅ `routes/binding.js` - 绑定审核路由
+- ✅ `routes/community.js` - 小区管理路由
+- ✅ `routes/vote.js` - 投票管理路由
+- ✅ `routes/user.js` - 用户管理路由
+- ✅ `routes/house.js` - 房屋配置路由
+- ✅ `routes/upload.js` - 文件上传路由
+- ✅ `routes/export.js` - 数据导出路由
+- ✅ `routes/certification.js` - 认证审核路由
+- ✅ `routes/repair.js` - 报修管理路由
+- ✅ `routes/report.js` - 报事管理路由
+- ✅ `routes/evaluation.js` - 评价管理路由
+- ✅ `routes/announcement.js` - 公告管理路由
+- ✅ `routes/communityInfo.js` - 社区信息路由
+- ✅ `routes/region.js` - 地区数据路由
+- ✅ `routes/door.js` - 门禁设备路由
+- ✅ `routes/fondcard.js` - Fondcard 集成路由
 
 ### 3. server.js 改造
 
-- ✅ 引入模块化路由
-- ✅ 挂载 auth 和 owner 路由
-- ✅ 注释已迁移的旧代码（保留作为参考）
-- ✅ 保留未迁移的路由继续正常工作
+- ✅ 引入全部 18 个模块化路由
+- ✅ 统一挂载至 `/api` 前缀
+- ✅ 统一 CORS 及 graceful shutdown 处理
+- ✅ 原有单文件逻辑已全部迁移完成，无残留旧代码
 
 ## 架构改进
 
@@ -50,14 +53,30 @@ admin/
 
 ```
 admin/
-├── server.js (主入口，引入模块化路由)
+├── server.js              # 主入口（103 行，纯路由挂载）
 ├── config/
-│   └── db.js
+│   └── db.js              # 数据库配置
 ├── middleware/
-│   └── auth.js
-├── routes/
+│   └── auth.js            # 认证中间件
+├── routes/                # 18 个路由模块
 │   ├── auth.js
-│   └── owner.js
+│   ├── owner.js
+│   ├── binding.js
+│   ├── community.js
+│   ├── vote.js
+│   ├── user.js
+│   ├── house.js
+│   ├── upload.js
+│   ├── export.js
+│   ├── certification.js
+│   ├── repair.js
+│   ├── report.js
+│   ├── evaluation.js
+│   ├── announcement.js
+│   ├── communityInfo.js
+│   ├── region.js
+│   ├── door.js
+│   └── fondcard.js
 └── utils/
     └── helpers.js
 ```
@@ -125,24 +144,24 @@ const {
 } = require("../utils/helpers");
 ```
 
-## 下一步计划
-
-待迁移的路由模块（可选，保持现有功能正常运行）：
-
-1. **routes/community.js** - 小区管理相关
-2. **routes/certification.js** - 认证审核相关
-3. **routes/vote.js** - 投票管理相关
-4. **routes/binding.js** - 绑定管理相关
-
-这些模块可以根据需要逐步迁移，或保持当前状态继续运行。
-
 ## 测试验证
 
-### 已验证功能
+### 启动服务
 
-- ✅ 登录功能（短信和密码登录）
-- ✅ 业主名册管理（列表、添加、编辑、删除、导入）
-- ✅ 户主列表管理（列表、编辑、删除、实名认证）
+```bash
+cd admin
+node server.js
+```
+
+### 核心接口验证
+
+- ✅ 登录接口（POST /api/login/sms, POST /api/login/password）
+- ✅ 业主名册管理（GET/POST/PUT/DELETE /api/owner-registry）
+- ✅ 小区管理（GET/POST/PUT/DELETE /api/communities）
+- ✅ 投票管理（GET/POST /api/votes）
+- ✅ 报修管理（GET/POST /api/repairs）
+- ✅ 公告管理（GET/POST /api/announcements）
+- ✅ 门禁集成（Fondcard）
 
 ### 如何测试
 
@@ -153,9 +172,8 @@ const {
 
 ## 总结
 
-✅ 已成功完成核心模块的重构
-✅ 保持向后兼容，所有功能正常运行
-✅ 代码结构更清晰，维护成本大幅降低
-✅ 为后续功能开发提供了良好的基础
-
-重构后的代码更加专业、可维护，符合行业最佳实践。
+✅ 所有路由模块（18 个）全部迁移完成
+✅ server.js 从原有大文件缩减为 103 行的纯路由挂载入口
+✅ 保持 API 路径向后兼容，前端无需修改
+✅ 统一认证中间件、统一数据库配置、统一工具函数
+✅ 支持 Dockerfile 部署，含健康检查与 graceful shutdown

@@ -19,6 +19,7 @@
     "pages/my-votes/index",
     "pages/staff-list/index",
     "pages/information-list/index",
+    "pages/industry-news/index",
     "pages/information-detail/index",
     "pages/basic-info/index",
     "pages/repair-progress/index",
@@ -58,8 +59,8 @@
       {
         "pagePath": "pages/door/index",
         "text": "开门",
-        "iconPath": "images/service.png",
-        "selectedIconPath": "images/service-active.png"
+        "iconPath": "images/door.png",
+        "selectedIconPath": "images/door-active.png"
       },
       {
         "pagePath": "pages/profile/index",

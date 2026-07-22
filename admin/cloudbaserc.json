@@ -1,3 +1,5 @@
+# 作用域：admin 后端服务（云托管）部署配置（权威）
+# 前端静态托管配置见根目录 cloudbaserc.json，两者互不干扰
 # 云托管配置文件
 # https://cloud.tencent.com/document/product/1243
 

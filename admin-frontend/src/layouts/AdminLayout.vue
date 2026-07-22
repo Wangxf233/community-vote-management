@@ -16,6 +16,10 @@
             <el-icon><List /></el-icon>
             <span>小区列表</span>
           </el-menu-item>
+          <el-menu-item index="/admin/door">
+            <el-icon><Key /></el-icon>
+            <span>门禁管理</span>
+          </el-menu-item>
         </el-menu>
       </el-aside>
       <el-container>
@@ -140,7 +144,14 @@ import { computed, ref, reactive, computed as vComputed, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { ElMessage } from "element-plus";
 import request from "../utils/axios";
-import { Refresh, Bell, User, CirclePlus, List } from "@element-plus/icons-vue";
+import {
+  Refresh,
+  Bell,
+  User,
+  CirclePlus,
+  List,
+  Key,
+} from "@element-plus/icons-vue";
 const router = useRouter();
 const route = useRoute();
 const active = computed(() => route.path);

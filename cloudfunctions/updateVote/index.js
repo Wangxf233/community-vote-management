@@ -41,38 +41,41 @@ exports.main = async (event, context) => {
       }
       const vote = voteRes.data;
 
-      // 检查是否已投票
-      const voteRecordRes = await db
-        .collection("vote_records")
-        .where({
-          voteId,
-          openid,
-        })
-        .get();
-
-      if (voteRecordRes.data && voteRecordRes.data.length > 0) {
-        return { success: false, error: "您已经投过票了" };
+      // 使用固定 _id = `${voteId}_${openid}` 保证幂等性
+      // _id 唯一约束由数据库层强制，彻底消除并发竞态窗口，省去预查询
+      let addRes;
+      try {
+        addRes = await db.collection("vote_records").add({
+          data: {
+            _id: `${voteId}_${openid}`,
+            voteId,
+            communityId: vote.communityId || owner.communityId,
+            openid,
+            optionId,
+            signatureUrl,
+            ownerName: owner.name,
+            ownerPhone: owner.phone,
+            district: owner.district || "",
+            building: owner.building,
+            unit: owner.unit,
+            room: owner.room,
+            area: owner.area || 0,
+            properties: owner.properties || [],
+            createdAt: new Date(),
+          },
+        });
+      } catch (addErr) {
+        // _id 重复 → 该用户已投票（并发场景下的第二次请求）
+        const msg = (addErr.message || addErr.errMsg || "").toLowerCase();
+        if (
+          msg.includes("duplicate") ||
+          msg.includes("exist") ||
+          addErr.errCode === -502005
+        ) {
+          return { success: false, error: "您已经投过票了" };
+        }
+        throw addErr;
       }
-
-      // 保存投票记录（添加 communityId）
-      const addRes = await db.collection("vote_records").add({
-        data: {
-          voteId,
-          communityId: vote.communityId || owner.communityId,
-          openid,
-          optionId,
-          signatureUrl,
-          ownerName: owner.name,
-          ownerPhone: owner.phone,
-          district: owner.district || "",
-          building: owner.building,
-          unit: owner.unit,
-          room: owner.room,
-          area: owner.area || 0,
-          properties: owner.properties || [],
-          createdAt: new Date(),
-        },
-      });
 
       // 更新投票选项计数
       await db

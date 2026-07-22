@@ -1,37 +1,70 @@
-# 微信小程序示例
-微信小程序示例源码，欢迎扫描以下小程序码体验。
+﻿# 社区投票管理系统
 
-> 提示：请使用微信开发者工具或微信客户端 6.7.2 及以上版本运行。
+社区投票管理系统，包含微信小程序、云函数、管理后台 API 与管理前端四个子项目。
 
-<img width="200" src="https://res.wx.qq.com/op_res/QqOF7ydl0dkpq-orpebXL-gBspr08VjoFOFGrWvKF9IULLhfT9XhnsSKlvc0gI8d">
-
-## 使用
+## 项目结构
 
 ```
-cd demo
-npm i
-cd miniprogram
-npm i
+community-vote-management/
+├── miniprogram/        # 微信小程序（业主端）
+├── cloudfunctions/     # 微信云开发云函数（50+ 个）
+├── admin/              # 管理后台 API（Node.js / Express）
+└── admin-frontend/     # 管理前端（Vue 3 / Element Plus）
 ```
-完成上述步骤后，使用微信开发者工具，点击【工具-构建npm】
 
-使用[微信开发者工具](https://developers.weixin.qq.com/miniprogram/dev/devtools/download.html)打开该示例代码，云开发环境搭建请参考[云开发示例说明](https://github.com/wechat-miniprogram/miniprogram-demo/blob/master/miniprogram/page/cloud/README.md)。
+## 子项目说明
 
+### miniprogram/
+业主使用的微信小程序端，功能包含投票、公告、报修、评价、家庭管理等。
 
-## 贡献
+打开方式：使用微信开发者工具打开项目根目录，选择云开发环境即可运行。
 
-如果你有 bug 反馈或其他任何建议，欢迎提 issue 给我们。
+### cloudfunctions/
+微信云开发云函数，覆盖登录认证、投票、投票统计、公告、报修、评价、社区管理等全部业务逻辑。
 
-如果你愿意一起来完善小程序示例，欢迎通过 PR 的方式贡献代码。为了保证代码风格的统一，在编写代码之前，请在项目根目录运行以下命令安装依赖：
+部署方式：微信开发者工具 → 右键 cloudfunctions 目录 → 「上传并部署」。
 
-```
+详见 [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)。
+
+### admin/
+
+管理后台 REST API，基于 Node.js + Express，连接微信云开发数据库。
+
+```bash
+cd admin
 npm install
-```
-同时，确保你的代码可以通过 Lint 检查：
-```
-npm run lint
+node server.js
 ```
 
-## 截图
+环境变量配置：复制 `admin/.env.example` 为 `admin/.env` 并填写对应值。
 
-<img width="375" src="https://res.wx.qq.com/op_res/0_vsSii5DaG-1hoXcqmBCT_tPShgSPKi3_FBVuVj1tu1ZdZD8lwYNrSQm3mdswI2">
+部署方式：微信云托管（Docker），详见 [admin/DEPLOY_GITHUB.md](admin/DEPLOY_GITHUB.md)。
+
+### admin-frontend/
+
+管理后台前端，基于 Vue 3 + Vite + Element Plus。
+
+```bash
+cd admin-frontend
+npm install
+npm run dev    # 开发模式（代理到 localhost:3000）
+npm run build  # 生产构建
+```
+
+部署方式：静态网站托管（上传 dist/ 目录），详见 [admin-frontend/DEPLOYMENT_GUIDE.md](admin-frontend/DEPLOYMENT_GUIDE.md)。
+
+## 开发快速开始
+
+```bash
+# 1. 启动管理后台 API
+cd admin && node server.js
+
+# 2. 启动管理前端（另开终端）
+cd admin-frontend && npm run dev
+```
+
+## 文档
+
+- [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) — 完整部署流程
+- [docs/api.md](docs/api.md) — API 接口文档
+- [admin/REFACTORING_SUMMARY.md](admin/REFACTORING_SUMMARY.md) — 后端架构说明

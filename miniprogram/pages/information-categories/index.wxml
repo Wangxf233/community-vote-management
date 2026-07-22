@@ -11,9 +11,6 @@
 
   <!-- 三个分类入口 -->
   <view class="info-section categories-section">
-    <view class="section-header">
-      <text class="section-title">信息公示</text>
-    </view>
 
     <view class="categories">
       <view class="category-item" bindtap="goToCommitteeList">
@@ -24,11 +21,6 @@
       <view class="category-item" bindtap="goToPropertyList">
         <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/icon-property.png" mode="aspectFit" class="category-icon" />
         <text class="category-text">物业信息公示</text>
-      </view>
-
-      <view class="category-item" bindtap="goToLawsList">
-        <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/icon-laws.png" mode="aspectFit" class="category-icon" />
-        <text class="category-text">法律法规</text>
       </view>
     </view>
   </view>

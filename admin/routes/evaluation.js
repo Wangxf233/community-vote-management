@@ -166,59 +166,65 @@ router.get("/cycles", verifyToken, async (req, res) => {
 
     const now = new Date();
 
-    // 获取每个周期的参与统计并动态更新状态
-    const cyclesWithStats = await Promise.all(
-      result.data.map(async (cycle) => {
-        // 动态计算状态
-        const startTime = new Date(cycle.startSubmitTime || cycle.createdAt);
-        const deadlineTime = new Date(cycle.deadline);
+    // 批量查询：所有周期的评价记录（一次代替 N 次）+ 小区总户数（只查一次）
+    const cycleIds = result.data.map((c) => c._id);
+    const [allEvaluations, totalUsersCount] = await Promise.all([
+      cycleIds.length > 0
+        ? db
+            .collection("evaluations")
+            .where({ cycleId: _.in(cycleIds) })
+            .field({ userId: true, openid: true, cycleId: true })
+            .get()
+        : Promise.resolve({ data: [] }),
+      db.collection("owner_list").where({ communityId }).count(),
+    ]);
 
-        let currentStatus = cycle.status;
-        if (now >= startTime && now < deadlineTime) {
-          currentStatus = "ongoing";
-        } else if (now >= deadlineTime) {
-          currentStatus = "closed";
-        } else {
-          currentStatus = "draft";
-        }
+    // 按 cycleId 分组评价记录
+    const evalsByCycleId = {};
+    for (const e of allEvaluations.data) {
+      if (!evalsByCycleId[e.cycleId]) evalsByCycleId[e.cycleId] = [];
+      evalsByCycleId[e.cycleId].push(e);
+    }
 
-        // 如果状态变化，更新数据库
-        if (currentStatus !== cycle.status) {
-          await db.collection("evaluation_cycles").doc(cycle._id).update({
-            status: currentStatus,
-            updatedAt: now,
-          });
-        }
+    // 计算状态变化，批量写回（只写变化的）
+    const statusUpdates = [];
+    const cyclesWithStats = result.data.map((cycle) => {
+      const startTime = new Date(cycle.startSubmitTime || cycle.createdAt);
+      const deadlineTime = new Date(cycle.deadline);
 
-        // 获取该周期已评价的唯一用户数（去重）
-        const evaluationsResult = await db
-          .collection("evaluations")
-          .where({ cycleId: cycle._id })
-          .field({ userId: true, openid: true })
-          .get();
+      let currentStatus = cycle.status;
+      if (now >= startTime && now < deadlineTime) {
+        currentStatus = "ongoing";
+      } else if (now >= deadlineTime) {
+        currentStatus = "closed";
+      } else {
+        currentStatus = "draft";
+      }
 
-        // 使用 Set 去重统计参与人数
-        const uniqueUsers = new Set(
-          evaluationsResult.data.map((e) => e.userId || e.openid),
+      if (currentStatus !== cycle.status) {
+        statusUpdates.push(
+          db
+            .collection("evaluation_cycles")
+            .doc(cycle._id)
+            .update({ status: currentStatus, updatedAt: now }),
         );
-        const participantCount = uniqueUsers.size;
+      }
 
-        // 获取小区户主总数（owner_list 中的所有记录都是户主）
-        const totalUsersCount = await db
-          .collection("owner_list")
-          .where({
-            communityId,
-          })
-          .count();
+      const cycleEvals = evalsByCycleId[cycle._id] || [];
+      const participantCount = new Set(
+        cycleEvals.map((e) => e.userId || e.openid),
+      ).size;
 
-        return {
-          ...cycle,
-          status: currentStatus,
-          participantCount: participantCount,
-          totalUsers: totalUsersCount.total,
-        };
-      }),
-    );
+      return {
+        ...cycle,
+        status: currentStatus,
+        participantCount,
+        totalUsers: totalUsersCount.total,
+      };
+    });
+
+    // 异步写回状态变更，不阻塞响应
+    if (statusUpdates.length > 0) Promise.all(statusUpdates).catch(() => {});
 
     res.json({
       success: true,
@@ -420,35 +426,60 @@ router.get("/results", verifyToken, async (req, res) => {
       where._id = cycleId;
     }
 
-    // 获取评价周期
+    // 获取评价周期（加 limit 防止无界扫描）
     const cyclesResult = await db
       .collection("evaluation_cycles")
       .where(where)
       .orderBy("createdAt", "desc")
+      .limit(50)
       .get();
+
+    // 批量查询所有周期的评价记录 + 小区总户数（替代 N×2 次独立查询）
+    const allCycleIds = cyclesResult.data.map((c) => c._id);
+    const [allEvals, communityUsersCount] = await Promise.all([
+      allCycleIds.length > 0
+        ? db
+            .collection("evaluations")
+            .where({ cycleId: _.in(allCycleIds) })
+            .get()
+        : Promise.resolve({ data: [] }),
+      db.collection("owner_list").where({ communityId }).count(),
+    ]);
+    const evalsByCycle = {};
+    for (const e of allEvals.data) {
+      if (!evalsByCycle[e.cycleId]) evalsByCycle[e.cycleId] = [];
+      evalsByCycle[e.cycleId].push(e);
+    }
 
     // 为每个周期计算结果
     const resultsWithData = await Promise.all(
       cyclesResult.data.map(async (cycle) => {
-        // 获取该周期的所有评价
-        const evaluationsResult = await db
-          .collection("evaluations")
-          .where({ cycleId: cycle._id })
-          .get();
+        const evaluationsResult = { data: evalsByCycle[cycle._id] || [] };
 
         // 获取参与人数（使用 openid 去重）
         const participantCount = new Set(
           evaluationsResult.data.map((e) => e.openid || e.userId),
         ).size;
 
-        // 获取小区总用户数
-        const usersCount = await db
-          .collection("owner_list")
-          .where({ communityId })
-          .count();
+        const usersCount = { total: communityUsersCount.total };
 
         // 按人员统计评分
         const staffResults = {};
+
+        // 批量获取本周期有评价记录的服务人员信息（一次查询替代 N 次 doc().get()）
+        const staffIdsWithEvals = (cycle.staffIds || []).filter((staffId) =>
+          evaluationsResult.data.some((e) => e.staffId === staffId),
+        );
+        const staffInfoMap = {};
+        if (staffIdsWithEvals.length > 0) {
+          const staffInfoRes = await db
+            .collection("evaluation_staff")
+            .where({ _id: _.in(staffIdsWithEvals) })
+            .get();
+          for (const s of staffInfoRes.data || []) {
+            staffInfoMap[s._id] = s;
+          }
+        }
 
         for (const staffId of cycle.staffIds) {
           const staffEvaluations = evaluationsResult.data.filter(
@@ -460,17 +491,10 @@ router.get("/results", verifyToken, async (req, res) => {
             continue;
           }
 
-          // 获取人员信息
-          const staffInfo = await db
-            .collection("evaluation_staff")
-            .doc(staffId)
-            .get();
-
-          if (!staffInfo.data || staffInfo.data.length === 0) {
+          const staff = staffInfoMap[staffId];
+          if (!staff) {
             continue;
           }
-
-          const staff = staffInfo.data[0];
 
           // 计算各维度平均分
           const dimensionScores = {};
@@ -528,29 +552,18 @@ router.get(
     try {
       const { cycleId, staffId } = req.params;
 
-      // 获取人员信息
-      const staffInfo = await db
-        .collection("evaluation_staff")
-        .doc(staffId)
-        .get();
+      // 三个独立查询并行执行
+      const [staffInfo, evaluationsResult, cycleInfo] = await Promise.all([
+        db.collection("evaluation_staff").doc(staffId).get(),
+        db.collection("evaluations").where({ cycleId, staffId }).get(),
+        db.collection("evaluation_cycles").doc(cycleId).get(),
+      ]);
 
       if (!staffInfo.data || staffInfo.data.length === 0) {
         return res.status(404).json({ success: false, error: "人员不存在" });
       }
 
       const staff = staffInfo.data[0];
-
-      // 获取该人员在此周期的所有评价
-      const evaluationsResult = await db
-        .collection("evaluations")
-        .where({ cycleId, staffId })
-        .get();
-
-      // 获取周期信息以获取维度
-      const cycleInfo = await db
-        .collection("evaluation_cycles")
-        .doc(cycleId)
-        .get();
 
       if (!cycleInfo.data || cycleInfo.data.length === 0) {
         return res.status(404).json({ success: false, error: "周期不存在" });
@@ -576,27 +589,24 @@ router.get(
 
       const averageScore = totalScore / (cycle.dimensions.length || 1);
 
-      // 获取评价人信息（从 owner_list 查询）
-      const evaluationsWithUser = await Promise.all(
-        evaluationsResult.data.map(async (evaluation) => {
-          try {
-            const userInfo = await db
-              .collection("owner_list")
-              .where({ openid: evaluation.openid })
-              .limit(1)
-              .get();
-            return {
-              ...evaluation,
-              userName: userInfo.data[0]?.name || "未知业主",
-            };
-          } catch (err) {
-            return {
-              ...evaluation,
-              userName: "未知业主",
-            };
-          }
-        }),
-      );
+      // 批量查询评价人信息（替代每条评价独立查一次 owner_list）
+      const openids = [
+        ...new Set(evaluationsResult.data.map((e) => e.openid).filter(Boolean)),
+      ];
+      let userMap = {};
+      if (openids.length > 0) {
+        const usersRes = await db
+          .collection("owner_list")
+          .where({ openid: _.in(openids) })
+          .get();
+        for (const u of usersRes.data || []) {
+          userMap[u.openid] = u.name || "未知业主";
+        }
+      }
+      const evaluationsWithUser = evaluationsResult.data.map((e) => ({
+        ...e,
+        userName: userMap[e.openid] || "未知业主",
+      }));
 
       res.json({
         success: true,
@@ -644,59 +654,62 @@ router.get("/company-cycles", verifyToken, async (req, res) => {
 
     const now = new Date();
 
-    // 获取每个周期的参与统计并动态更新状态
-    const cyclesWithStats = await Promise.all(
-      result.data.map(async (cycle) => {
-        // 动态计算状态
-        const startTime = new Date(cycle.startSubmitTime || cycle.createdAt);
-        const deadlineTime = new Date(cycle.deadline);
+    // 批量查询：所有周期的评价记录（一次代替 N 次）+ 小区总户数（只查一次）
+    const cycleIds = result.data.map((c) => c._id);
+    const [allEvaluations, totalUsersCount] = await Promise.all([
+      cycleIds.length > 0
+        ? db
+            .collection("evaluations")
+            .where({ cycleId: _.in(cycleIds) })
+            .field({ userId: true, openid: true, cycleId: true })
+            .get()
+        : Promise.resolve({ data: [] }),
+      db.collection("owner_list").where({ communityId }).count(),
+    ]);
 
-        let currentStatus = cycle.status;
-        if (now >= startTime && now < deadlineTime) {
-          currentStatus = "ongoing";
-        } else if (now >= deadlineTime) {
-          currentStatus = "closed";
-        } else {
-          currentStatus = "draft";
-        }
+    const evalsByCycleId = {};
+    for (const e of allEvaluations.data) {
+      if (!evalsByCycleId[e.cycleId]) evalsByCycleId[e.cycleId] = [];
+      evalsByCycleId[e.cycleId].push(e);
+    }
 
-        // 如果状态变化，更新数据库
-        if (currentStatus !== cycle.status) {
-          await db.collection("evaluation_cycles").doc(cycle._id).update({
-            status: currentStatus,
-            updatedAt: now,
-          });
-        }
+    const statusUpdates = [];
+    const cyclesWithStats = result.data.map((cycle) => {
+      const startTime = new Date(cycle.startSubmitTime || cycle.createdAt);
+      const deadlineTime = new Date(cycle.deadline);
 
-        // 获取该周期已评价的唯一用户数（去重）
-        const evaluationsResult = await db
-          .collection("evaluations")
-          .where({ cycleId: cycle._id })
-          .field({ userId: true, openid: true })
-          .get();
+      let currentStatus = cycle.status;
+      if (now >= startTime && now < deadlineTime) {
+        currentStatus = "ongoing";
+      } else if (now >= deadlineTime) {
+        currentStatus = "closed";
+      } else {
+        currentStatus = "draft";
+      }
 
-        // 使用 Set 去重统计参与人数
-        const uniqueUsers = new Set(
-          evaluationsResult.data.map((e) => e.userId || e.openid),
+      if (currentStatus !== cycle.status) {
+        statusUpdates.push(
+          db
+            .collection("evaluation_cycles")
+            .doc(cycle._id)
+            .update({ status: currentStatus, updatedAt: now }),
         );
-        const participantCount = uniqueUsers.size;
+      }
 
-        // 获取小区户主总数
-        const totalUsersCount = await db
-          .collection("owner_list")
-          .where({
-            communityId,
-          })
-          .count();
+      const cycleEvals = evalsByCycleId[cycle._id] || [];
+      const participantCount = new Set(
+        cycleEvals.map((e) => e.userId || e.openid),
+      ).size;
 
-        return {
-          ...cycle,
-          status: currentStatus,
-          participantCount: participantCount,
-          totalUsers: totalUsersCount.total,
-        };
-      }),
-    );
+      return {
+        ...cycle,
+        status: currentStatus,
+        participantCount,
+        totalUsers: totalUsersCount.total,
+      };
+    });
+
+    if (statusUpdates.length > 0) Promise.all(statusUpdates).catch(() => {});
 
     res.json({
       success: true,
@@ -863,32 +876,42 @@ router.get("/company-results", verifyToken, async (req, res) => {
       where._id = cycleId;
     }
 
-    // 获取评价周期
+    // 获取评价周期（加 limit 防止无界扫描）
     const cyclesResult = await db
       .collection("evaluation_cycles")
       .where(where)
       .orderBy("createdAt", "desc")
+      .limit(50)
       .get();
+
+    // 批量查询所有周期的评价记录 + 小区总户数（替代 N×2 次独立查询）
+    const allCycleIds = cyclesResult.data.map((c) => c._id);
+    const [allEvals, communityUsersCount] = await Promise.all([
+      allCycleIds.length > 0
+        ? db
+            .collection("evaluations")
+            .where({ cycleId: _.in(allCycleIds) })
+            .get()
+        : Promise.resolve({ data: [] }),
+      db.collection("owner_list").where({ communityId }).count(),
+    ]);
+    const evalsByCycle = {};
+    for (const e of allEvals.data) {
+      if (!evalsByCycle[e.cycleId]) evalsByCycle[e.cycleId] = [];
+      evalsByCycle[e.cycleId].push(e);
+    }
 
     // 为每个周期计算结果
     const resultsWithData = await Promise.all(
       cyclesResult.data.map(async (cycle) => {
-        // 获取该周期的所有评价
-        const evaluationsResult = await db
-          .collection("evaluations")
-          .where({ cycleId: cycle._id })
-          .get();
+        const evaluationsResult = { data: evalsByCycle[cycle._id] || [] };
 
         // 获取参与人数（使用 openid 去重）
         const participantCount = new Set(
           evaluationsResult.data.map((e) => e.openid || e.userId),
         ).size;
 
-        // 获取小区总用户数
-        const usersCount = await db
-          .collection("owner_list")
-          .where({ communityId })
-          .count();
+        const usersCount = { total: communityUsersCount.total };
 
         // 计算各维度平均分
         const dimensionScores = {};
@@ -958,38 +981,31 @@ router.get("/company-results/:cycleId", verifyToken, async (req, res) => {
       return res.status(400).json({ success: false, error: "周期缺少小区ID" });
     }
 
-    // 获取该周期的所有评价（分页）
+    // 并行获取：分页数据 + 全量数据（用于统计）+ 小区总户数
     const skip = (parseInt(page) - 1) * parseInt(pageSize);
     const limit = parseInt(pageSize);
+    const [evaluationsResult, allEvaluationsResult, usersCount] =
+      await Promise.all([
+        db
+          .collection("evaluations")
+          .where({ cycleId: cycleId })
+          .orderBy("createdAt", "desc")
+          .skip(skip)
+          .limit(limit)
+          .get(),
+        db.collection("evaluations").where({ cycleId: cycleId }).get(),
+        db
+          .collection("owner_list")
+          .where({ communityId: cycle.communityId })
+          .count(),
+      ]);
 
-    const evaluationsCountResult = await db
-      .collection("evaluations")
-      .where({ cycleId: cycleId })
-      .count();
-
-    const evaluationsResult = await db
-      .collection("evaluations")
-      .where({ cycleId: cycleId })
-      .orderBy("createdAt", "desc")
-      .skip(skip)
-      .limit(limit)
-      .get();
-
-    // 获取所有评价记录（用于统计和计算平均分）
-    const allEvaluationsResult = await db
-      .collection("evaluations")
-      .where({ cycleId: cycleId })
-      .get();
+    // allEvaluationsResult 已包含全量，直接取 length 作为总数
+    const evaluationsTotal = allEvaluationsResult.data.length;
 
     const participantCount = new Set(
       allEvaluationsResult.data.map((e) => e.openid || e.userId),
     ).size;
-
-    // 获取小区总用户数
-    const usersCount = await db
-      .collection("owner_list")
-      .where({ communityId: cycle.communityId })
-      .count();
 
     // 计算各维度平均分
     const dimensionScores = {};
@@ -1012,27 +1028,24 @@ router.get("/company-results/:cycleId", verifyToken, async (req, res) => {
         ? totalScore / cycle.dimensions.length
         : 0;
 
-    // 获取评价人信息
-    const evaluationsWithUser = await Promise.all(
-      evaluationsResult.data.map(async (evaluation) => {
-        try {
-          const userInfo = await db
-            .collection("owner_list")
-            .where({ openid: evaluation.openid })
-            .limit(1)
-            .get();
-          return {
-            ...evaluation,
-            userName: userInfo.data[0]?.name || "未知业主",
-          };
-        } catch (err) {
-          return {
-            ...evaluation,
-            userName: "未知业主",
-          };
-        }
-      }),
-    );
+    // 批量查询评价人信息（替代每条评价独立查一次 owner_list）
+    const pageOpenids = [
+      ...new Set(evaluationsResult.data.map((e) => e.openid).filter(Boolean)),
+    ];
+    let pageUserMap = {};
+    if (pageOpenids.length > 0) {
+      const pageUsersRes = await db
+        .collection("owner_list")
+        .where({ openid: _.in(pageOpenids) })
+        .get();
+      for (const u of pageUsersRes.data || []) {
+        pageUserMap[u.openid] = u.name || "未知业主";
+      }
+    }
+    const evaluationsWithUser = evaluationsResult.data.map((e) => ({
+      ...e,
+      userName: pageUserMap[e.openid] || "未知业主",
+    }));
 
     res.json({
       success: true,
@@ -1044,7 +1057,7 @@ router.get("/company-results/:cycleId", verifyToken, async (req, res) => {
         averageScore,
         evaluations: evaluationsWithUser,
       },
-      total: evaluationsCountResult.total,
+      total: evaluationsTotal,
     });
   } catch (error) {
     console.error("获取物业公司评价结果失败:", error);

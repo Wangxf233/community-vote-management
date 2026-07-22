@@ -2,18 +2,18 @@
 
 ## 重构概述
 
-将原始的 `server.js`（2353 行）重构为模块化架构，提高代码可维护性和可读性。
+将原始的单文件 `server.js` 重构为模块化架构，提高代码可维护性和可读性。当前 server.js 为 103 行的纯路由挂载入口。
 
 ## 模块化结构
 
 ```
 admin/
-├── server.js              # 主入口文件（已重构）
+├── server.js              # 主入口文件（103 行，已重构）
 ├── config/
 │   └── db.js              # 数据库配置和初始化
 ├── middleware/
 │   └── auth.js            # 认证中间件
-├── routes/
+├── routes/                # 共 18 个路由模块
 │   ├── auth.js            # 登录认证路由
 │   ├── owner.js           # 业主管理路由（含户主名单）
 │   ├── binding.js         # 绑定审核路由
@@ -23,7 +23,15 @@ admin/
 │   ├── house.js           # 房屋配置路由
 │   ├── upload.js          # 文件上传路由
 │   ├── export.js          # 数据导出路由
-│   └── certification.js   # 认证审核路由
+│   ├── certification.js   # 认证审核路由
+│   ├── repair.js          # 报修管理路由
+│   ├── report.js          # 报事管理路由
+│   ├── evaluation.js      # 评价管理路由
+│   ├── announcement.js    # 公告管理路由
+│   ├── communityInfo.js   # 社区信息路由
+│   ├── region.js          # 地区数据路由
+│   ├── door.js            # 门禁设备路由
+│   └── fondcard.js        # Fondcard 集成路由
 └── utils/
     └── helpers.js         # 工具函数
 ```

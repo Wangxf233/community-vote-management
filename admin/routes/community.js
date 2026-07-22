@@ -214,28 +214,21 @@ router.put(
       // 如果不存在主管理员，创建一个
       if (!user) {
         let targetUsername = username?.trim();
-        if (!targetUsername) {
+        let finalPlain = newPassword || null;
+
+        // 两个字段都需要时一次读取，避免重复查询同一文档
+        if (!targetUsername || !finalPlain) {
           try {
             const cdoc = await db
               .collection("communities")
               .doc(communityId)
               .get();
-            targetUsername = cdoc?.data?.adminUsername;
+            if (!targetUsername) targetUsername = cdoc?.data?.adminUsername;
+            if (!finalPlain) finalPlain = cdoc?.data?.adminPasswordPlain;
           } catch (_) {}
         }
         if (!targetUsername) {
           targetUsername = `admin_${String(communityId).slice(-4)}`;
-        }
-
-        let finalPlain = newPassword || null;
-        if (!finalPlain) {
-          try {
-            const cdoc = await db
-              .collection("communities")
-              .doc(communityId)
-              .get();
-            finalPlain = cdoc?.data?.adminPasswordPlain;
-          } catch (_) {}
         }
         if (!finalPlain) {
           finalPlain = String(Math.floor(10000000 + Math.random() * 90000000));

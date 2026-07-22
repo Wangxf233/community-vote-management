@@ -12,13 +12,6 @@
   <!-- 菜单列表 -->
   <view class="section">
     <view class="menu-list">
-      <view class="menu-item" bindtap="goToBasicInfo">
-        <view class="menu-left">
-          <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/icon-community.png" mode="aspectFit" class="menu-icon"/>
-          <text class="menu-text">小区基本情况</text>
-        </view>
-        <text class="menu-arrow">></text>
-      </view>
       <view class="menu-item" bindtap="goToMyHouse">
         <view class="menu-left">
           <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/icon-home.png" mode="aspectFit" class="menu-icon"/>

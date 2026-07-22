@@ -7,7 +7,7 @@
           :default-active="active"
           class="el-menu-vertical-demo"
           @select="onSelect"
-          :default-openeds="['certification', 'backend-admin']"
+          :default-openeds="['certification', 'backend-admin', 'announcements']"
         >
           <el-menu-item
             v-if="isPrimaryAdmin"
@@ -64,13 +64,45 @@
             <el-icon><Tools /></el-icon>
             <span>报修管理</span>
           </el-menu-item>
-          <el-menu-item
+          <el-sub-menu v-if="doorManagementEnabled" index="door">
+            <template #title>
+              <el-icon><Setting /></el-icon>
+              <span>门禁管理</span>
+            </template>
+            <el-menu-item index="/community-admin/door-management">
+              <el-icon><Setting /></el-icon>
+              <span>设备列表</span>
+            </el-menu-item>
+            <el-menu-item index="/community-admin/door-permissions">
+              <el-icon><Key /></el-icon>
+              <span>开门权限</span>
+            </el-menu-item>
+          </el-sub-menu>
+          <el-sub-menu
             v-if="isPrimaryAdmin || hasPermission('announcement')"
-            index="/community-admin/announcements"
+            index="announcements"
           >
-            <el-icon><Bell /></el-icon>
-            <span>信息公示</span>
-          </el-menu-item>
+            <template #title>
+              <el-icon><Bell /></el-icon>
+              <span>信息公示</span>
+            </template>
+            <el-menu-item index="/community-admin/announcements?tab=committee">
+              <el-icon><Avatar /></el-icon>
+              <span>业委会信息公示</span>
+            </el-menu-item>
+            <el-menu-item index="/community-admin/announcements?tab=property">
+              <el-icon><OfficeBuilding /></el-icon>
+              <span>物业信息公示</span>
+            </el-menu-item>
+            <el-menu-item index="/community-admin/announcements?tab=law">
+              <el-icon><Memo /></el-icon>
+              <span>法律法规</span>
+            </el-menu-item>
+            <el-menu-item index="/community-admin/announcements?tab=industry">
+              <el-icon><DataLine /></el-icon>
+              <span>行业动态</span>
+            </el-menu-item>
+          </el-sub-menu>
           <el-menu-item
             v-if="isPrimaryAdmin || hasPermission('notification')"
             index="/community-admin/notifications"
@@ -236,13 +268,28 @@ import {
   Bell,
   Notification,
   Files,
+  Avatar,
+  Memo,
+  DataLine,
+  Key,
 } from "@element-plus/icons-vue";
 const router = useRouter();
 const route = useRoute();
-const active = computed(() => route.path);
+const active = computed(() => {
+  if (route.path === "/community-admin/announcements" && route.query.tab) {
+    return `${route.path}?tab=${route.query.tab}`;
+  }
+  return route.path;
+});
 
-function onSelect(path: string) {
-  router.push(path);
+function onSelect(index: string) {
+  if (index.includes("?")) {
+    const [path, qs] = index.split("?");
+    const params = Object.fromEntries(new URLSearchParams(qs));
+    router.push({ path, query: params });
+  } else {
+    router.push(index);
+  }
 }
 
 const isDark = ref(false);
@@ -250,6 +297,7 @@ const username = ref("");
 const userName = ref("");
 const communityName = ref("");
 const isPrimaryAdmin = ref(false);
+const doorManagementEnabled = ref(false);
 
 // 到期提醒相关
 const communityExpiry = ref<Date | null>(null);
@@ -329,6 +377,7 @@ async function loadCommunityInfo() {
 
     if (myCommunity && myCommunity.name) {
       communityName.value = myCommunity.name;
+      doorManagementEnabled.value = myCommunity.doorManagementEnabled === true;
 
       // 计算到期时间和剩余天数（字段优先级与 CommunityList 保持一致）
       const endDate =
@@ -560,6 +609,12 @@ onMounted(() => {
 .aside {
   background: #001529;
   color: #fff;
+  overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+.aside::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
 }
 .logo {
   height: 64px;

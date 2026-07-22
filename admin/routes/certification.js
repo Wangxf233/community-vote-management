@@ -2,6 +2,10 @@ const express = require("express");
 const { db } = require("../config/db");
 const { authMiddleware } = require("../middleware/auth");
 const { getTokenFromReq } = require("../utils/helpers");
+const {
+  grantDoorAccess,
+  revokeDoorAccess,
+} = require("../utils/door-permissions");
 
 const router = express.Router();
 
@@ -115,8 +119,38 @@ router.put("/residents/:id", authMiddleware, async (req, res) => {
 router.delete("/residents/:id", authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    await db.collection("bindings").doc(id).remove();
 
+    // 查询 binding 记录获取 openid 和 communityId，用于吊销门禁权限
+    try {
+      const bindingRes = await db.collection("bindings").doc(id).get();
+      let binding = bindingRes && bindingRes.data ? bindingRes.data : null;
+      if (Array.isArray(binding)) binding = binding[0] || null;
+      if (binding && binding.openid && binding.communityId) {
+        const certsRes = await db
+          .collection("certification_applications")
+          .where({
+            openid: binding.openid,
+            communityId: binding.communityId,
+            doorAccessEnabled: true,
+          })
+          .get();
+        for (const cert of certsRes.data || []) {
+          revokeDoorAccess(cert).catch((err) =>
+            console.error(
+              `[cert] revokeDoorAccess failed for cert ${cert._id}:`,
+              err.message,
+            ),
+          );
+        }
+      }
+    } catch (revokeErr) {
+      console.error(
+        "[cert] revoke before resident delete failed:",
+        revokeErr.message,
+      );
+    }
+
+    await db.collection("bindings").doc(id).remove();
     return res.json({ success: true });
   } catch (e) {
     return res.status(500).json({ success: false, error: e.message || e });
@@ -236,20 +270,18 @@ router.post(
           } = require("../utils/helpers");
 
           // 查询业主名册中该用户的所有房产（ownerName1 或 ownerName2 匹配即可）
+          const _ = db.command;
           const ownerRegistryRes = await db
             .collection("owner_registry")
-            .where({
-              communityId: app.communityId,
-            })
+            .where(
+              _.and([
+                { communityId: app.communityId },
+                _.or([{ ownerName1: app.name }, { ownerName2: app.name }]),
+              ]),
+            )
             .get();
 
-          // 手动过滤：ownerName1 或 ownerName2 匹配申请人姓名
-          const matchedProperties = ownerRegistryRes.data
-            ? ownerRegistryRes.data.filter(
-                (prop) =>
-                  prop.ownerName1 === app.name || prop.ownerName2 === app.name,
-              )
-            : [];
+          const matchedProperties = ownerRegistryRes.data || [];
 
           if (matchedProperties.length > 0) {
             // 业主名册中有该用户的房产，添加所有房产到户主名单
@@ -305,15 +337,9 @@ router.post(
                   newOwner.realNameSubmitTime = prop.realNameSubmitTime || "";
                   newOwner.realNameRejectReason =
                     prop.realNameRejectReason || "";
-                  console.log(
-                    `📋 从 owner_registry 恢复实名认证信息: ${app.name} (状态: ${prop.realNameStatus})`,
-                  );
                 }
 
                 await db.collection("owner_list").add(newOwner);
-                console.log(
-                  `✅ 手动审核-添加到户主名单: ${app.name} - ${prop.building}栋${prop.unit}单元${prop.room}室`,
-                );
               } catch (addErr) {
                 console.error("添加到户主名单失败:", addErr);
               }
@@ -341,6 +367,37 @@ router.post(
               throw addErr;
             }
           }
+
+          // 若小区开启了门禁功能，自动为该业主分配门禁权限
+          try {
+            const commRes = await db
+              .collection("communities")
+              .doc(app.communityId)
+              .get();
+            const comm = Array.isArray(commRes.data)
+              ? commRes.data[0]
+              : commRes.data;
+            if (comm && comm.doorManagementEnabled === true) {
+              // 重新读取最新 cert（status 已更新）
+              const freshCertRes = await db
+                .collection("certification_applications")
+                .doc(id)
+                .get();
+              let freshCert =
+                freshCertRes && freshCertRes.data ? freshCertRes.data : null;
+              if (Array.isArray(freshCert)) freshCert = freshCert[0] || null;
+              if (freshCert) {
+                grantDoorAccess(freshCert, freshCert.communityId).catch((err) =>
+                  console.error(
+                    `[cert] grantDoorAccess failed for cert ${id}:`,
+                    err.message,
+                  ),
+                );
+              }
+            }
+          } catch (doorErr) {
+            console.error("[cert] door grant check failed:", doorErr.message);
+          }
         }
       }
 
@@ -361,8 +418,26 @@ router.delete(
   async (req, res) => {
     try {
       const { id } = req.params;
-      await db.collection("certification_applications").doc(id).remove();
 
+      // 先读取认证记录，用于吊销门禁权限
+      try {
+        const certRes = await db
+          .collection("certification_applications")
+          .doc(id)
+          .get();
+        let cert = certRes && certRes.data ? certRes.data : null;
+        if (Array.isArray(cert)) cert = cert[0] || null;
+        if (cert) {
+          await revokeDoorAccess(cert);
+        }
+      } catch (revokeErr) {
+        console.error(
+          "[cert] revokeDoorAccess before delete failed:",
+          revokeErr.message,
+        );
+      }
+
+      await db.collection("certification_applications").doc(id).remove();
       return res.json({ success: true });
     } catch (e) {
       return res.status(500).json({ success: false, error: e.message || e });

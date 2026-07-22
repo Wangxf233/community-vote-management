@@ -238,6 +238,14 @@
                 }}</el-tag>
               </template>
             </el-table-column>
+            <el-table-column label="门禁功能" width="90" align="center">
+              <template #default="{ row }">
+                <el-switch
+                  :model-value="row.doorManagementEnabled === true"
+                  @change="(val: boolean) => onToggleDoorManagement(row, val)"
+                />
+              </template>
+            </el-table-column>
             <el-table-column
               label="操作"
               width="300"
@@ -818,6 +826,20 @@ async function onDelete(row: any) {
   } catch (e) {
     console.error("删除异常:", e);
     ElMessage.error("删除失败，请稍后重试");
+  }
+}
+
+async function onToggleDoorManagement(row: any, val: boolean) {
+  const prev = row.doorManagementEnabled === true;
+  row.doorManagementEnabled = val;
+  try {
+    await request.put(`/communities/${row._id}`, {
+      doorManagementEnabled: val,
+    });
+    ElMessage.success(val ? "门禁功能已开启" : "门禁功能已关闭");
+  } catch (e) {
+    row.doorManagementEnabled = prev;
+    ElMessage.error("操作失败，请稍后重试");
   }
 }
 

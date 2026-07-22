@@ -13,12 +13,10 @@ interface ApiResponse<T = any> {
 }
 
 // 创建axios实例
+// baseURL 优先读取 VITE_API_BASE_URL 环境变量（在 .env.production 中配置）
+// 未设置时：生产回退到 /api（需 CDN/反向代理同源），开发由 Vite proxy 代理到 localhost:3000
 const instance = axios.create({
-  // 开发环境使用相对路径（由 Vite proxy 代理到 localhost:3000）
-  // 生产环境使用云托管完整域名
-  baseURL: import.meta.env.PROD
-    ? "https://admin-213370-7-1325504194.sh.run.tcloudbase.com/api" // 生产环境：云托管域名/api
-    : "/api", // 开发环境：相对路径，由 Vite proxy 处理
+  baseURL: import.meta.env.VITE_API_BASE_URL || "/api",
   timeout: 30000,
 }) as AxiosInstance & {
   get<T = any>(url: string, config?: any): Promise<T>;

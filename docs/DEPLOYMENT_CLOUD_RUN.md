@@ -58,17 +58,25 @@ README.md
 确保 `admin/config/db.js` 能正确读取环境变量：
 
 ```javascript
-const cloud = require("@cloudbase/node-sdk");
+// admin/config/db.js 实际内容（勿修改，仅供参考）
+const cloudbase = require("@cloudbase/node-sdk");
+require("dotenv").config();
 
-// 云托管会自动注入这些环境变量
-const app = cloud.init({
-  env: process.env.TCB_ENV || process.env.TCB_ENV_ID,
-  secretId: process.env.TCB_SECRET_ID,
-  secretKey: process.env.TCB_SECRET_KEY,
+const ENV_ID = process.env.TCB_ENV_ID; // 对应云托管环境变量 TCB_ENV_ID
+const SECRET_ID = process.env.TCB_SECRET_ID; // 对应 TCB_SECRET_ID
+const SECRET_KEY = process.env.TCB_SECRET_KEY;
+
+if (!ENV_ID || !SECRET_ID || !SECRET_KEY) {
+  console.warn("Warning: TCB env vars not set. See admin/.env.example");
+}
+
+const tcb = cloudbase.init({
+  env: ENV_ID,
+  secretId: SECRET_ID,
+  secretKey: SECRET_KEY,
 });
-
-const db = app.database();
-module.exports = { app, db };
+const db = tcb.database();
+module.exports = { tcb, db };
 ```
 
 ---
@@ -96,7 +104,7 @@ module.exports = { app, db };
 
 | 变量名           | 值             | 说明          |
 | ---------------- | -------------- | ------------- |
-| `TCB_ENV`        | 你的环境 ID    | 云开发环境 ID |
+| `TCB_ENV_ID`     | 你的环境 ID    | 云开发环境 ID |
 | `TCB_SECRET_ID`  | 你的 SecretId  | 云开发密钥    |
 | `TCB_SECRET_KEY` | 你的 SecretKey | 云开发密钥    |
 | `PORT`           | `3000`         | 服务端口      |

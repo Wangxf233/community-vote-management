@@ -56,7 +56,7 @@
         "
       >
         <div>
-          <span style="font-weight: 600">信息</span>
+          <span style="font-weight: 600">{{ typeLabel }}</span>
           <span style="margin-left: 12px; color: #999">共 {{ total }} 条</span>
         </div>
       </div>
@@ -200,7 +200,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useRouter } from "vue-router";
 import axios from "../../utils/axios";
@@ -208,6 +208,16 @@ import axios from "../../utils/axios";
 const props = defineProps<{
   type: string;
 }>();
+
+const typeLabel = computed(() => {
+  const labels: Record<string, string> = {
+    committee: "业委会信息公示",
+    property: "物业信息公示",
+    law: "法律法规",
+    industry: "行业动态",
+  };
+  return labels[props.type] || "信息";
+});
 
 const router = useRouter();
 const loading = ref(false);
@@ -246,10 +256,10 @@ const formatDateTime = (date: string) => {
   const d = new Date(date);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
     2,
-    "0"
+    "0",
   )}-${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(
     2,
-    "0"
+    "0",
   )}:${String(d.getMinutes()).padStart(2, "0")}`;
 };
 
@@ -331,7 +341,7 @@ const handlePin = async (row: any) => {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
         type: "warning",
-      }
+      },
     );
 
     await axios.put(`/announcements/${row._id}/pin`, {
@@ -395,7 +405,7 @@ watch(
   () => {
     currentPage.value = 1;
     fetchList();
-  }
+  },
 );
 
 onMounted(() => {

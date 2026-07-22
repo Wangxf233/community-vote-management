@@ -6,25 +6,25 @@
   <view class="detail-content" wx:if="{{!loading && detailData}}">
     <!-- 标题 -->
     <view class="detail-header">
-      <text class="detail-title">{{detailData.title}}</text>
+      <text class="detail-title" user-select>{{detailData.title}}</text>
     </view>
 
     <!-- 元信息 -->
     <view class="detail-meta">
       <view class="meta-item">
         <text class="meta-label">发布人：</text>
-        <text class="meta-value">{{detailData.publisher}}</text>
+        <text class="meta-value" user-select>{{detailData.publisher}}</text>
       </view>
       <view class="meta-divider"></view>
       <view class="meta-item">
         <text class="meta-label">发布时间：</text>
-        <text class="meta-value">{{detailData.publishTime}}</text>
+        <text class="meta-value" user-select>{{detailData.publishTime}}</text>
       </view>
     </view>
 
     <!-- 内容 -->
     <view class="detail-body">
-      <text class="detail-text">{{detailData.content}}</text>
+      <text class="detail-text" user-select>{{detailData.content}}</text>
     </view>
 
     <!-- 附件 -->
@@ -39,14 +39,14 @@
           <!-- 图片附件 -->
           <view class="attachment-item" wx:if="{{item.type === 'image'}}" bindtap="previewImage" data-url="{{item.url}}">
             <image class="attachment-image" src="{{item.url}}" mode="aspectFill"></image>
-            <text class="attachment-label">{{item.name}}</text>
+            <text class="attachment-label" user-select>{{item.name}}</text>
           </view>
           
           <!-- 文档附件 -->
           <view class="attachment-item doc-item" wx:else bindtap="downloadAttachment" data-url="{{item.url}}" data-name="{{item.name}}">
             <view class="doc-icon">📄</view>
             <view class="doc-info">
-              <text class="doc-name">{{item.name}}</text>
+              <text class="doc-name" user-select>{{item.name}}</text>
             </view>
             <view class="download-icon">下载</view>
           </view>

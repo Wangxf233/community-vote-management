@@ -135,19 +135,19 @@ router.get("/", verifyToken, async (req, res) => {
       }
     }
 
-    // 查询总数
-    const countRes = await db.collection("repairs").where(where).count();
-    const total = countRes.total;
-
-    // 分页查询
+    // 并行查询总数和分页数据
     const skip = (parseInt(page) - 1) * parseInt(pageSize);
-    const result = await db
-      .collection("repairs")
-      .where(where)
-      .orderBy("submitTime", "desc")
-      .skip(skip)
-      .limit(parseInt(pageSize))
-      .get();
+    const [countRes, result] = await Promise.all([
+      db.collection("repairs").where(where).count(),
+      db
+        .collection("repairs")
+        .where(where)
+        .orderBy("submitTime", "desc")
+        .skip(skip)
+        .limit(parseInt(pageSize))
+        .get(),
+    ]);
+    const total = countRes.total;
 
     // 转换 cloud:// fileID 为 HTTPS URL
     const dataWithURLs = await convertFileIDsToURLs(result.data);

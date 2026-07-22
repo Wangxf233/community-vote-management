@@ -114,35 +114,33 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ success: false, error: "missing_params" });
     }
 
-    // 验证短信验证码
+    // 将有效期和验证码条件直接下推到 DB，避免内存过滤
     const codes = await db
       .collection("sms_codes")
-      .where({ phone })
+      .where({ phone, code: verifyCode, expiresAt: db.command.gt(new Date()) })
       .orderBy("createdAt", "desc")
-      .limit(20)
+      .limit(1)
       .get();
 
     if (!codes || !codes.data || codes.data.length === 0) {
       return res.status(401).json({ success: false, error: "invalid_code" });
     }
 
-    const match = codes.data.find(
-      (item) =>
-        item.code === verifyCode && new Date(item.expiresAt) > new Date(),
-    );
-
-    if (!match) {
-      return res.status(401).json({ success: false, error: "invalid_code" });
-    }
-
-    // 查找小区
+    // 并行查询小区信息和用户名唯一性（两者互不依赖）
     const q = { name: communityName };
-    const cRes = await db.collection("communities").where(q).limit(1).get();
+    const [cRes, exists] = await Promise.all([
+      db.collection("communities").where(q).limit(1).get(),
+      db.collection("users").where({ username }).limit(1).get(),
+    ]);
 
     if (!cRes || !cRes.data || cRes.data.length === 0) {
       return res
         .status(400)
         .json({ success: false, error: "community_not_open" });
+    }
+
+    if (exists && exists.data && exists.data.length > 0) {
+      return res.status(400).json({ success: false, error: "username_taken" });
     }
 
     const community = cRes.data[0];
@@ -160,17 +158,6 @@ router.post("/register", async (req, res) => {
       return res
         .status(400)
         .json({ success: false, error: "max_admins_reached" });
-    }
-
-    // 检查用户名唯一性
-    const exists = await db
-      .collection("users")
-      .where({ username })
-      .limit(1)
-      .get();
-
-    if (exists && exists.data && exists.data.length > 0) {
-      return res.status(400).json({ success: false, error: "username_taken" });
     }
 
     // 创建用户

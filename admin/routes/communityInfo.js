@@ -8,21 +8,16 @@ const _ = db.command;
 router.get("/:communityId", authMiddleware, async (req, res) => {
   try {
     const { communityId } = req.params;
-    console.log("查询小区信息，communityId:", communityId);
 
     const info = await db
       .collection("community_info")
       .where({ communityId })
       .get();
 
-    console.log("数据库查询结果:", JSON.stringify(info, null, 2));
-
     if (info.data && info.data.length > 0) {
-      console.log("找到数据，返回第一条");
       // 直接返回文档数据，不包装在data里
       res.json(info.data[0]);
     } else {
-      console.log("未找到数据，返回404");
       res.status(404).json({ error: "未找到小区信息" });
     }
   } catch (err) {

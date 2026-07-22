@@ -19,6 +19,17 @@ const routes = [
         path: "list",
         component: () => import("./pages/CommunityList.vue"),
       },
+      {
+        path: "door",
+        component: () => import("./pages/SuperAdminDoor.vue"),
+      },
+      {
+        path: "door/devices/create",
+        component: () => import("./pages/DoorManagementCreate.vue"),
+        props: (route) => ({
+          communityId: route.query.communityId || undefined,
+        }),
+      },
     ],
   },
   {
@@ -75,6 +86,18 @@ const routes = [
       {
         path: "repairs",
         component: () => import("./pages/RepairManagement.vue"),
+      },
+      {
+        path: "door-management",
+        component: () => import("./pages/DoorManagement.vue"),
+      },
+      {
+        path: "door-management/create",
+        component: () => import("./pages/DoorManagementCreate.vue"),
+      },
+      {
+        path: "door-permissions",
+        component: () => import("./pages/DoorPermissionManagement.vue"),
       },
       {
         path: "announcements",

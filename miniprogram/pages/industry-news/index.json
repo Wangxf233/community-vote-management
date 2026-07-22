@@ -1,0 +1,7 @@
+{
+  "usingComponents": {
+    "guest-tip": "/components/guest-tip/guest-tip"
+  },
+  "navigationBarTitleText": "行业动态",
+  "enablePullDownRefresh": true
+}

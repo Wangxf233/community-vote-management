@@ -1,5 +1,22 @@
 <view class="service-container">
-  <view class="header">
+  <!-- 广告轮播图 -->
+  <swiper
+    wx:if="{{adImages && adImages.length > 0}}"
+    class="ad-swiper"
+    autoplay="{{true}}"
+    interval="3000"
+    duration="500"
+    circular="{{true}}"
+    indicator-dots="{{true}}"
+    indicator-color="rgba(255,255,255,0.6)"
+    indicator-active-color="#ffffff"
+  >
+    <swiper-item wx:for="{{adImages}}" wx:key="index">
+      <image class="ad-image" src="{{item}}" mode="aspectFill"></image>
+    </swiper-item>
+  </swiper>
+  <!-- 无广告时显示默认 header -->
+  <view class="header" wx:else>
     <text class="title">{{propertyName}}</text>
     <text class="subtitle">竭诚为您服务</text>
   </view>
@@ -33,14 +50,14 @@
       <view class="icon-wrapper evaluation-icon">
         <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/evaluation.png" class="service-icon"></image>
       </view>
-      <text class="service-text">评价</text>
+      <text class="service-text">服务评价</text>
     </view>
 
     <view class="service-item" bindtap="navigateToRepair">
       <view class="icon-wrapper repair-icon">
         <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/repair.png" class="service-icon"></image>
       </view>
-      <text class="service-text">报修</text>
+      <text class="service-text">报事报修</text>
     </view>
 
     <view class="service-item" bindtap="navigateToInformation">
@@ -48,6 +65,27 @@
         <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/info.png" class="service-icon"></image>
       </view>
       <text class="service-text">信息公示</text>
+    </view>
+
+    <view class="service-item" bindtap="navigateToLaws">
+      <view class="icon-wrapper laws-icon">
+        <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/icon-laws.png" class="service-icon"></image>
+      </view>
+      <text class="service-text">法律法规</text>
+    </view>
+
+    <view class="service-item" bindtap="navigateToIndustryNews">
+      <view class="icon-wrapper industry-icon">
+        <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/icon-industry.png" class="service-icon"></image>
+      </view>
+      <text class="service-text">行业动态</text>
+    </view>
+
+    <view class="service-item" bindtap="navigateToBasicInfo">
+      <view class="icon-wrapper wiki-icon">
+        <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/icon-wiki.png" class="service-icon"></image>
+      </view>
+      <text class="service-text">小区百科</text>
     </view>
   </view>
 

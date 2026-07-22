@@ -3,6 +3,7 @@ Page({
     isGuest: false,
     bindingStatus: "none",
     propertyName: "物业服务", // 默认显示
+    adImages: [], // 广告轮播图
   },
 
   onLoad() {
@@ -33,9 +34,10 @@ Page({
       name: "getCommunityInfo",
       success: (res) => {
         if (res.result.success && res.result.data) {
-          const propertyName = res.result.data.propertyName || "物业服务";
+          const data = res.result.data;
           this.setData({
-            propertyName: propertyName,
+            propertyName: data.propertyName || "物业服务",
+            adImages: data.adImages || [],
           });
         }
       },
@@ -64,6 +66,18 @@ Page({
   navigateToInformation() {
     // 信息公示不需要认证，所有用户都可以访问
     wx.navigateTo({ url: "/pages/information-categories/index" });
+  },
+
+  navigateToLaws() {
+    wx.navigateTo({ url: "/pages/information-list/index?type=laws" });
+  },
+
+  navigateToIndustryNews() {
+    wx.navigateTo({ url: "/pages/industry-news/index" });
+  },
+
+  navigateToBasicInfo() {
+    wx.navigateTo({ url: "/pages/basic-info/index" });
   },
 
   checkAndNavigate(url, feature) {

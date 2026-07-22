@@ -50,64 +50,56 @@ router.get("/owner-registry", async (req, res) => {
       .limit(pageSize)
       .get();
 
-    // 为每条记录查询认证状态和实名状态
-    const enrichedData = await Promise.all(
-      (list.data || []).map(async (record) => {
-        let registrationStatus = "none";
-        let realNameStatusValue = "unverified";
+    // 一次性查询两个关联集合（原来每条记录各查一次，现改为整页仅查两次）
+    const [certRes, ownerRes] = await Promise.all([
+      db
+        .collection("certification_applications")
+        .where({ communityId: user.communityId, type: "owner" })
+        .get(),
+      db
+        .collection("owner_list")
+        .where({ communityId: user.communityId })
+        .get(),
+    ]);
 
-        // 查询certification_applications（只查户主类型）
-        const certRes = await db
-          .collection("certification_applications")
-          .where({
-            communityId: user.communityId,
-            type: "owner",
-          })
-          .get();
+    const enrichedData = (list.data || []).map((record) => {
+      let registrationStatus = "none";
+      let realNameStatusValue = "unverified";
 
-        // 在内存中匹配，因为需要规范化比较
-        const matchedCert = certRes.data?.find(
-          (cert) =>
-            normalizeBuilding(cert.building) ===
-              normalizeBuilding(record.building) &&
-            normalizeUnit(cert.unit) === normalizeUnit(record.unit) &&
-            normalizeRoom(cert.room) === normalizeRoom(record.room),
-        );
+      // 在内存中匹配，因为需要规范化比较
+      const matchedCert = certRes.data?.find(
+        (cert) =>
+          normalizeBuilding(cert.building) ===
+            normalizeBuilding(record.building) &&
+          normalizeUnit(cert.unit) === normalizeUnit(record.unit) &&
+          normalizeRoom(cert.room) === normalizeRoom(record.room),
+      );
 
-        if (matchedCert) {
-          registrationStatus = matchedCert.status || "pending";
-        }
+      if (matchedCert) {
+        registrationStatus = matchedCert.status || "pending";
+      }
 
-        // 查询owner_list获取实名认证状态
-        const ownerRes = await db
-          .collection("owner_list")
-          .where({
-            communityId: user.communityId,
-          })
-          .get();
+      // 在内存中匹配
+      const matchedOwner = ownerRes.data?.find(
+        (owner) =>
+          normalizeBuilding(owner.building) ===
+            normalizeBuilding(record.building) &&
+          normalizeUnit(owner.unit) === normalizeUnit(record.unit) &&
+          normalizeRoom(owner.room) === normalizeRoom(record.room),
+      );
 
-        // 在内存中匹配
-        const matchedOwner = ownerRes.data?.find(
-          (owner) =>
-            normalizeBuilding(owner.building) ===
-              normalizeBuilding(record.building) &&
-            normalizeUnit(owner.unit) === normalizeUnit(record.unit) &&
-            normalizeRoom(owner.room) === normalizeRoom(record.room),
-        );
+      if (matchedOwner) {
+        realNameStatusValue = matchedOwner.realNameStatus || "unverified";
+        // 只要在owner_list中存在，就说明已经通过注册认证
+        registrationStatus = "approved";
+      }
 
-        if (matchedOwner) {
-          realNameStatusValue = matchedOwner.realNameStatus || "unverified";
-          // 只要在owner_list中存在，就说明已经通过注册认证
-          registrationStatus = "approved";
-        }
-
-        return {
-          ...record,
-          registrationStatus,
-          realNameStatusValue,
-        };
-      }),
-    );
+      return {
+        ...record,
+        registrationStatus,
+        realNameStatusValue,
+      };
+    });
 
     // 如果有认证状态或实名状态筛选，需要在内存中过滤
     let filteredData = enrichedData;
@@ -761,9 +753,6 @@ router.delete("/owner-list/:id", async (req, res) => {
           : [];
 
         if (matchedRecords.length > 0) {
-          console.log(
-            `找到 ${matchedRecords.length} 条 owner_registry 记录，保存实名认证数据`,
-          );
           for (const reg of matchedRecords) {
             await db
               .collection("owner_registry")
@@ -780,14 +769,7 @@ router.delete("/owner-list/:id", async (req, res) => {
                   updatedAt: new Date().toISOString(),
                 },
               });
-            console.log(
-              `✅ 已保存实名认证信息到 owner_registry: ${reg.ownerName1} - ${reg.building}栋${reg.unit}单元${reg.room}室 (状态: ${owner.realNameStatus})`,
-            );
           }
-        } else {
-          console.log(
-            `未找到匹配的 owner_registry 记录 (name: ${name}, building: ${owner.building}, unit: ${owner.unit}, room: ${owner.room})`,
-          );
         }
       }
     } catch (regError) {
@@ -887,9 +869,6 @@ router.get("/owner-list/:id/realname", async (req, res) => {
             realNameSubmitTime: matchedReg.realNameSubmitTime || "",
             realNameRejectReason: matchedReg.realNameRejectReason || "",
           };
-          console.log(
-            `📋 从 owner_registry 恢复实名认证信息: ${owner.name} (状态: ${matchedReg.realNameStatus})`,
-          );
         }
       } catch (regError) {
         console.error("从 owner_registry 查询实名认证信息失败:", regError);

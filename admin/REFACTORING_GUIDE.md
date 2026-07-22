@@ -2,25 +2,22 @@
 
 ## 当前状态
 
-已完成基础框架搭建：
+重构已全部完成：
 
 - ✅ `config/db.js` - 数据库配置
 - ✅ `utils/helpers.js` - 工具函数
 - ✅ `middleware/auth.js` - 认证中间件
-- ✅ `routes/auth.js` - 认证路由（登录相关）
+- ✅ `routes/`（18 个模块） - 所有路由已迁移完成
 
-当前 `server.js` (2353 行) 保持不变，所有功能正常运行。
+`server.js` 已从原単文件重构为模块化入口，当前仅 103 行。
 
-## 重构策略
+### 各阶段进展（已全部完成）
 
-采用**渐进式重构**，不影响现有功能：
+#### 第一阶段：创建路由模块 ✅ 已完成
 
-### 第一阶段：创建路由模块（进行中）
-
-需要创建以下路由文件：
+已创建如下路由文件：
 
 1. **routes/owner.js** - 业主相关
-
    - GET /api/owner-registry - 获取业主名册列表
    - POST /api/owner-registry - 添加单个业主
    - POST /api/owner-registry/import - 批量导入
@@ -32,7 +29,6 @@
    - POST /api/owner-list/:id/verify - 实名认证
 
 2. **routes/community.js** - 小区管理
-
    - GET /api/communities - 获取小区列表
    - POST /api/communities - 创建小区
    - PUT /api/communities/:id - 更新小区
@@ -42,13 +38,11 @@
    - DELETE /api/communities/:id/admins/:adminId - 删除管理员
 
 3. **routes/certification.js** - 认证审核
-
    - GET /api/certifications - 获取认证列表
    - GET /api/certifications/:id - 获取单个认证
    - PATCH /api/certifications/:id - 审核认证（通过/拒绝）
 
 4. **routes/vote.js** - 投票管理
-
    - GET /api/votes - 获取投票列表
    - POST /api/votes - 创建投票
    - GET /api/votes/:id - 获取投票详情
@@ -117,10 +111,7 @@ app.listen(3000, () => {
 
 ## 下一步行动
 
-1. 继续创建 `routes/owner.js` 等路由文件
-2. 完成所有路由模块的创建
-3. 修改 server.js 引入新模块
-4. 逐个测试验证功能
+重构已全部完成。日常开发就是在对应的 `routes/*.js` 中新增或修改路由即可。
 
 ## 注意事项
 

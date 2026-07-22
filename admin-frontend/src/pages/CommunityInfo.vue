@@ -320,6 +320,62 @@
           <div class="upload-tip">建议上传小区外观效果图</div>
         </el-form-item>
 
+        <el-divider content-position="left">广告轮播图</el-divider>
+
+        <el-form-item label="广告图片">
+          <div class="ad-images-wrapper">
+            <div
+              v-for="(img, idx) in formData.adImages"
+              :key="idx"
+              class="ad-image-item"
+            >
+              <img :src="img" class="ad-thumbnail" />
+              <div v-if="isEditing" class="ad-image-remove">
+                <el-button
+                  size="small"
+                  type="danger"
+                  circle
+                  @click="removeAdImage(idx)"
+                >
+                  <el-icon><Close /></el-icon>
+                </el-button>
+              </div>
+            </div>
+            <div
+              style="position: relative"
+              v-if="isEditing && formData.adImages.length < 5"
+            >
+              <el-upload
+                class="image-uploader ad-image-uploader"
+                :action="uploadAction"
+                :headers="uploadHeaders"
+                :show-file-list="false"
+                :on-success="handleAdImageSuccess"
+                :on-progress="handleAdUploadProgress"
+                :before-upload="beforeImageUpload"
+              >
+                <el-icon class="uploader-icon"><Plus /></el-icon>
+              </el-upload>
+              <div
+                v-if="uploadProgress.ad > 0 && uploadProgress.ad < 100"
+                class="upload-progress-overlay"
+              >
+                <div class="progress-content">
+                  <el-progress
+                    type="circle"
+                    :percentage="uploadProgress.ad"
+                    :width="80"
+                  />
+                  <div class="progress-text">上传中...</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="upload-tip">
+            最多上传5张，建议尺寸750×300像素，将在小程序服务页顶部轮播展示
+          </div>
+        </el-form-item>
+
         <el-form-item v-if="isEditing">
           <div class="form-actions">
             <el-button @click="cancelEdit" size="large">取消</el-button>
@@ -341,7 +397,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { ElMessage } from "element-plus";
-import { Plus } from "@element-plus/icons-vue";
+import { Plus, Close } from "@element-plus/icons-vue";
 import request from "../utils/axios";
 
 const loading = ref(false);
@@ -351,6 +407,7 @@ const originalData = ref<CommunityInfo | null>(null);
 const uploadProgress = ref({
   plan: 0,
   effect: 0,
+  ad: 0,
 });
 
 interface CommunityInfo {
@@ -373,6 +430,7 @@ interface CommunityInfo {
   vehicleCount: number;
   planImage: string;
   effectImage: string;
+  adImages: string[];
 }
 
 const formData = ref<CommunityInfo>({
@@ -395,6 +453,7 @@ const formData = ref<CommunityInfo>({
   vehicleCount: 0,
   planImage: "",
   effectImage: "",
+  adImages: [],
 });
 
 const uploadAction = ref(
@@ -494,6 +553,26 @@ function handleImageSuccess(res: any, field: "planImage" | "effectImage") {
   } else {
     ElMessage.error("上传失败");
   }
+}
+
+function handleAdUploadProgress(evt: any) {
+  if (evt.percent) {
+    uploadProgress.value.ad = Math.floor(evt.percent);
+  }
+}
+
+function handleAdImageSuccess(res: any) {
+  uploadProgress.value.ad = 0;
+  if (res.url) {
+    formData.value.adImages = [...formData.value.adImages, res.url];
+    ElMessage.success("上传成功");
+  } else {
+    ElMessage.error("上传失败");
+  }
+}
+
+function removeAdImage(idx: number) {
+  formData.value.adImages = formData.value.adImages.filter((_, i) => i !== idx);
 }
 
 function beforeImageUpload(file: File) {
@@ -639,5 +718,46 @@ onMounted(() => {
   gap: 12px;
   justify-content: center;
   padding-top: 20px;
+}
+
+/* 广告图片 */
+.ad-images-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.ad-image-item {
+  position: relative;
+  width: 160px;
+  height: 64px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--el-border-color);
+}
+
+.ad-thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.ad-image-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+}
+
+.ad-image-uploader {
+  width: 160px !important;
+  height: 64px !important;
+}
+
+.ad-image-uploader .uploader-icon {
+  width: 160px !important;
+  height: 64px !important;
+  font-size: 22px;
 }
 </style>

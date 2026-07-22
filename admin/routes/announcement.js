@@ -13,7 +13,7 @@ function calculateExpiryTime(announcement) {
   if (announcement.expiryDays && announcement.publishTime) {
     const publishTime = new Date(announcement.publishTime);
     const expiryTime = new Date(
-      publishTime.getTime() + announcement.expiryDays * 24 * 60 * 60 * 1000
+      publishTime.getTime() + announcement.expiryDays * 24 * 60 * 60 * 1000,
     );
     return expiryTime;
   }
@@ -26,33 +26,33 @@ async function checkAndUpdateExpiredAnnouncements() {
   try {
     const now = new Date();
 
-    // 查找所有已发布的通知
+    // 只获取已有明确 expiryTime 且已过期的公告（县需在 DB 层过滤）
+    // expiryDays 类型的公告因 expiryTime 字段在创建时应迎名计算存入，这里统一用 expiryTime 字段判断
     const result = await db
       .collection("announcements")
       .where({
         status: "published",
+        expiryTime: _.lt(now),
       })
+      .limit(200)
       .get();
 
-    // 检查哪些已过期
-    const expiredIds = [];
-    result.data.forEach((item) => {
-      const expiryTime = calculateExpiryTime(item);
-      if (expiryTime && now > expiryTime) {
-        expiredIds.push(item._id);
-      }
-    });
+    if (result.data.length === 0) return;
+
+    // 进一步验证（兼容旧数据中 expiryTime 可能不存在的情况）
+    const expiredIds = result.data
+      .filter((item) => {
+        const expiryTime = calculateExpiryTime(item);
+        return expiryTime && now > expiryTime;
+      })
+      .map((item) => item._id);
 
     // 批量更新为已过期状态
     if (expiredIds.length > 0) {
-      const updatePromises = expiredIds.map((id) =>
-        db.collection("announcements").doc(id).update({
-          status: "expired",
-          updatedAt: now,
-        })
-      );
-      await Promise.all(updatePromises);
-      console.log(`更新了 ${expiredIds.length} 个过期通知`);
+      await db
+        .collection("announcements")
+        .where({ _id: _.in(expiredIds) })
+        .update({ status: "expired", updatedAt: now });
     }
   } catch (error) {
     console.error("检查过期通知失败:", error);
@@ -99,19 +99,17 @@ router.get("/", verifyToken, async (req, res) => {
     const skip = (parseInt(page) - 1) * parseInt(pageSize);
     const limit = parseInt(pageSize);
 
-    const countResult = await db
-      .collection("announcements")
-      .where(where)
-      .count();
-
-    const result = await db
-      .collection("announcements")
-      .where(where)
-      .orderBy("isPinned", "desc")
-      .orderBy("publishTime", "desc")
-      .skip(skip)
-      .limit(limit)
-      .get();
+    const [countResult, result] = await Promise.all([
+      db.collection("announcements").where(where).count(),
+      db
+        .collection("announcements")
+        .where(where)
+        .orderBy("isPinned", "desc")
+        .orderBy("publishTime", "desc")
+        .skip(skip)
+        .limit(limit)
+        .get(),
+    ]);
 
     // 计算每个通知的实际状态（检查是否过期）
     const now = new Date();
