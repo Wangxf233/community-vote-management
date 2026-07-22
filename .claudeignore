@@ -1,0 +1,42 @@
+# 构建产物
+admin-frontend/dist/
+miniprogram_npm/
+
+# 依赖
+node_modules/
+**/node_modules/
+admin/node_modules/
+admin-frontend/node_modules/
+cloudfunctions/**/node_modules/
+
+# 密钥和环境变量
+.env
+.env.local
+.env.*.local
+*.private.config.json
+
+# 二进制/文档/日志
+*.doc
+*.docx
+*.log
+*.tmp
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+
+# 图片资源（不参与代码分析）
+miniprogram/images/
+admin-frontend/src/assets/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.ico
