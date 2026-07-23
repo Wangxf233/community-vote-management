@@ -31,3 +31,14 @@
 16. **功能开发完成后必须写测试** — test-writer agent 自动触发
 17. **提交前运行对应端的 lint 命令确认无报错**
 18. **不要修改 `.claude/` 目录下由本项目生成的配置文件** — 如需调整规范，编辑对应的 Skill 文件
+
+## 文档同步规则
+
+19. **每次代码修改后必须同步更新 `CHANGELOG.md`**
+    - 新增功能 → `### Added`
+    - 修复缺陷 → `### Fixed`
+    - 重构代码 → `### Changed`
+    - 删除功能 → `### Removed`
+    - 安全修复 → `### Security`
+20. **新增/修改 REST API 后必须同步更新 `docs/api.md`**
+21. **新增/修改云函数参数后必须同步更新云函数目录下的 README.md（如 `cloudfunctions/createVote/README.md`）**
