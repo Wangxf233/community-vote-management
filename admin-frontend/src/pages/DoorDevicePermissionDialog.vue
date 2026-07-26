@@ -106,6 +106,7 @@ import request from "../utils/axios";
 
 interface OwnerItem {
   _id: string;
+  openid: string;
   name: string;
   phone: string;
   building: string;
@@ -258,10 +259,11 @@ async function onBatchGrant() {
   }
   batchLoading.value = true;
   try {
-    const ownerIds = selectedRows.value.map((r) => r._id);
+    const items = selectedRows.value.map((r) => ({ ownerId: r._id, openid: r.openid || "" }));
+    const ownerIds = items.map((i) => i.ownerId);
     await request.post(`/door/device/${props.deviceId}/grant-permissions`, {
       communityId: props.communityId,
-      ownerIds,
+      items,
     });
     // 本地立即标记 + 缓存，不再等服务端刷新
     const grantedSet = new Set(ownerIds);

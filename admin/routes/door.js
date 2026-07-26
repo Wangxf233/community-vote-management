@@ -1418,6 +1418,7 @@ router.get(
 
       const data = owners.map((o) => ({
         _id: o._id,
+        openid: o.openid || "",
         name: o.name || "",
         phone: o.phone || "",
         building: o.building || "",
@@ -1454,19 +1455,17 @@ router.post(
   async (req, res) => {
     try {
       const { deviceId } = req.params;
-      const { communityId, ownerIds } = req.body || {};
-
-      if (!communityId) {
-        return res
-          .status(400)
-          .json({ success: false, error: "communityId_required" });
-      }
-      if (!Array.isArray(ownerIds) || ownerIds.length === 0) {
+      const { communityId } = req.body || {};
+      const rawItems = req.body.items || [];
+      const ownerIds = req.body.ownerIds || [];
+      const items = rawItems.length > 0 ? rawItems : ownerIds.map((id) => ({ ownerId: id, openid: "" }));
+      if (!communityId) return res.status(400).json({ success: false, error: "communityId_required" });
+      if (items.length === 0) {
         return res
           .status(400)
           .json({ success: false, error: "ownerIds_required" });
       }
-      if (ownerIds.length > 200) {
+      if (items.length > 200) {
         return res
           .status(400)
           .json({ success: false, error: "max_200_owners" });
@@ -1492,6 +1491,7 @@ router.post(
         });
       }
 
+
       const platform =
         pickFirst(
           device.platform,
@@ -1509,35 +1509,55 @@ router.post(
       const succeeded = [];
       const failed = [];
       // 5 并发分批
-      const chunks = chunkArray(ownerIds, 5);
+      const chunks = chunkArray(items, 5);
 
       for (const chunk of chunks) {
         const results = await Promise.allSettled(
-          chunk.map(async (ownerId) => {
-            // 2. 查 owner_list
-            const ownerRes = await db
-              .collection("owner_list")
-              .doc(ownerId)
-              .get();
-            let owner = ownerRes && ownerRes.data ? ownerRes.data : null;
-            if (Array.isArray(owner)) owner = owner[0] || null;
-            if (!owner) throw new Error("owner_not_found");
-
-            // 3. 查找或创建 fondcardId
+          chunk.map(async (item) => {
+            const ownerId = item.ownerId;
+            const inputOpenid = item.openid || "";
+            let owner = null;
             let cert = null;
-            const certRes = await db
-              .collection("certification_applications")
-              .where({
-                communityId,
-                building: owner.building || "",
-                unit: owner.unit || "",
-                room: owner.room || "",
-                status: "approved",
-              })
-              .limit(1)
-              .get();
-            cert =
-              certRes.data && certRes.data[0] ? certRes.data[0] : null;
+            let ownerOpenid = inputOpenid;
+            try {
+              const ownerRes = await db.collection("owner_list").doc(ownerId).get();
+              owner = ownerRes && ownerRes.data ? ownerRes.data : null;
+              if (Array.isArray(owner)) owner = owner[0] || null;
+            } catch (_) {}
+            // 没在 owner_list 找到，试 certification_applications
+            if (!owner) {
+              try {
+                const cr = await db.collection("certification_applications").doc(ownerId).get();
+                cert = cr && cr.data ? cr.data : null;
+                if (Array.isArray(cert)) cert = cert[0] || null;
+                if (cert && cert.status === "approved") {
+                  ownerOpenid = cert.openid || "";
+                } else {
+                  cert = null;
+                }
+              } catch (_) {}
+            }
+            if (!owner && !cert) throw new Error("owner_not_found");
+
+            if (owner) {
+              ownerOpenid = owner.openid || ownerOpenid;
+              // 3. 查找或创建 fondcardId
+              try {
+                const certRes = await db.collection("certification_applications")
+                  .where({ communityId, building: owner.building || "", unit: owner.unit || "", room: owner.room || "", status: "approved" })
+                  .limit(1).get();
+                cert = certRes.data && certRes.data[0] ? certRes.data[0] : cert;
+              } catch (_) {}
+              // 回退：按 openid 查
+              if (!cert && ownerOpenid) {
+                try {
+                  const cr2 = await db.collection("certification_applications")
+                    .where({ communityId, openid: ownerOpenid, status: "approved" }).limit(1).get();
+                  cert = cr2.data && cr2.data[0] ? cr2.data[0] : null;
+                } catch (_) {}
+              }
+              if (cert) ownerOpenid = cert.openid || ownerOpenid;
+            }
 
             let fondcardId = cert && cert.fondcardId;
             if (!fondcardId) {
@@ -1568,10 +1588,8 @@ router.post(
 
             const keyId = toHex8(Number(fondcardId));
             if (!keyId) throw new Error("fondcard_keyhex_invalid");
-            // 优先取 cert.openid（认证记录中的小程序openid），回退 owner.openid
-            const realOpenid = (cert && cert.openid) || owner.openid || "";
 
-            return { ownerId, fondcardId: String(fondcardId), keyId, owner, realOpenid };
+            return { ownerId, fondcardId: String(fondcardId), keyId, owner, realOpenid: ownerOpenid };
           }),
         );
 
@@ -1584,8 +1602,9 @@ router.post(
             batchKeyIds.push(keyId);
             grantedOwners.push({ ownerId, keyId, owner, realOpenid });
           } else {
+            const failOwnerId = chunk[i] && chunk[i].ownerId ? chunk[i].ownerId : chunk[i];
             failed.push({
-              id: chunk[i],
+              id: failOwnerId,
               error: results[i].reason?.message || "unknown_error",
             });
           }
@@ -1620,16 +1639,15 @@ router.post(
               periodNo,
             });
 
-            // 5. mqtt.key.update 推送
-            await client.mqttKeyUpdate({
-              serial: device.serial,
-              password: device.password,
-              userId: loginId,
-            });
+            // 5. mqtt.key.update 推送（非阻塞，失败不中断）
+            try {
+              await client.mqttKeyUpdate({ serial: device.serial, password: device.password, userId: loginId });
+            } catch (e) {
+            }
 
             // 6. 合并 openid 写回设备文档 grantedOwnerOpenids 数组
             const nowISO = new Date().toISOString();
-            const newOpenids = grantedOwners.map((g) => g.realOpenid || g.owner.openid || "").filter(Boolean);
+            const newOpenids = grantedOwners.map((g) => g.realOpenid || (g.owner && g.owner.openid) || "").filter(Boolean);
             const newOwnerIds = grantedOwners.map((g) => g.ownerId);
             // 拉取当前数组，去重合并后写回（避免 db.command.push 兼容问题）
             const currentDev = await db.collection("door_devices").doc(deviceId).get();
