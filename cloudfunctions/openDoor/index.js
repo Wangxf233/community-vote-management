@@ -187,14 +187,40 @@ exports.main = async (event) => {
     }
 
     const device = deviceRes.data[0];
-    if (!isCommunityGate(device)) {
-      const unitKey = buildUnitKey(device.building, device.unit);
-      if (!unitKey || !unitKeySet.has(unitKey)) {
-        return {
-          success: false,
-          error: "NO_DOOR_PERMISSION",
-        };
+
+    // 检查用户是否有该设备的开门权限
+    let hasPermission = false;
+    // 单独授权模式：只查 door_device_permissions
+    if (device.permissionMode === "specified_owners") {
+      const familyCert = certInCommunity.find((c) => c.type === "family");
+      const ownerOpenidToCheck = familyCert ? familyCert.ownerOpenid : openid;
+      const granted = device.grantedOwnerOpenids || [];
+      if (granted.includes(openid) || (ownerOpenidToCheck !== openid && granted.includes(ownerOpenidToCheck))) {
+        hasPermission = true;
       }
+    } else {
+      // all_owners 模式：大门门禁所有人可开，单元门禁匹配同楼栋单元
+      if (isCommunityGate(device)) {
+        hasPermission = true;
+      } else {
+        const unitKey = buildUnitKey(device.building, device.unit);
+        hasPermission = !!unitKey && unitKeySet.has(unitKey);
+      }
+      // all_owners 模式下也检查设备 grantedOwnerOpenids（额外授权）
+      if (!hasPermission) {
+        const granted = device.grantedOwnerOpenids || [];
+        if (granted.includes(openid)) hasPermission = true;
+        if (!hasPermission) {
+          const familyCert = certInCommunity.find((c) => c.type === "family");
+          if (familyCert && familyCert.ownerOpenid && granted.includes(familyCert.ownerOpenid)) {
+            hasPermission = true;
+          }
+        }
+      }
+    }
+
+    if (!hasPermission) {
+      return { success: false, error: "NO_DOOR_PERMISSION" };
     }
 
     const requestId = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;

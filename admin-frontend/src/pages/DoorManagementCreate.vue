@@ -1,10 +1,17 @@
 <template>
   <div class="door-create-page">
+    <!-- 返回按钮 -->
+    <div style="margin-bottom: 12px;">
+      <el-button text @click="goBack">
+        <el-icon><ArrowLeft /></el-icon>
+        返回设备列表
+      </el-button>
+    </div>
+
     <el-card class="mb16">
       <template #header>
         <div class="header-row">
           <div class="card-title">添加设备</div>
-          <el-button @click="goBack">返回设备列表</el-button>
         </div>
       </template>
       <el-alert type="info" :closable="false" show-icon>
@@ -33,10 +40,19 @@
             <div class="card-title">步骤1：厂商注册（loginId流程）</div>
           </template>
           <el-form :model="registerForm" label-width="130px" size="small">
+            <!-- platform 和 loginId 从全局配置自动填充 -->
+            <el-form-item label="platform">
+              <el-input
+                v-model="registerForm.platform"
+                placeholder="自动从全局配置填充"
+                disabled
+              />
+            </el-form-item>
             <el-form-item label="loginId">
               <el-input
                 v-model="registerForm.loginId"
-                placeholder="管理用户ID（数字）"
+                placeholder="自动从全局配置填充"
+                disabled
               />
             </el-form-item>
             <el-form-item label="loginPassword">
@@ -45,9 +61,6 @@
                 type="password"
                 show-password
               />
-            </el-form-item>
-            <el-form-item label="platform">
-              <el-input v-model="registerForm.platform" />
             </el-form-item>
             <el-form-item label="serial">
               <el-input v-model="registerForm.serial" />
@@ -212,6 +225,13 @@
               </el-form-item>
             </template>
 
+            <!-- 权限模式提示 -->
+            <el-form-item label="权限模式">
+              <el-tag :type="permissionModeTagType" size="small">
+                {{ permissionModePreview }}
+              </el-tag>
+            </el-form-item>
+
             <el-form-item>
               <el-button type="primary" :loading="saving" @click="saveDevice"
                 >保存配置</el-button
@@ -227,8 +247,9 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import { ElMessage } from "element-plus";
+import { ArrowLeft } from "@element-plus/icons-vue";
 import request from "../utils/axios";
 
 type BuildingOption = {
@@ -237,22 +258,8 @@ type BuildingOption = {
   units: string[];
 };
 
-type DoorDevice = {
-  _id: string;
-  deviceName: string;
-  serial: string;
-  password: string;
-  enabled: boolean;
-  locationType: "community_gate" | "unit_gate";
-  gateName?: string;
-  building?: string;
-  unit?: string;
-  locationLabel?: string;
-  buildingLabel?: string;
-  unitLabel?: string;
-};
-
 const router = useRouter();
+const route = useRoute();
 const saving = ref(false);
 const registering = ref(false);
 const mode = ref<"unregistered" | "registered">("unregistered");
@@ -260,7 +267,12 @@ const mode = ref<"unregistered" | "registered">("unregistered");
 const props = defineProps<{
   communityId?: string;
 }>();
+
 const buildingOptions = ref<BuildingOption[]>([]);
+
+// 全局配置：platform 和 loginId
+const globalPlatform = ref("");
+const globalLoginId = ref("");
 
 const registerForm = reactive({
   loginId: "",
@@ -292,6 +304,21 @@ const deviceForm = reactive({
   building: "",
   unit: "",
 });
+
+// 权限模式：(大门→all_owners，单元→none)
+const permissionModePreview = computed(() => {
+  return deviceForm.locationType === "community_gate"
+    ? "全部业主可用"
+    : "未配置";
+});
+
+const permissionModeTagType = computed(() => {
+  return deviceForm.locationType === "community_gate" ? "success" : "info";
+});
+
+function currentPermissionModeValue(): string {
+  return deviceForm.locationType === "community_gate" ? "all_owners" : "none";
+}
 
 const unitOptions = computed(() => {
   const target = buildingOptions.value.find(
@@ -359,7 +386,10 @@ watch(
 
 function goBack() {
   if (props.communityId) {
-    router.push(`/admin/door?communityId=${props.communityId}`);
+    const cName = route.query.communityName as string || "";
+    router.push(
+      `/admin/door/devices?communityId=${encodeURIComponent(props.communityId)}&communityName=${encodeURIComponent(cName)}`,
+    );
   } else {
     router.push("/community-admin/door-management");
   }
@@ -395,6 +425,26 @@ async function loadLocationOptions() {
   if (props.communityId) params.communityId = props.communityId;
   const body: any = await request.get("/door/location-options", { params });
   buildingOptions.value = body?.data?.buildings || [];
+}
+
+// 加载全局配置（platform / loginId）
+async function loadGlobalConfig() {
+  try {
+    // 尝试从社区数据中获取门禁配置
+    const params: Record<string, string> = {};
+    if (props.communityId) params.communityId = props.communityId;
+    const body: any = await request.get("/door/defaults", { params });
+    const data = body?.data || body || {};
+    globalPlatform.value = data.platform || "";
+    globalLoginId.value = data.loginId || "";
+  } catch {
+    // 如果获取失败，使用默认空值，后端会从环境变量回退
+    globalPlatform.value = "";
+    globalLoginId.value = "";
+  }
+  // 同步到表单
+  registerForm.platform = globalPlatform.value;
+  registerForm.loginId = globalLoginId.value;
 }
 
 async function registerVendor() {
@@ -501,6 +551,11 @@ async function saveDevice() {
       buildingLabel: deviceForm.building,
       unit: deviceForm.unit,
       unitLabel: deviceForm.unit,
+      // 权限模式：大门 → all_owners，单元 → none
+      permissionMode: currentPermissionModeValue(),
+      // 全局配置平台与登录ID（保留在 openParams 中）
+      platform: globalPlatform.value,
+      loginId: globalLoginId.value,
       ...(props.communityId ? { communityId: props.communityId } : {}),
     });
     ElMessage.success("门禁配置已保存");
@@ -515,7 +570,7 @@ async function saveDevice() {
 }
 
 onMounted(async () => {
-  await loadLocationOptions();
+  await Promise.all([loadLocationOptions(), loadGlobalConfig()]);
 });
 </script>
 

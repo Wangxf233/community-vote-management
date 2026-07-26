@@ -26,11 +26,12 @@
   </view>
 
   <view class="device-list" wx:if="{{!loading && devices.length > 0 && canUse}}">
-    <view class="device-item" wx:for="{{devices}}" wx:key="serial">
+    <view class="device-item" wx:for="{{devices}}" wx:key="id">
       <view class="device-main">
         <text class="device-name">{{item.deviceName}}</text>
         <text class="device-location" wx:if="{{item.location}}">{{item.location}}</text>
-        <text class="device-serial">SN: {{item.serial}}</text>
+        <text class="device-serial" wx:if="{{item.vendorId}}">门禁编号: {{item.vendorId}}</text>
+        <text class="device-serial" wx:else>门禁编号: 未配置</text>
       </view>
       <button
         class="open-btn"

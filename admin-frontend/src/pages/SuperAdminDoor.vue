@@ -1,101 +1,150 @@
 <template>
-  <div style="padding: 0; height: 100%">
-    <!-- 顶部操作栏 -->
-    <div class="admin-topbar" style="margin-bottom: 12px">
-      <div class="left" style="display: flex; align-items: center; gap: 12px">
-        <span style="font-size: 15px; font-weight: 600">门禁管理</span>
-        <el-select
-          v-model="selectedCommunityId"
-          placeholder="请选择小区"
-          clearable
-          filterable
-          style="width: 240px"
-          @change="onCommunityChange"
-        >
-          <el-option
-            v-for="c in communities"
-            :key="c._id"
-            :label="c.name"
-            :value="c._id"
-          />
-        </el-select>
+  <div style="height: calc(100vh - 96px); display: flex; flex-direction: column; overflow: hidden">
+    <!-- 搜索卡片 -->
+    <el-card style="margin-bottom: 12px; flex-shrink: 0">
+      <el-form :inline="true" :model="filters">
+        <el-form-item label="小区名称">
+          <el-input v-model="filters.name" placeholder="搜索小区名称" clearable @keyup.enter="onQuery" />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="onQuery">查询</el-button>
+          <el-button @click="onReset">重置</el-button>
+        </el-form-item>
+      </el-form>
+    </el-card>
+
+    <!-- 列表卡片 -->
+    <el-card style="flex: 1; display: flex; flex-direction: column; overflow: hidden">
+      <div style="margin-bottom: 16px">
+        <span style="font-weight: 600">已开通门禁小区</span>
+        <span style="margin-left: 8px; color: #909399">共 {{ total }} 条</span>
       </div>
-    </div>
-
-    <template v-if="!selectedCommunityId">
-      <el-empty description="请先选择要管理的小区" style="margin-top: 80px" />
-    </template>
-
-    <template v-else>
-      <el-tabs v-model="activeTab" type="card">
-        <el-tab-pane label="门禁设备" name="devices">
-          <DoorManagement
-            :communityId="selectedCommunityId"
-            :key="`dev-${selectedCommunityId}`"
-          />
-        </el-tab-pane>
-        <el-tab-pane label="开门权限" name="permissions">
-          <DoorPermissionManagement
-            :communityId="selectedCommunityId"
-            :key="`perm-${selectedCommunityId}`"
-          />
-        </el-tab-pane>
-      </el-tabs>
-    </template>
+      <div style="flex: 1; overflow: hidden">
+        <el-table :data="list" stripe v-loading="loading" height="100%">
+          <el-table-column prop="name" label="小区名称" min-width="140" show-overflow-tooltip />
+          <el-table-column label="省" width="260" align="center">
+            <template #default="{ row }">
+              {{ row.region && row.region[0] ? row.region[0] : "-" }}
+            </template>
+          </el-table-column>
+          <el-table-column label="市" width="260" align="center">
+            <template #default="{ row }">
+              {{ row.region && row.region[1] ? row.region[1] : "-" }}
+            </template>
+          </el-table-column>
+          <el-table-column label="区" width="260" align="center">
+            <template #default="{ row }">
+              {{ row.region && row.region[2] ? row.region[2] : "-" }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="address" label="详细地址" min-width="140" show-overflow-tooltip />
+          <el-table-column label="开通时间" width="260">
+            <template #default="{ row }">
+              {{ formatTime(row.createdAt) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="120" fixed="right">
+            <template #default="{ row }">
+              <el-button size="small" type="primary" @click="onManageDevices(row)"> 管理门禁 </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+      <el-pagination
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        :page-sizes="[10, 20, 50]"
+        :total="total"
+        layout="total, sizes, prev, pager, next, jumper"
+        style="margin-top: 12px; justify-content: flex-end"
+        @size-change="fetchList"
+        @current-change="fetchList"
+      />
+    </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { ref, reactive, onMounted } from "vue";
+import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import request from "../utils/axios";
-import DoorManagement from "./DoorManagement.vue";
-import DoorPermissionManagement from "./DoorPermissionManagement.vue";
 
-const route = useRoute();
-const router = useRouter();
+interface CommunityItem {
+  _id: string;
+  name: string;
+  address?: string;
+  region?: string[];
+  createdAt?: string;
+}
 
-const communities = ref<{ _id: string; name: string }[]>([]);
-const selectedCommunityId = ref<string>(
-  (route.query.communityId as string) || "",
-);
-const activeTab = ref("devices");
-
-async function loadCommunities() {
+function formatTime(val?: string): string {
+  if (!val) return "-";
   try {
-    const res: any = await request.get("/communities", {
-      params: { page: 1, pageSize: 1000 },
-    });
-    communities.value = (res.data || res || [])
-      .filter((c: any) => c.doorManagementEnabled === true)
-      .map((c: any) => ({
-        _id: c._id,
-        name: c.name || c._id,
-      }));
-  } catch (e: any) {
-    ElMessage.error("加载小区列表失败：" + (e?.message || "未知错误"));
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return val;
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const h = String(d.getHours()).padStart(2, "0");
+    const min = String(d.getMinutes()).padStart(2, "0");
+    return `${y}-${m}-${day} ${h}:${min}`;
+  } catch {
+    return val;
   }
 }
 
-function onCommunityChange(val: string) {
-  router.replace({
-    path: "/admin/door",
-    query: val ? { communityId: val } : {},
-  });
+const router = useRouter();
+
+const filters = reactive({
+  name: "",
+});
+
+const list = ref<CommunityItem[]>([]);
+const loading = ref(false);
+const currentPage = ref(1);
+const pageSize = ref(10);
+const total = ref(0);
+
+async function fetchList() {
+  loading.value = true;
+  try {
+    const params: Record<string, string | number> = {
+      page: currentPage.value,
+      pageSize: pageSize.value,
+    };
+    if (filters.name) params.name = filters.name;
+
+    const res: any = await request.get("/door/communities", { params });
+    list.value = res.data || [];
+    total.value = res.total || 0;
+  } catch (e: any) {
+    ElMessage.error("加载小区列表失败：" + (e?.message || "未知错误"));
+    list.value = [];
+    total.value = 0;
+  } finally {
+    loading.value = false;
+  }
 }
 
-// 监听路由 query 变化（从创建页返回时同步）
-watch(
-  () => route.query.communityId,
-  (val) => {
-    if (typeof val === "string" && val !== selectedCommunityId.value) {
-      selectedCommunityId.value = val;
-    }
-  },
-);
+function onQuery() {
+  currentPage.value = 1;
+  fetchList();
+}
+
+function onReset() {
+  filters.name = "";
+  currentPage.value = 1;
+  fetchList();
+}
+
+function onManageDevices(row: CommunityItem) {
+  router.push(
+    `/admin/door/devices?communityId=${encodeURIComponent(row._id)}&communityName=${encodeURIComponent(row.name)}`,
+  );
+}
 
 onMounted(() => {
-  loadCommunities();
+  fetchList();
 });
 </script>

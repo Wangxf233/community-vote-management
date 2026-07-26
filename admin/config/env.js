@@ -15,6 +15,9 @@ const optional = {
   FONDCARD_OPEN_METHOD: { default: "" },
   FONDCARD_OPEN_PLATFORM: { default: "" },
   FONDCARD_OPEN_LOGIN_ID: { default: "" },
+  // 厂商固定参数（全局默认值，优先读构造函数参数 > 此处环境变量 > 代码默认值）
+  FONDCARD_DEFAULT_PLATFORM: { default: "antai" },
+  FONDCARD_DEFAULT_LOGIN_ID: { default: "11609" },
   LOG_LEVEL: { default: "info" },
 };
 
