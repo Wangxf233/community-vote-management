@@ -3,7 +3,7 @@
     <!-- 返回按钮 -->
     <div style="margin-bottom: 12px;">
       <el-button text @click="goBack">
-        <el-icon><ArrowLeft /></el-icon>
+        <el-icon><arrow-left /></el-icon>
         返回设备列表
       </el-button>
     </div>

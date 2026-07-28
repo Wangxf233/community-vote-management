@@ -5,7 +5,7 @@
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-shrink: 0;">
         <div style="display: flex; align-items: center; gap: 8px;">
           <el-button v-if="isSuperAdmin" text style="font-size: 14px;" @click="onBack">
-            <el-icon><ArrowLeft /></el-icon>
+            <el-icon><arrow-left /></el-icon>
             返回小区列表
           </el-button>
           <el-divider v-if="isSuperAdmin" direction="vertical" />
@@ -15,7 +15,7 @@
           <span v-if="isSuperAdmin" style="color: #c0c4cc;">·</span>
           <span v-if="isSuperAdmin" style="font-size: 14px; color: #909399;">{{ communityName }}</span>
         </div>
-        <div style="display: flex; gap: 8px;" v-if="isSuperAdmin">
+        <div v-if="isSuperAdmin" style="display: flex; gap: 8px;">
           <el-button type="primary" @click="onCreate">添加门禁</el-button>
           <el-button
             type="danger"
@@ -32,8 +32,8 @@
       <div style="flex: 1; overflow: hidden;">
         <el-table
           ref="tableRef"
-          :data="pagedDevices"
           v-loading="loading"
+          :data="pagedDevices"
           stripe
           height="100%"
           @selection-change="onSelectionChange"
@@ -193,7 +193,7 @@
     </el-dialog>
 
     <!-- 权限配置弹窗 -->
-    <DoorDevicePermissionDialog
+    <door-device-permission-dialog
       v-model="permissionDialogVisible"
       :device-id="permissionDeviceId"
       :community-id="communityId"

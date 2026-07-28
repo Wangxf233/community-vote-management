@@ -406,7 +406,7 @@ async function loadList() {
       params.deadlineTimeEnd = new Date(filters.deadlineTime[1]).toISOString();
     }
 
-    const body = await request.get("/votes", { params });
+    const body: any = await request.get("/votes", { params });
 
     list.value = body.data || [];
     total.value = body.total || 0;

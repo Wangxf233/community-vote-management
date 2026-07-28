@@ -16,9 +16,9 @@
 
     <!-- 内容区域 -->
     <div style="flex: 1; overflow: hidden">
-      <CyclesList v-if="subTab === 'cycles'" />
-      <ResultsList v-else-if="subTab === 'results'" />
-      <StaffList v-else-if="subTab === 'staff'" />
+      <cycles-list v-if="subTab === 'cycles'" />
+      <results-list v-else-if="subTab === 'results'" />
+      <staff-list v-else-if="subTab === 'staff'" />
     </div>
   </div>
 </template>

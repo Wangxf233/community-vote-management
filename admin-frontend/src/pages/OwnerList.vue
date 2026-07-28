@@ -81,8 +81,8 @@
         >
           <el-button
             type="danger"
-            @click="handleBatchDelete"
             :disabled="selectedRows.length === 0"
+            @click="handleBatchDelete"
           >
             删除
           </el-button>
@@ -97,12 +97,12 @@
             stripe
             style="width: 100%"
             height="100%"
-            @selection-change="handleSelectionChange"
             row-key="_id"
             :row-class-name="getRowClassName"
+            @selection-change="handleSelectionChange"
           >
             <el-table-column type="selection" width="55" />
-            <el-table-column type="expand" v-if="hasMultipleProperties">
+            <el-table-column v-if="hasMultipleProperties" type="expand">
               <template #default="{ row }">
                 <div
                   v-if="row.properties && row.properties.length > 0"
@@ -246,9 +246,9 @@
             :total="total"
             :page-sizes="[10, 20, 50, 100]"
             layout="total, sizes, prev, pager, next, jumper"
+            :pager-count="7"
             @size-change="loadList"
             @current-change="loadList"
-            :pager-count="7"
           />
         </div>
       </div>
@@ -257,9 +257,9 @@
     <!-- 编辑对话框 -->
     <el-dialog v-model="editDialog" title="修改户主信息" width="700px">
       <el-form
+        ref="formRef"
         :model="editForm"
         label-width="100px"
-        ref="formRef"
         :rules="formRules"
       >
         <el-form-item label="户主姓名" prop="name">
@@ -386,8 +386,8 @@
         <el-button
           type="primary"
           plain
-          @click="addProperty"
           style="width: 100%; margin-bottom: 16px"
+          @click="addProperty"
         >
           + 添加房产
         </el-button>
@@ -422,8 +422,8 @@
         <el-button
           type="primary"
           plain
-          @click="addCarNumber"
           style="width: 100%; margin-bottom: 16px"
+          @click="addCarNumber"
         >
           + 添加车牌号
         </el-button>
@@ -544,8 +544,8 @@
             </el-form-item>
 
             <el-form-item
-              label="不通过原因"
               v-if="verifyForm.reviewStatus === 'rejected'"
+              label="不通过原因"
             >
               <el-select
                 v-model="verifyForm.reviewRejectReason"
@@ -579,8 +579,8 @@
         <el-button
           v-if="!isViewMode && verifyForm.hasData"
           type="primary"
-          @click="submitReview"
           :loading="reviewing"
+          @click="submitReview"
         >
           提交审核
         </el-button>

@@ -120,16 +120,16 @@
         <el-form-item>
           <el-button
             type="primary"
-            @click="onSubmit"
             :loading="submitting"
             :disabled="submitting"
+            @click="onSubmit"
           >
             {{ submitting ? "提交中..." : "提交" }}
           </el-button>
-          <el-button type="success" @click="saveDraft" :disabled="submitting"
+          <el-button type="success" :disabled="submitting" @click="saveDraft"
             >保存</el-button
           >
-          <el-button @click="onCancel" :disabled="submitting">取消</el-button>
+          <el-button :disabled="submitting" @click="onCancel">取消</el-button>
         </el-form-item>
       </el-form>
     </el-card>

@@ -133,7 +133,7 @@
         </el-form-item>
 
         <el-form-item label="专有面积">
-          <div class="nested-fields" v-if="isEditing">
+          <div v-if="isEditing" class="nested-fields">
             <div class="nested-item">
               <span class="nested-label">住宅面积</span>
               <el-input-number
@@ -255,8 +255,8 @@
               :action="uploadAction"
               :headers="uploadHeaders"
               :show-file-list="false"
-              :on-success="(res) => handleImageSuccess(res, 'planImage')"
-              :on-progress="(evt) => handleUploadProgress(evt, 'plan')"
+              :on-success="(res: any) => handleImageSuccess(res, 'planImage')"
+              :on-progress="(evt: any) => handleUploadProgress(evt, 'plan')"
               :before-upload="beforeImageUpload"
               :disabled="!isEditing"
             >
@@ -265,7 +265,7 @@
                 :src="formData.planImage"
                 class="uploaded-image"
               />
-              <el-icon v-else class="uploader-icon"><Plus /></el-icon>
+              <el-icon v-else class="uploader-icon"><plus /></el-icon>
             </el-upload>
             <div
               v-if="uploadProgress.plan > 0 && uploadProgress.plan < 100"
@@ -291,8 +291,8 @@
               :action="uploadAction"
               :headers="uploadHeaders"
               :show-file-list="false"
-              :on-success="(res) => handleImageSuccess(res, 'effectImage')"
-              :on-progress="(evt) => handleUploadProgress(evt, 'effect')"
+              :on-success="(res: any) => handleImageSuccess(res, 'effectImage')"
+              :on-progress="(evt: any) => handleUploadProgress(evt, 'effect')"
               :before-upload="beforeImageUpload"
               :disabled="!isEditing"
             >
@@ -301,7 +301,7 @@
                 :src="formData.effectImage"
                 class="uploaded-image"
               />
-              <el-icon v-else class="uploader-icon"><Plus /></el-icon>
+              <el-icon v-else class="uploader-icon"><plus /></el-icon>
             </el-upload>
             <div
               v-if="uploadProgress.effect > 0 && uploadProgress.effect < 100"
@@ -337,13 +337,13 @@
                   circle
                   @click="removeAdImage(idx)"
                 >
-                  <el-icon><Close /></el-icon>
+                  <el-icon><close /></el-icon>
                 </el-button>
               </div>
             </div>
             <div
-              style="position: relative"
               v-if="isEditing && formData.adImages.length < 5"
+              style="position: relative"
             >
               <el-upload
                 class="image-uploader ad-image-uploader"
@@ -354,7 +354,7 @@
                 :on-progress="handleAdUploadProgress"
                 :before-upload="beforeImageUpload"
               >
-                <el-icon class="uploader-icon"><Plus /></el-icon>
+                <el-icon class="uploader-icon"><plus /></el-icon>
               </el-upload>
               <div
                 v-if="uploadProgress.ad > 0 && uploadProgress.ad < 100"
@@ -378,12 +378,12 @@
 
         <el-form-item v-if="isEditing">
           <div class="form-actions">
-            <el-button @click="cancelEdit" size="large">取消</el-button>
+            <el-button size="large" @click="cancelEdit">取消</el-button>
             <el-button
               type="primary"
-              @click="handleSave"
               :loading="loading"
               size="large"
+              @click="handleSave"
             >
               保存
             </el-button>

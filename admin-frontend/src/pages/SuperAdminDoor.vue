@@ -20,7 +20,7 @@
         <span style="margin-left: 8px; color: #909399">共 {{ total }} 条</span>
       </div>
       <div style="flex: 1; overflow: hidden">
-        <el-table :data="list" stripe v-loading="loading" height="100%">
+        <el-table v-loading="loading" :data="list" stripe height="100%">
           <el-table-column prop="name" label="小区名称" min-width="140" show-overflow-tooltip />
           <el-table-column label="省" width="260" align="center">
             <template #default="{ row }">

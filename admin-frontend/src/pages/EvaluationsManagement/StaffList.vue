@@ -86,7 +86,7 @@
             :before-upload="beforeUpload"
           >
             <img v-if="formData.photo" :src="formData.photo" class="avatar" />
-            <el-icon v-else class="avatar-uploader-icon"><Plus /></el-icon>
+            <el-icon v-else class="avatar-uploader-icon"><plus /></el-icon>
           </el-upload>
           <div class="upload-tip">
             建议尺寸：200x200，支持 jpg/png 格式，不超过 2MB

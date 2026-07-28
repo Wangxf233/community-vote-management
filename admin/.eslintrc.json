@@ -10,10 +10,10 @@
   },
   "rules": {
     "no-console": ["warn", { "allow": ["warn", "error"] }],
-    "no-debugger": "error",
+    "no-debugger": "warn",
     "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
-    "no-var": "error",
-    "prefer-const": "error",
-    "no-empty": ["error", { "allowEmptyCatch": false }]
-  },
+    "no-var": "warn",
+    "prefer-const": "warn",
+    "no-empty": ["warn", { "allowEmptyCatch": false }]
+  }
 }

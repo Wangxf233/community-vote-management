@@ -51,8 +51,8 @@
 
       <el-table
         ref="ownerTableRef"
-        :data="ownerList"
         v-loading="tableLoading"
+        :data="ownerList"
         stripe
         max-height="400"
         @selection-change="onOwnerSelectionChange"

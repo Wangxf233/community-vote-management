@@ -26,7 +26,7 @@ const routes = [
       {
         path: "door/devices",
         component: () => import("./pages/SuperAdminDoorDevices.vue"),
-        props: (route) => ({
+        props: (route: any) => ({
           communityId: route.query.communityId || undefined,
           communityName: route.query.communityName || undefined,
           isSuperAdmin: true,

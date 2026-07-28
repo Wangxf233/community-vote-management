@@ -13,7 +13,7 @@
       <div class="right">
         <el-tooltip content="刷新" placement="bottom">
           <el-button text circle @click="refresh">
-            <el-icon><Refresh /></el-icon>
+            <el-icon><refresh /></el-icon>
           </el-button>
         </el-tooltip>
 
@@ -24,7 +24,7 @@
         >
           <el-tooltip content="到期提醒" placement="bottom">
             <el-button text circle @click="openExpiringDialog">
-              <el-icon><Bell /></el-icon>
+              <el-icon><bell /></el-icon>
             </el-button>
           </el-tooltip>
         </el-badge>
@@ -33,16 +33,16 @@
           :content="isDark ? '切换到日间模式' : '切换到夜间模式'"
           placement="bottom"
         >
-          <el-button text circle @click="toggleDark" class="topbar-item">
-            <el-icon v-if="!isDark"><Moon /></el-icon>
-            <el-icon v-else><Sunny /></el-icon>
+          <el-button text circle class="topbar-item" @click="toggleDark">
+            <el-icon v-if="!isDark"><moon /></el-icon>
+            <el-icon v-else><sunny /></el-icon>
           </el-button>
         </el-tooltip>
 
         <el-popover placement="bottom-end" trigger="hover" width="240">
           <template #reference>
             <el-button text circle class="topbar-item">
-              <el-icon><User /></el-icon>
+              <el-icon><user /></el-icon>
             </el-button>
           </template>
           <div class="profile-pop">

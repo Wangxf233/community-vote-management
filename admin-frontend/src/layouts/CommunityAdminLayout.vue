@@ -6,66 +6,66 @@
         <el-menu
           :default-active="active"
           class="el-menu-vertical-demo"
-          @select="onSelect"
           :default-openeds="['certification', 'backend-admin', 'announcements']"
+          @select="onSelect"
         >
           <el-menu-item
             v-if="isPrimaryAdmin"
             index="/community-admin/community-info"
           >
-            <el-icon><Files /></el-icon>
+            <el-icon><files /></el-icon>
             <span>小区基本情况</span>
           </el-menu-item>
           <el-sub-menu v-if="isPrimaryAdmin" index="backend-admin">
             <template #title>
-              <el-icon><UserFilled /></el-icon>
+              <el-icon><user-filled /></el-icon>
               <span>后台成员管理</span>
             </template>
             <el-menu-item index="/community-admin/members">
-              <el-icon><UserFilled /></el-icon>
+              <el-icon><user-filled /></el-icon>
               <span>成员管理</span>
             </el-menu-item>
             <el-menu-item index="/community-admin/permissions">
-              <el-icon><Lock /></el-icon>
+              <el-icon><lock /></el-icon>
               <span>权限管理</span>
             </el-menu-item>
           </el-sub-menu>
           <el-sub-menu index="certification">
             <template #title>
-              <el-icon><Document /></el-icon>
+              <el-icon><document /></el-icon>
               <span>认证中心</span>
             </template>
             <el-menu-item index="/community-admin/house-config">
-              <el-icon><OfficeBuilding /></el-icon>
+              <el-icon><office-building /></el-icon>
               <span>房屋配置</span>
             </el-menu-item>
             <el-menu-item index="/community-admin/owner-registry">
-              <el-icon><Notebook /></el-icon>
+              <el-icon><notebook /></el-icon>
               <span>业主名册</span>
             </el-menu-item>
             <el-menu-item index="/community-admin/certification-review">
-              <el-icon><CircleCheck /></el-icon>
+              <el-icon><circle-check /></el-icon>
               <span>认证审核</span>
             </el-menu-item>
           </el-sub-menu>
           <el-menu-item index="/community-admin/owner-list">
-            <el-icon><Checked /></el-icon>
+            <el-icon><checked /></el-icon>
             <span>户主名单</span>
           </el-menu-item>
           <el-menu-item index="/community-admin/votes">
-            <el-icon><TrendCharts /></el-icon>
+            <el-icon><trend-charts /></el-icon>
             <span>投票管理</span>
           </el-menu-item>
           <el-menu-item index="/community-admin/evaluations">
-            <el-icon><ChatLineSquare /></el-icon>
+            <el-icon><chat-line-square /></el-icon>
             <span>评价管理</span>
           </el-menu-item>
           <el-menu-item index="/community-admin/repairs">
-            <el-icon><Tools /></el-icon>
+            <el-icon><tools /></el-icon>
             <span>报修管理</span>
           </el-menu-item>
           <el-menu-item v-if="doorManagementEnabled" index="/community-admin/door-management">
-            <el-icon><Setting /></el-icon>
+            <el-icon><setting /></el-icon>
             <span>门禁管理</span>
           </el-menu-item>
           <el-sub-menu
@@ -73,23 +73,23 @@
             index="announcements"
           >
             <template #title>
-              <el-icon><Bell /></el-icon>
+              <el-icon><bell /></el-icon>
               <span>信息公示</span>
             </template>
             <el-menu-item index="/community-admin/announcements?tab=committee">
-              <el-icon><Avatar /></el-icon>
+              <el-icon><avatar /></el-icon>
               <span>业委会信息公示</span>
             </el-menu-item>
             <el-menu-item index="/community-admin/announcements?tab=property">
-              <el-icon><OfficeBuilding /></el-icon>
+              <el-icon><office-building /></el-icon>
               <span>物业信息公示</span>
             </el-menu-item>
             <el-menu-item index="/community-admin/announcements?tab=law">
-              <el-icon><Memo /></el-icon>
+              <el-icon><memo /></el-icon>
               <span>法律法规</span>
             </el-menu-item>
             <el-menu-item index="/community-admin/announcements?tab=industry">
-              <el-icon><DataLine /></el-icon>
+              <el-icon><data-line /></el-icon>
               <span>行业动态</span>
             </el-menu-item>
           </el-sub-menu>
@@ -97,7 +97,7 @@
             v-if="isPrimaryAdmin || hasPermission('notification')"
             index="/community-admin/notifications"
           >
-            <el-icon><Notification /></el-icon>
+            <el-icon><notification /></el-icon>
             <span>通知公告</span>
           </el-menu-item>
         </el-menu>
@@ -108,7 +108,7 @@
           <div class="right">
             <el-tooltip content="刷新" placement="bottom">
               <el-button text circle @click="refresh">
-                <el-icon><Refresh /></el-icon>
+                <el-icon><refresh /></el-icon>
               </el-button>
             </el-tooltip>
 
@@ -119,8 +119,8 @@
               <el-button
                 text
                 circle
-                @click="toggleFontSize"
                 class="topbar-item"
+                @click="toggleFontSize"
               >
                 <span style="font-size: 16px; font-weight: bold">{{
                   isLargeFont ? "A-" : "A+"
@@ -131,7 +131,7 @@
             <el-popover placement="bottom-end" trigger="hover" width="240">
               <template #reference>
                 <el-button text circle>
-                  <el-icon><User /></el-icon>
+                  <el-icon><user /></el-icon>
                 </el-button>
               </template>
               <div class="profile-pop">
@@ -275,8 +275,8 @@ const active = computed(() => {
 function onSelect(index: string) {
   if (index.includes("?")) {
     const [path, qs] = index.split("?");
-    const params = Object.fromEntries(new URLSearchParams(qs));
-    router.push({ path, query: params });
+    const params = Object.fromEntries(new URLSearchParams(qs) as any);
+    (router as any).push({ path, query: params });
   } else {
     router.push(index);
   }

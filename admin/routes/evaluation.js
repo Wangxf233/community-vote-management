@@ -593,7 +593,7 @@ router.get(
       const openids = [
         ...new Set(evaluationsResult.data.map((e) => e.openid).filter(Boolean)),
       ];
-      let userMap = {};
+      const userMap = {};
       if (openids.length > 0) {
         const usersRes = await db
           .collection("owner_list")
@@ -1032,7 +1032,7 @@ router.get("/company-results/:cycleId", verifyToken, async (req, res) => {
     const pageOpenids = [
       ...new Set(evaluationsResult.data.map((e) => e.openid).filter(Boolean)),
     ];
-    let pageUserMap = {};
+    const pageUserMap = {};
     if (pageOpenids.length > 0) {
       const pageUsersRes = await db
         .collection("owner_list")

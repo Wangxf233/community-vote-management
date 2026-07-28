@@ -15,8 +15,8 @@
 
     <!-- 内容区域 -->
     <div style="flex: 1; overflow: hidden">
-      <CompanyCyclesList v-if="subTab === 'cycles'" />
-      <CompanyResultsList v-else-if="subTab === 'results'" />
+      <company-cycles-list v-if="subTab === 'cycles'" />
+      <company-results-list v-else-if="subTab === 'results'" />
     </div>
   </div>
 </template>

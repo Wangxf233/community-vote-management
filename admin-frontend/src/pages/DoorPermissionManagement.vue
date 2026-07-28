@@ -80,8 +80,8 @@
       </div>
 
       <el-table
-        :data="pagedList"
         v-loading="loading"
+        :data="pagedList"
         style="width: 100%"
         stripe
         @selection-change="onSelectionChange"
