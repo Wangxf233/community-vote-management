@@ -26,7 +26,7 @@ const routes = [
       {
         path: "door/devices/create",
         component: () => import("./pages/DoorManagementCreate.vue"),
-        props: (route: any) => ({
+        props: (route) => ({
           communityId: route.query.communityId || undefined,
         }),
       },
@@ -111,6 +111,14 @@ const routes = [
       {
         path: "notifications",
         component: () => import("./pages/NotificationManagement.vue"),
+      },
+      {
+        path: "vehicles",
+        component: () => import("./pages/VehicleManagement.vue"),
+      },
+      {
+        path: "staff",
+        component: () => import("./pages/StaffManagement.vue"),
       },
       {
         path: "notification-form",
