@@ -129,8 +129,8 @@
 
         <el-checkbox
           v-model="selectAll"
-          style="margin-bottom: 12px; font-weight: 600"
           @change="onSelectAllChange"
+          style="margin-bottom: 12px; font-weight: 600"
         >
           全选
         </el-checkbox>
@@ -148,8 +148,8 @@
         <div style="margin-top: 24px">
           <el-button
             type="primary"
-            style="width: 100%"
             @click="onSavePermissions"
+            style="width: 100%"
           >
             保存权限
           </el-button>

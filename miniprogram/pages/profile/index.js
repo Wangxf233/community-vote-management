@@ -7,6 +7,8 @@ Page({
       phone: "13581327100",
     },
     isOwner: false, // 是否是户主
+    isStaff: false, // 是否是审核通过的工作人员
+    staffPending: false, // 是否有待审核的工作人员申请
     bindingStatus: "none",
   },
 
@@ -16,9 +18,10 @@ Page({
   },
 
   onShow: function () {
-    // 每次显示页面时刷新户主状态
+    // 每次显示页面时刷新状态
     this.checkBindStatus();
     this.checkOwnerStatus();
+    this.checkStaffStatus();
   },
 
   checkBindStatus() {
@@ -115,6 +118,31 @@ Page({
   goToSettings: function () {
     wx.navigateTo({
       url: "/pages/switch-community/index",
+    });
+  },
+
+  // 检查工作人员状态
+  async checkStaffStatus() {
+    try {
+      const res = await wx.cloud.callFunction({
+        name: "getMyStaffStatus",
+        data: {},
+      });
+      if (res.result && res.result.success && res.result.data) {
+        this.setData({
+          isStaff: res.result.data.isApproved,
+          staffPending: res.result.data.hasPending,
+        });
+      }
+    } catch (err) {
+      console.error("检查工作人员状态失败:", err);
+    }
+  },
+
+  // 跳转到工作人员车辆查询
+  goToVehicleQuery: function () {
+    wx.navigateTo({
+      url: "/pages/staff-vehicle-query/index",
     });
   },
 });

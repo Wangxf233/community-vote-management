@@ -6,90 +6,100 @@
         <el-menu
           :default-active="active"
           class="el-menu-vertical-demo"
-          :default-openeds="['certification', 'backend-admin', 'announcements']"
           @select="onSelect"
+          :default-openeds="['certification', 'backend-admin', 'announcements']"
         >
           <el-menu-item
             v-if="isPrimaryAdmin"
             index="/community-admin/community-info"
           >
-            <el-icon><files /></el-icon>
+            <el-icon><Files /></el-icon>
             <span>小区基本情况</span>
           </el-menu-item>
           <el-sub-menu v-if="isPrimaryAdmin" index="backend-admin">
             <template #title>
-              <el-icon><user-filled /></el-icon>
+              <el-icon><UserFilled /></el-icon>
               <span>后台成员管理</span>
             </template>
             <el-menu-item index="/community-admin/members">
-              <el-icon><user-filled /></el-icon>
+              <el-icon><UserFilled /></el-icon>
               <span>成员管理</span>
             </el-menu-item>
             <el-menu-item index="/community-admin/permissions">
-              <el-icon><lock /></el-icon>
+              <el-icon><Lock /></el-icon>
               <span>权限管理</span>
             </el-menu-item>
           </el-sub-menu>
           <el-sub-menu index="certification">
             <template #title>
-              <el-icon><document /></el-icon>
+              <el-icon><Document /></el-icon>
               <span>认证中心</span>
             </template>
             <el-menu-item index="/community-admin/house-config">
-              <el-icon><office-building /></el-icon>
+              <el-icon><OfficeBuilding /></el-icon>
               <span>房屋配置</span>
             </el-menu-item>
             <el-menu-item index="/community-admin/owner-registry">
-              <el-icon><notebook /></el-icon>
+              <el-icon><Notebook /></el-icon>
               <span>业主名册</span>
             </el-menu-item>
             <el-menu-item index="/community-admin/certification-review">
-              <el-icon><circle-check /></el-icon>
+              <el-icon><CircleCheck /></el-icon>
               <span>认证审核</span>
             </el-menu-item>
           </el-sub-menu>
           <el-menu-item index="/community-admin/owner-list">
-            <el-icon><checked /></el-icon>
+            <el-icon><Checked /></el-icon>
             <span>户主名单</span>
           </el-menu-item>
           <el-menu-item index="/community-admin/votes">
-            <el-icon><trend-charts /></el-icon>
+            <el-icon><TrendCharts /></el-icon>
             <span>投票管理</span>
           </el-menu-item>
           <el-menu-item index="/community-admin/evaluations">
-            <el-icon><chat-line-square /></el-icon>
+            <el-icon><ChatLineSquare /></el-icon>
             <span>评价管理</span>
           </el-menu-item>
           <el-menu-item index="/community-admin/repairs">
-            <el-icon><tools /></el-icon>
+            <el-icon><Tools /></el-icon>
             <span>报修管理</span>
           </el-menu-item>
-          <el-menu-item v-if="doorManagementEnabled" index="/community-admin/door-management">
-            <el-icon><setting /></el-icon>
-            <span>门禁管理</span>
-          </el-menu-item>
+          <el-sub-menu v-if="doorManagementEnabled" index="door">
+            <template #title>
+              <el-icon><Setting /></el-icon>
+              <span>门禁管理</span>
+            </template>
+            <el-menu-item index="/community-admin/door-management">
+              <el-icon><Setting /></el-icon>
+              <span>设备列表</span>
+            </el-menu-item>
+            <el-menu-item index="/community-admin/door-permissions">
+              <el-icon><Key /></el-icon>
+              <span>开门权限</span>
+            </el-menu-item>
+          </el-sub-menu>
           <el-sub-menu
             v-if="isPrimaryAdmin || hasPermission('announcement')"
             index="announcements"
           >
             <template #title>
-              <el-icon><bell /></el-icon>
+              <el-icon><Bell /></el-icon>
               <span>信息公示</span>
             </template>
             <el-menu-item index="/community-admin/announcements?tab=committee">
-              <el-icon><avatar /></el-icon>
+              <el-icon><Avatar /></el-icon>
               <span>业委会信息公示</span>
             </el-menu-item>
             <el-menu-item index="/community-admin/announcements?tab=property">
-              <el-icon><office-building /></el-icon>
+              <el-icon><OfficeBuilding /></el-icon>
               <span>物业信息公示</span>
             </el-menu-item>
             <el-menu-item index="/community-admin/announcements?tab=law">
-              <el-icon><memo /></el-icon>
+              <el-icon><Memo /></el-icon>
               <span>法律法规</span>
             </el-menu-item>
             <el-menu-item index="/community-admin/announcements?tab=industry">
-              <el-icon><data-line /></el-icon>
+              <el-icon><DataLine /></el-icon>
               <span>行业动态</span>
             </el-menu-item>
           </el-sub-menu>
@@ -97,7 +107,7 @@
             v-if="isPrimaryAdmin || hasPermission('notification')"
             index="/community-admin/notifications"
           >
-            <el-icon><notification /></el-icon>
+            <el-icon><Notification /></el-icon>
             <span>通知公告</span>
           </el-menu-item>
         </el-menu>
@@ -108,7 +118,7 @@
           <div class="right">
             <el-tooltip content="刷新" placement="bottom">
               <el-button text circle @click="refresh">
-                <el-icon><refresh /></el-icon>
+                <el-icon><Refresh /></el-icon>
               </el-button>
             </el-tooltip>
 
@@ -119,8 +129,8 @@
               <el-button
                 text
                 circle
-                class="topbar-item"
                 @click="toggleFontSize"
+                class="topbar-item"
               >
                 <span style="font-size: 16px; font-weight: bold">{{
                   isLargeFont ? "A-" : "A+"
@@ -131,7 +141,7 @@
             <el-popover placement="bottom-end" trigger="hover" width="240">
               <template #reference>
                 <el-button text circle>
-                  <el-icon><user /></el-icon>
+                  <el-icon><User /></el-icon>
                 </el-button>
               </template>
               <div class="profile-pop">
@@ -276,7 +286,7 @@ function onSelect(index: string) {
   if (index.includes("?")) {
     const [path, qs] = index.split("?");
     const params = Object.fromEntries(new URLSearchParams(qs) as any);
-    (router as any).push({ path, query: params });
+    router.push({ path, query: params } as any);
   } else {
     router.push(index);
   }

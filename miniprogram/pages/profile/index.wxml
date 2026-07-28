@@ -47,6 +47,21 @@
         </view>
         <text class="menu-arrow">></text>
       </view>
+      <!-- 工作人员入口 — 审核通过后显示 -->
+      <view class="menu-item" bindtap="goToVehicleQuery" wx:if="{{isStaff}}">
+        <view class="menu-left">
+          <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/icon-vote.png" mode="aspectFit" class="menu-icon"/>
+          <text class="menu-text">车辆查询</text>
+        </view>
+        <text class="menu-arrow">></text>
+      </view>
+      <!-- 工作人员审核中提示 -->
+      <view class="menu-item" wx:if="{{staffPending}}">
+        <view class="menu-left">
+          <text class="menu-text" style="color: #999;">车辆查询（审核中）</text>
+        </view>
+        <text class="menu-text" style="color: #fa8c16; font-size: 22rpx;">待审核</text>
+      </view>
       <view class="menu-item" bindtap="goToContact">
         <view class="menu-left">
           <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/icon-contact.png" mode="aspectFit" class="menu-icon"/>

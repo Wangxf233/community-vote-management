@@ -40,6 +40,24 @@
         <text class="arrow-icon">›</text>
       </view>
     </view>
+
+    <!-- 工作人员身份 -->
+    <view class="identity-card" bindtap="selectStaff">
+      <view class="card-icon staff-icon">
+        <view class="icon-placeholder staff-bg">🔧</view>
+      </view>
+      <view class="card-content">
+        <text class="card-title">我是工作人员</text>
+        <text class="card-desc">物业/社区工作人员</text>
+        <view class="card-requirements">
+          <text class="req-item">• 处理挪车等日常事务</text>
+          <text class="req-item">• 需物业管理员审核通过</text>
+        </view>
+      </view>
+      <view class="card-arrow">
+        <text class="arrow-icon">›</text>
+      </view>
+    </view>
   </view>
 
   <view class="tips">

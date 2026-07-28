@@ -11,8 +11,8 @@
         </el-form-item>
         <el-form-item>
           <el-input
-            v-model="form.password"
             type="password"
+            v-model="form.password"
             placeholder="请输入密码"
             show-password
           />

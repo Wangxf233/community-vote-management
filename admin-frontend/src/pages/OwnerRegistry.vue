@@ -108,8 +108,8 @@
         <div class="batch-operations" style="margin-bottom: 16px">
           <el-button
             type="primary"
-            :loading="selectingAll"
             @click="handleSelect50Data"
+            :loading="selectingAll"
           >
             选择50条数据
           </el-button>
@@ -131,12 +131,12 @@
           stripe
           style="width: 100%"
           height="100%"
+          @selection-change="handleSelectionChange"
           row-key="_id"
           :row-class-name="getRowClassName"
-          @selection-change="handleSelectionChange"
         >
           <el-table-column type="selection" width="55" />
-          <el-table-column v-if="hasMultipleProperties" type="expand">
+          <el-table-column type="expand" v-if="hasMultipleProperties">
             <template #default="{ row }">
               <div
                 v-if="row.properties && row.properties.length > 0"
@@ -294,10 +294,10 @@
         :total="total"
         :page-sizes="[10, 20, 50, 100]"
         layout="total, sizes, prev, pager, next, jumper"
-        style="padding: 16px 0; justify-content: center; flex-shrink: 0"
-        :pager-count="7"
         @size-change="loadList"
         @current-change="loadList"
+        style="padding: 16px 0; justify-content: center; flex-shrink: 0"
+        :pager-count="7"
       />
     </el-card>
 
@@ -308,10 +308,10 @@
       width="700px"
     >
       <el-form
-        ref="formRef"
         :model="editForm"
         label-width="120px"
         :rules="formRules"
+        ref="formRef"
       >
         <el-form-item label="户主姓名1" prop="ownerName1">
           <el-input v-model="editForm.ownerName1" placeholder="必填" />
@@ -437,8 +437,8 @@
         <el-button
           type="primary"
           plain
-          style="width: 100%; margin-bottom: 16px"
           @click="addProperty"
+          style="width: 100%; margin-bottom: 16px"
         >
           + 添加房产
         </el-button>
@@ -473,8 +473,8 @@
         <el-button
           type="primary"
           plain
-          style="width: 100%; margin-bottom: 16px"
           @click="addCarNumber"
+          style="width: 100%; margin-bottom: 16px"
         >
           + 添加车牌号
         </el-button>
@@ -613,8 +613,8 @@
           </el-form-item>
 
           <el-form-item
-            v-if="realNameForm.reviewStatus === 'rejected'"
             label="拒绝原因"
+            v-if="realNameForm.reviewStatus === 'rejected'"
           >
             <el-input
               v-model="realNameForm.rejectReason"
@@ -630,8 +630,8 @@
         <el-button @click="realNameDialog = false">取消</el-button>
         <el-button
           type="primary"
-          :loading="reviewing"
           @click="submitRealNameReview"
+          :loading="reviewing"
           >提交审核</el-button
         >
       </template>

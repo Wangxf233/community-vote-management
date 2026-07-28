@@ -70,9 +70,9 @@
                   审核
                 </el-button>
                 <el-button
-                  v-if="row.proofImages && row.proofImages.length > 0"
                   size="small"
                   @click="handleViewProof(row)"
+                  v-if="row.proofImages && row.proofImages.length > 0"
                 >
                   查看证明
                 </el-button>
@@ -102,9 +102,9 @@
             :total="total"
             :page-sizes="[10, 20, 50, 100]"
             layout="total, sizes, prev, pager, next, jumper"
-            :pager-count="7"
             @size-change="loadList"
             @current-change="loadList"
+            :pager-count="7"
           />
         </div>
       </div>
@@ -154,8 +154,8 @@
           />
         </el-form-item>
         <el-form-item
-          v-if="auditForm.proofImages && auditForm.proofImages.length > 0"
           label="房产证明"
+          v-if="auditForm.proofImages && auditForm.proofImages.length > 0"
         >
           <div class="proof-images">
             <el-image

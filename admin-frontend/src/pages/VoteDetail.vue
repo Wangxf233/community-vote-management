@@ -7,8 +7,8 @@
           <div>
             <el-button
               type="success"
-              :loading="exporting"
               @click="exportToExcel"
+              :loading="exporting"
             >
               <template v-if="!exporting">导出Excel</template>
               <template v-else>导出中 {{ exportProgress }}%</template>
@@ -19,13 +19,13 @@
       </template>
 
       <el-table
-        v-loading="loading"
         :data="voteRecords"
         stripe
         style="width: 100%"
         row-key="_id"
+        v-loading="loading"
       >
-        <el-table-column v-if="hasMultipleProperties" type="expand">
+        <el-table-column type="expand" v-if="hasMultipleProperties">
           <template #default="{ row }">
             <div
               v-if="row.properties && row.properties.length > 0"
@@ -65,6 +65,7 @@
             <img
               v-if="row.signatureUrl"
               :src="row.signatureUrl"
+              @click="handlePreviewSignature(row.signatureUrl)"
               style="
                 width: 80px;
                 height: 40px;
@@ -73,7 +74,6 @@
                 border: 1px solid #ddd;
                 border-radius: 4px;
               "
-              @click="handlePreviewSignature(row.signatureUrl)"
             />
             <span v-else>-</span>
           </template>
@@ -96,10 +96,10 @@
         :total="total"
         :page-sizes="[10, 20, 50, 100]"
         layout="total, sizes, prev, pager, next, jumper"
-        style="margin-top: 16px; justify-content: center"
-        :pager-count="7"
         @size-change="loadRecords"
         @current-change="loadRecords"
+        style="margin-top: 16px; justify-content: center"
+        :pager-count="7"
       />
     </el-card>
 
@@ -161,7 +161,7 @@ const hasMultipleProperties = computed(() => {
 async function loadRecords() {
   loading.value = true;
   try {
-    const data: any = await request.get(`/votes/${voteId.value}/records`, {
+    const data = await request.get(`/votes/${voteId.value}/records`, {
       params: {
         page: currentPage.value,
         pageSize: pageSize.value,
@@ -215,7 +215,7 @@ async function exportToExcel() {
 
     // 获取所有投票记录数据（不分页）
     exportProgress.value = 10;
-    const data: any = await request.get(`/votes/${voteId.value}/records`, {
+    const data = await request.get(`/votes/${voteId.value}/records`, {
       params: {
         page: 1,
         pageSize: 999999,

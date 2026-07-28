@@ -56,15 +56,15 @@
       <div class="batch-operations" style="margin-bottom: 16px">
         <el-button
           type="success"
-          :disabled="selectedRows.length === 0"
           @click="handleBatchApprove"
+          :disabled="selectedRows.length === 0"
         >
           批量通过
         </el-button>
         <el-button
           type="danger"
-          :disabled="selectedRows.length === 0"
           @click="handleBatchDelete"
+          :disabled="selectedRows.length === 0"
         >
           批量删除
         </el-button>
@@ -135,10 +135,10 @@
         :total="total"
         :page-sizes="[10, 20, 50, 100]"
         layout="total, sizes, prev, pager, next, jumper"
-        style="margin-top: 16px; justify-content: center"
-        :pager-count="7"
         @size-change="loadList"
         @current-change="loadList"
+        style="margin-top: 16px; justify-content: center"
+        :pager-count="7"
       />
     </el-card>
 

@@ -10,7 +10,7 @@
     <!-- 内容区域 -->
     <div style="flex: 1; overflow: hidden">
       <div v-if="hasPermission('announcement')" style="height: 100%">
-        <announcement-list :key="currentType" :type="currentType" />
+        <AnnouncementList :type="currentType" :key="currentType" />
       </div>
       <div
         v-else

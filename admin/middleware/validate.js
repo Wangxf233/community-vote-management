@@ -124,6 +124,44 @@ const schemas = {
     unit: z.string().optional(),
     enabled: z.boolean().optional(),
   }),
+
+  // === 车辆管理 ===
+  createVehicle: z.object({
+    plateNumber: z.string().min(1, "车牌号不能为空"),
+    ownerPhone: z.string().regex(/^1[3-9]\d{9}$/, "手机号格式不正确"),
+    vehicleType: z.string().optional(),
+    ownerName: z.string().optional(),
+    parkingFee: z.string().optional(),
+    parkingSpot: z.string().optional(),
+    startDate: z.string().optional(),
+    endDate: z.string().optional(),
+    building: z.string().optional(),
+    unit: z.string().optional(),
+    room: z.string().optional(),
+    remark: z.string().optional(),
+  }),
+
+  updateVehicle: z.object({
+    plateNumber: z.string().min(1, "车牌号不能为空").optional(),
+    ownerPhone: z.string().regex(/^1[3-9]\d{9}$/, "手机号格式不正确").optional(),
+    vehicleType: z.string().optional(),
+    ownerName: z.string().optional(),
+    parkingFee: z.string().optional(),
+    parkingSpot: z.string().optional(),
+    startDate: z.string().optional(),
+    endDate: z.string().optional(),
+    building: z.string().optional(),
+    unit: z.string().optional(),
+    room: z.string().optional(),
+    remark: z.string().optional(),
+  }),
+
+  // === 工作人员管理 ===
+  updateStaff: z.object({
+    name: z.string().optional(),
+    phone: z.string().regex(/^1[3-9]\d{9}$/, "手机号格式不正确").optional(),
+    position: z.string().optional(),
+  }),
 };
 
 // ============================================================

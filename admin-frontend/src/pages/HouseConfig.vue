@@ -61,8 +61,8 @@
                 <el-button
                   type="primary"
                   size="small"
-                  style="margin-left: 10px"
                   @click="generateBuildings"
+                  style="margin-left: 10px"
                 >
                   生成楼栋
                 </el-button>
@@ -129,8 +129,8 @@
                     <el-button
                       type="primary"
                       size="small"
-                      style="margin-left: 10px"
                       @click="updateBuildingUnits(expandedBuilding)"
+                      style="margin-left: 10px"
                     >
                       应用
                     </el-button>
@@ -152,8 +152,8 @@
                       <el-button
                         type="primary"
                         size="small"
-                        :disabled="expandedUnit === null"
                         @click="showRoomConfig = !showRoomConfig"
+                        :disabled="expandedUnit === null"
                       >
                         {{ showRoomConfig ? "收起配置" : "配置房号" }}
                       </el-button>
@@ -288,7 +288,6 @@
                       <el-button
                         type="primary"
                         size="small"
-                        style="margin-bottom: 10px"
                         @click="
                           previewRooms(
                             configForm.buildings[expandedBuilding].units[
@@ -296,6 +295,7 @@
                             ],
                           )
                         "
+                        style="margin-bottom: 10px"
                       >
                         生成预览
                       </el-button>
@@ -303,6 +303,7 @@
 
                     <!-- 房号列表（始终显示） -->
                     <div
+                      class="room-preview"
                       v-if="
                         expandedBuilding !== null &&
                         expandedUnit !== null &&
@@ -313,7 +314,6 @@
                           expandedUnit
                         ].rooms!.length > 0
                       "
-                      class="room-preview"
                     >
                       <div class="preview-title">
                         生成的{{
@@ -474,8 +474,8 @@
             <el-button
               type="primary"
               size="large"
-              style="width: 100%"
               @click="saveConfig"
+              style="width: 100%"
             >
               保存配置
             </el-button>
@@ -496,7 +496,7 @@
         >
           请先在楼栋配置中"保存为模版"
         </el-alert>
-        <div v-if="templates.length > 0" class="template-list">
+        <div class="template-list" v-if="templates.length > 0">
           <el-radio-group v-model="selectedTemplate">
             <div
               v-for="(template, index) in templates"
@@ -511,10 +511,10 @@
                     </span>
                     <el-icon
                       class="edit-icon"
-                      title="编辑名称"
                       @click.stop="editTemplateName(index)"
+                      title="编辑名称"
                     >
-                      <edit />
+                      <Edit />
                     </el-icon>
                   </div>
                   <div class="template-info">
@@ -525,10 +525,10 @@
               </el-radio>
               <el-icon
                 class="delete-icon"
-                title="删除模版"
                 @click.stop="deleteTemplate(index)"
+                title="删除模版"
               >
-                <delete />
+                <Delete />
               </el-icon>
             </div>
           </el-radio-group>
@@ -536,16 +536,16 @@
         <template #footer>
           <el-button @click="templateDialog = false">取消</el-button>
           <el-button
-            v-if="templates.length > 0"
             type="danger"
             @click="clearTemplates"
+            v-if="templates.length > 0"
           >
             清空模版
           </el-button>
           <el-button
             type="primary"
-            :disabled="selectedTemplate === null || templates.length === 0"
             @click="confirmApplyTemplate"
+            :disabled="selectedTemplate === null || templates.length === 0"
           >
             应用
           </el-button>

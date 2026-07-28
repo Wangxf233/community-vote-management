@@ -24,12 +24,10 @@ const routes = [
         component: () => import("./pages/SuperAdminDoor.vue"),
       },
       {
-        path: "door/devices",
-        component: () => import("./pages/SuperAdminDoorDevices.vue"),
+        path: "door/devices/create",
+        component: () => import("./pages/DoorManagementCreate.vue"),
         props: (route: any) => ({
           communityId: route.query.communityId || undefined,
-          communityName: route.query.communityName || undefined,
-          isSuperAdmin: true,
         }),
       },
     ],
@@ -91,8 +89,15 @@ const routes = [
       },
       {
         path: "door-management",
-        component: () => import("./pages/SuperAdminDoorDevices.vue"),
-        props: () => ({ isSuperAdmin: false }),
+        component: () => import("./pages/DoorManagement.vue"),
+      },
+      {
+        path: "door-management/create",
+        component: () => import("./pages/DoorManagementCreate.vue"),
+      },
+      {
+        path: "door-permissions",
+        component: () => import("./pages/DoorPermissionManagement.vue"),
       },
       {
         path: "announcements",

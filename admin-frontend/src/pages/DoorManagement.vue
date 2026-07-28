@@ -17,8 +17,8 @@
 
       <el-table
         ref="tableRef"
-        v-loading="loading"
         :data="devices"
+        v-loading="loading"
         border
         empty-text="暂无门禁设备"
         @selection-change="onSelectionChange"

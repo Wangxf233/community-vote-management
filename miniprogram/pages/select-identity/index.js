@@ -32,4 +32,11 @@ Page({
       url: `/pages/family-verify/index?communityId=${this.data.communityId}&communityName=${this.data.communityName}&building=${this.data.building}&unit=${this.data.unit}&room=${this.data.room}`,
     });
   },
+
+  // 选择工作人员身份
+  selectStaff() {
+    wx.navigateTo({
+      url: `/pages/staff-register/index?communityId=${this.data.communityId}&communityName=${this.data.communityName}`,
+    });
+  },
 });

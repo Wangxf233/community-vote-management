@@ -19,7 +19,7 @@
     <div style="flex: 1; overflow: hidden">
       <div v-if="activeTab === 'staff'">
         <div v-if="hasPermission('service_evaluation')">
-          <staff-management />
+          <StaffManagement />
         </div>
         <div
           v-else
@@ -36,7 +36,7 @@
 
       <div v-else-if="activeTab === 'company'">
         <div v-if="hasPermission('property_evaluation')">
-          <company-management />
+          <CompanyManagement />
         </div>
         <div
           v-else

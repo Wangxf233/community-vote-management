@@ -87,7 +87,7 @@
       </el-form-item>
 
       <el-form-item>
-        <el-button type="primary" :loading="submitting" @click="handleSubmit">
+        <el-button type="primary" @click="handleSubmit" :loading="submitting">
           {{ isEdit ? "保存" : "发布" }}
         </el-button>
         <el-button @click="handleBack">取消</el-button>

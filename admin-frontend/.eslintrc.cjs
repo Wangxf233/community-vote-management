@@ -22,7 +22,7 @@ module.exports = {
     // Vue 规则
     'vue/multi-word-component-names': 'off',
     'vue/no-v-html': 'error',
-    'vue/component-name-in-template-casing': 'warn',
+    'vue/component-name-in-template-casing': 'off',
     'vue/script-setup-uses-vars': 'warn',
     'vue/no-deprecated-v-on-native-modifier': 'warn',
 

@@ -9,15 +9,15 @@
           @select="onSelect"
         >
           <el-menu-item index="/admin/add">
-            <el-icon><circle-plus /></el-icon>
+            <el-icon><CirclePlus /></el-icon>
             <span>添加小区</span>
           </el-menu-item>
           <el-menu-item index="/admin/list">
-            <el-icon><list /></el-icon>
+            <el-icon><List /></el-icon>
             <span>小区列表</span>
           </el-menu-item>
           <el-menu-item index="/admin/door">
-            <el-icon><key /></el-icon>
+            <el-icon><Key /></el-icon>
             <span>门禁管理</span>
           </el-menu-item>
         </el-menu>
@@ -30,7 +30,7 @@
           <div class="right">
             <el-tooltip content="刷新" placement="bottom">
               <el-button text circle @click="emitRefresh">
-                <el-icon><refresh /></el-icon>
+                <el-icon><Refresh /></el-icon>
               </el-button>
             </el-tooltip>
 
@@ -41,7 +41,7 @@
             >
               <el-tooltip content="到期提醒" placement="bottom">
                 <el-button text circle @click="openExpiringDialog">
-                  <el-icon><bell /></el-icon>
+                  <el-icon><Bell /></el-icon>
                 </el-button>
               </el-tooltip>
             </el-badge>
@@ -53,8 +53,8 @@
               <el-button
                 text
                 circle
-                class="topbar-item"
                 @click="toggleFontSize"
+                class="topbar-item"
               >
                 <span style="font-size: 16px; font-weight: bold">{{
                   isLargeFont ? "A-" : "A+"
@@ -65,7 +65,7 @@
             <el-popover placement="bottom-end" trigger="hover" width="240">
               <template #reference>
                 <el-button text circle class="topbar-item">
-                  <el-icon><user /></el-icon>
+                  <el-icon><User /></el-icon>
                 </el-button>
               </template>
               <div class="profile-pop">

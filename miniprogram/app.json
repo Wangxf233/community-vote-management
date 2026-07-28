@@ -31,6 +31,9 @@
     "pages/owner-verify/index",
     "pages/select-identity/index",
     "pages/door/index"
+    ,"pages/movecar/index"
+    ,"pages/staff-register/index"
+    ,"pages/staff-vehicle-query/index"
   ],
   "window": {
     "backgroundTextStyle": "light",
@@ -61,6 +64,12 @@
         "text": "开门",
         "iconPath": "images/door.png",
         "selectedIconPath": "images/door-active.png"
+      },
+      {
+        "pagePath": "pages/movecar/index",
+        "text": "挪车",
+        "iconPath": "images/movecar.png",
+        "selectedIconPath": "images/movecar-active.png"
       },
       {
         "pagePath": "pages/profile/index",

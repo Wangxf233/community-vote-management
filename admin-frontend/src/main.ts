@@ -1,7 +1,6 @@
 import { createApp } from "vue";
 import { createPinia } from "pinia";
 import ElementPlus from "element-plus";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore — element-plus locale .mjs 无类型声明
 import zhCn from "element-plus/dist/locale/zh-cn.mjs";
 import "element-plus/dist/index.css";

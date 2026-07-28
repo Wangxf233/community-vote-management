@@ -63,10 +63,10 @@
 
       <div style="flex: 1; width: 100%; overflow: hidden">
         <el-table
-          v-loading="loading"
           :data="tableData"
           stripe
           style="width: 100%"
+          v-loading="loading"
           height="100%"
         >
           <el-table-column prop="title" label="标题" min-width="200" />
@@ -165,7 +165,7 @@
       width="60%"
       destroy-on-close
     >
-      <el-descriptions v-if="currentRow" :column="2" border>
+      <el-descriptions :column="2" border v-if="currentRow">
         <el-descriptions-item label="标题" :span="2">{{
           currentRow.title
         }}</el-descriptions-item>

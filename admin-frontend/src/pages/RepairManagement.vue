@@ -183,6 +183,7 @@
                         v-for="(img, index) in row.images.slice(0, 3)"
                         :key="index"
                         :src="img"
+                        @click="handlePreviewImages(row.images, index)"
                         style="
                           width: 30px;
                           height: 30px;
@@ -191,7 +192,6 @@
                           object-fit: cover;
                           border-radius: 4px;
                         "
-                        @click="handlePreviewImages(row.images, index)"
                       />
                       <span v-if="row.images.length > 3" class="more-images">
                         +{{ row.images.length - 3 }}
@@ -340,6 +340,7 @@
                         v-for="(img, index) in row.images.slice(0, 3)"
                         :key="index"
                         :src="img"
+                        @click="handlePreviewImages(row.images, index)"
                         style="
                           width: 30px;
                           height: 30px;
@@ -348,7 +349,6 @@
                           object-fit: cover;
                           border-radius: 4px;
                         "
-                        @click="handlePreviewImages(row.images, index)"
                       />
                       <span v-if="row.images.length > 3" class="more-images"
                         >+{{ row.images.length - 3 }}</span
@@ -575,6 +575,7 @@
               v-for="(img, index) in currentRow.images"
               :key="index"
               :src="img"
+              @click="handlePreviewImages(currentRow.images, index)"
               style="
                 width: 100px;
                 height: 100px;
@@ -582,7 +583,6 @@
                 border-radius: 4px;
                 cursor: pointer;
               "
-              @click="handlePreviewImages(currentRow.images, index)"
             />
           </div>
         </div>
@@ -662,7 +662,7 @@ const loading = ref(false);
 const tableData = ref<any[]>([]);
 
 // 分页
-const pagination = reactive<{ page: number; pageSize: number; total: number }>({
+const pagination = reactive({
   page: 1,
   pageSize: 20,
   total: 0,
@@ -834,7 +834,7 @@ const handlePreviewVideo = (videoUrl: string) => {
 };
 
 // 预览图片
-const handlePreviewImages = (images: string[], index: string | number) => {
+const handlePreviewImages = (images: string[], index: number | string) => {
   previewImages.value = images;
   currentImageIndex.value = Number(index);
   imagePreviewVisible.value = true;
