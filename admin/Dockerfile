@@ -1,24 +1,13 @@
 # 社区物业服务系统 — Admin 后端 Dockerfile
-# 构建：在项目根目录执行
-#   docker build -f admin/Dockerfile -t community-admin .
 FROM node:18-alpine
 
 WORKDIR /app
 
-# 复制 shared 模块（admin 代码依赖 ../../shared/）
-COPY shared/ ./shared/
+COPY package*.json ./
 
-# 复制 admin 依赖文件
-COPY admin/package*.json ./admin/
+RUN npm ci --omit=dev --no-optional
 
-# 安装生产依赖
-RUN cd admin && npm ci --omit=dev --no-optional
-
-# 复制 admin 应用代码
-COPY admin/ ./admin/
-
-# 工作目录设为 admin
-WORKDIR /app/admin
+COPY . .
 
 EXPOSE 3000
 

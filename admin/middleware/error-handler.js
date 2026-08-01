@@ -6,7 +6,7 @@
  *   app.use(errorHandler);  // 在所有路由之后注册
  */
 
-const { AppError } = require("../../shared/error-codes");
+const { AppError } = require("../shared/error-codes");
 
 /**
  * 全局错误处理中间件
