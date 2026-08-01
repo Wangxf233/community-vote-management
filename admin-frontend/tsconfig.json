@@ -14,7 +14,8 @@
     "lib": ["ESNext", "DOM"],
     "types": ["vite/client"],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@shared/*": ["../shared/*"]
     }
   },
   "include": ["src/**/*", "src/**/*.vue", "env.d.ts"],

@@ -24,10 +24,12 @@ const routes = [
         component: () => import("./pages/SuperAdminDoor.vue"),
       },
       {
-        path: "door/devices/create",
-        component: () => import("./pages/DoorManagementCreate.vue"),
+        path: "door/devices",
+        component: () => import("./pages/SuperAdminDoorDevices.vue"),
         props: (route) => ({
           communityId: route.query.communityId || undefined,
+          communityName: route.query.communityName || undefined,
+          isSuperAdmin: true,
         }),
       },
     ],
@@ -89,15 +91,8 @@ const routes = [
       },
       {
         path: "door-management",
-        component: () => import("./pages/DoorManagement.vue"),
-      },
-      {
-        path: "door-management/create",
-        component: () => import("./pages/DoorManagementCreate.vue"),
-      },
-      {
-        path: "door-permissions",
-        component: () => import("./pages/DoorPermissionManagement.vue"),
+        component: () => import("./pages/SuperAdminDoorDevices.vue"),
+        props: () => ({ isSuperAdmin: false }),
       },
       {
         path: "announcements",
@@ -111,6 +106,14 @@ const routes = [
       {
         path: "notifications",
         component: () => import("./pages/NotificationManagement.vue"),
+      },
+      {
+        path: "vehicles",
+        component: () => import("./pages/VehicleManagement.vue"),
+      },
+      {
+        path: "staff",
+        component: () => import("./pages/StaffManagement.vue"),
       },
       {
         path: "notification-form",

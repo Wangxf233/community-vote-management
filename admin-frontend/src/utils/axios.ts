@@ -15,19 +15,15 @@ interface ApiResponse<T = any> {
 // 创建axios实例
 // baseURL 优先读取 VITE_API_BASE_URL 环境变量（在 .env.production 中配置）
 // 未设置时：生产回退到 /api（需 CDN/反向代理同源），开发由 Vite proxy 代理到 localhost:3000
-const instance = axios.create({
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const instance: any = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || "/api",
   timeout: 30000,
-}) as AxiosInstance & {
-  get<T = any>(url: string, config?: any): Promise<T>;
-  post<T = any>(url: string, data?: any, config?: any): Promise<T>;
-  put<T = any>(url: string, data?: any, config?: any): Promise<T>;
-  delete<T = any>(url: string, config?: any): Promise<T>;
-};
+});
 
 // 请求拦截器
 instance.interceptors.request.use(
-  (config) => {
+  (config: any) => {
     // 从localStorage获取token（兼容两种键名）
     const token =
       localStorage.getItem("admin-token") || localStorage.getItem("adminToken");
@@ -36,18 +32,18 @@ instance.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
+  (error: any) => {
     return Promise.reject(error);
   },
 );
 
 // 响应拦截器
 instance.interceptors.response.use(
-  (response) => {
+  (response: any) => {
     // 直接返回 response.data，简化调用
     return response.data;
   },
-  (error) => {
+  (error: any) => {
     // 处理错误响应
     if (error.response) {
       const { status, data } = error.response;

@@ -255,8 +255,8 @@
               :action="uploadAction"
               :headers="uploadHeaders"
               :show-file-list="false"
-              :on-success="(res) => handleImageSuccess(res, 'planImage')"
-              :on-progress="(evt) => handleUploadProgress(evt, 'plan')"
+              :on-success="(res: any) => handleImageSuccess(res, 'planImage')"
+              :on-progress="(evt: any) => handleUploadProgress(evt, 'plan')"
               :before-upload="beforeImageUpload"
               :disabled="!isEditing"
             >
@@ -291,8 +291,8 @@
               :action="uploadAction"
               :headers="uploadHeaders"
               :show-file-list="false"
-              :on-success="(res) => handleImageSuccess(res, 'effectImage')"
-              :on-progress="(evt) => handleUploadProgress(evt, 'effect')"
+              :on-success="(res: any) => handleImageSuccess(res, 'effectImage')"
+              :on-progress="(evt: any) => handleUploadProgress(evt, 'effect')"
               :before-upload="beforeImageUpload"
               :disabled="!isEditing"
             >

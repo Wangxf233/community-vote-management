@@ -1,0 +1,12 @@
+npx lint-staged
+
+# 敏感密钥扫描 — 拦截含明文 token/password/secret/key 赋值的提交
+SECRETS=$(git diff --cached --name-only | xargs grep -l -E '(password|secret|token|key)\s*[:=]\s*["\x27][^"'\''"]{8,}["\x27]' 2>/dev/null)
+if [ -n "$SECRETS" ]; then
+  echo ""
+  echo "⚠️  WARNING: 检测到可能包含明文密钥的文件:"
+  echo "$SECRETS"
+  echo "请移除硬编码的密钥/密码/token 后再提交。"
+  echo "测试数据请使用 --no-verify 跳过此检查（不推荐）。"
+  exit 1
+fi

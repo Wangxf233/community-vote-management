@@ -169,7 +169,7 @@ router.get("/certification-applications", authMiddleware, async (req, res) => {
     const pageSize = parseInt(req.query.pageSize) || 20;
     const { name, district, building, unit, room, status } = req.query;
 
-    let query = { communityId: user.communityId };
+    const query = { communityId: user.communityId };
 
     // 只显示待审核和已拒绝的申请，不显示已通过和已删除的
     if (status && (status === "pending" || status === "rejected")) {

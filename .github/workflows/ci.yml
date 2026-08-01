@@ -1,0 +1,106 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ============================================================
+  # 管理后台 API — ESLint + 测试
+  # ============================================================
+  lint-admin:
+    name: Lint Admin API
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: admin/package-lock.json
+      - run: cd admin && npm ci
+      - run: cd admin && npm run lint
+
+  test-admin:
+    name: Test Admin API
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: admin/package-lock.json
+      - run: cd admin && npm ci
+      - run: cd admin && npm test
+
+  # ============================================================
+  # 管理后台前端 — ESLint + TypeScript 类型检查 + 测试 + 构建
+  # ============================================================
+  lint-frontend:
+    name: Lint Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: admin-frontend/package-lock.json
+      - run: cd admin-frontend && npm ci
+      - run: cd admin-frontend && npm run lint
+
+  typecheck-frontend:
+    name: TypeCheck Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: admin-frontend/package-lock.json
+      - run: cd admin-frontend && npm ci
+      - run: cd admin-frontend && npx vue-tsc --noEmit
+
+  test-frontend:
+    name: Test Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: admin-frontend/package-lock.json
+      - run: cd admin-frontend && npm ci
+      - run: cd admin-frontend && npm test
+
+  build-frontend:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: admin-frontend/package-lock.json
+      - run: cd admin-frontend && npm ci
+      - run: cd admin-frontend && npm run build
+
+  # ============================================================
+  # 后续添加：
+  # ============================================================
+  # test-cloudfunctions:
+  #   name: Test Cloud Functions
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - run: cd cloudfunctions/xxx && npm ci && npm test
+  #
+  # deploy-admin:
+  #   needs: [test-admin, lint-admin]
+  #   if: github.ref == 'refs/heads/main'
+  #   ...

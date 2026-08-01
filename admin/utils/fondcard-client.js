@@ -66,6 +66,15 @@ class FondcardClient {
     this.timeout = Number(
       options.timeout || process.env.FONDCARD_API_TIMEOUT_MS || 12000,
     );
+    // 厂商固定参数：优先构造函数传入 > 环境变量 > 默认值
+    this.defaultPlatform =
+      options.platform ||
+      process.env.FONDCARD_DEFAULT_PLATFORM ||
+      "antai";
+    this.defaultLoginId =
+      options.loginId ||
+      process.env.FONDCARD_DEFAULT_LOGIN_ID ||
+      "11609";
 
     if (!this.baseUrl) {
       throw new Error("missing_fondcard_api_base_url");
@@ -129,6 +138,70 @@ class FondcardClient {
 
   async mqttKeyUpdate(params) {
     return this.call("mqtt.key.update", params);
+  }
+
+  // ============================================================
+  // 新增方法（门禁管理功能）
+  // ============================================================
+
+  /**
+   * 删除厂商设备 — ?method=data.device.delete
+   * @param {object} params - { serial, password }
+   */
+  async deleteDevice(params) {
+    return this.call("data.device.delete", params);
+  }
+
+  /**
+   * 生成访客开门二维码 — ?method=qrcode.visitor.build
+   * @param {object} params - { deviceId, userId, visitLimit, visitDate }
+   *   deviceId: 厂商设备表ID（多个用半角逗号隔开）
+   *   userId: 登录用户ID（loginId）
+   *   visitLimit: 0-不限次 1-1次 2-2次
+   *   visitDate: 有效期 UTC秒
+   */
+  async buildVisitorQrCode(params) {
+    return this.call("qrcode.visitor.build", params);
+  }
+
+  /**
+   * 解绑管理用户下的设备 — ?method=data.login.device.delete
+   * @param {object} params - { loginId, password, serial }
+   */
+  async deleteLoginDevice(params) {
+    const payload = { ...params };
+    if (payload.password) {
+      payload.password = md5(payload.password);
+    }
+    return this.call("data.login.device.delete", payload);
+  }
+
+  /**
+   * 获取管理用户下的设备列表 — ?method=data.login.devices.get
+   * @param {object} params - { loginId, password, pageIndex?, pageSize?, serial? }
+   */
+  async getLoginDevices(params) {
+    const payload = { ...params };
+    if (payload.password) {
+      payload.password = md5(payload.password);
+    }
+    return this.call("data.login.devices.get", payload);
+  }
+
+  /**
+   * 删除用户 — ?method=data.user.delete
+   * @param {object} params - { serial, password }
+   */
+  async deleteUser(params) {
+    return this.call("data.user.delete", params);
+  }
+
+  /**
+   * 获取设备参数 — ?method=data.device.get
+   * @param {object} params - { serial, password }
+   */
+  async getDevice(params) {
+    return this.call("data.device.get", params);
   }
 }
 

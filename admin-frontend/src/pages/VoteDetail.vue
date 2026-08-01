@@ -418,8 +418,8 @@ async function exportToExcel() {
           }
 
           const imageId = workbook.addImage({
-            buffer: arrayBuffer,
-            extension: extension,
+            buffer: arrayBuffer as any,
+            extension: extension as "png" | "jpeg" | "gif",
           });
 
           // 设置行高以适应图片
@@ -481,8 +481,8 @@ async function exportToExcel() {
               }
 
               const imageId = workbook.addImage({
-                buffer: arrayBuffer,
-                extension: extension,
+                buffer: arrayBuffer as any,
+                extension: extension as "png" | "jpeg" | "gif",
               });
 
               propRow.height = 60;

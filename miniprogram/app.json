@@ -27,10 +27,11 @@
     "pages/profile-settings/index",
     "pages/switch-community/index",
     "pages/family-verify/index",
-    "pages/login/index",
     "pages/owner-verify/index",
-    "pages/select-identity/index",
     "pages/door/index"
+    ,"pages/movecar/index"
+    ,"pages/staff-register/index"
+    ,"pages/staff-movecar/index"
   ],
   "window": {
     "backgroundTextStyle": "light",
@@ -46,13 +47,13 @@
     "list": [
       {
         "pagePath": "pages/service/index",
-        "text": "物业服务",
+        "text": "服务",
         "iconPath": "images/service.png",
         "selectedIconPath": "images/service-active.png"
       },
       {
         "pagePath": "pages/information/index",
-        "text": "通知公告",
+        "text": "通知",
         "iconPath": "images/notification.png",
         "selectedIconPath": "images/notification-active.png"
       },
@@ -61,6 +62,12 @@
         "text": "开门",
         "iconPath": "images/door.png",
         "selectedIconPath": "images/door-active.png"
+      },
+      {
+        "pagePath": "pages/movecar/index",
+        "text": "挪车",
+        "iconPath": "images/movecar.png",
+        "selectedIconPath": "images/movecar-active.png"
       },
       {
         "pagePath": "pages/profile/index",

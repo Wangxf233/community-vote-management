@@ -834,9 +834,9 @@ const handlePreviewVideo = (videoUrl: string) => {
 };
 
 // 预览图片
-const handlePreviewImages = (images: string[], index: number) => {
+const handlePreviewImages = (images: string[], index: number | string) => {
   previewImages.value = images;
-  currentImageIndex.value = index;
+  currentImageIndex.value = Number(index);
   imagePreviewVisible.value = true;
 };
 

@@ -1,0 +1,178 @@
+<wxs module="mask">
+var maskName = function(name) {
+  if (!name) return '';
+  if (name.length === 1) return name;
+  if (name.length === 2) return name.substring(0, 1) + '*';
+  return name.substring(0, 1) + '**';
+};
+module.exports = {
+  maskName: maskName
+};
+</wxs>
+
+<view class="movecar-page">
+  <!-- 标题区域 -->
+  <view class="header-card">
+    <text class="header-title">挪车</text>
+    <text class="header-subtitle">输入车牌号查询车主联系电话</text>
+  </view>
+
+  <!-- 车牌号输入展示区 (8位输入框) -->
+  <view class="plate-input-area">
+    <view class="plate-label">请输入车牌号</view>
+    <view class="plate-slots">
+      <view
+        class="plate-slot {{index === currentIndex ? 'slot-active' : ''}} {{index < plateChars.length ? 'slot-filled' : ''}}"
+        wx:for="{{[0,1,2,3,4,5,6,7]}}"
+        wx:key="*this"
+        wx:for-item="index"
+      >
+        <text>{{plateChars[index] || ''}}</text>
+      </view>
+    </view>
+    <view class="plate-hint" wx:if="{{plateChars.length === 0}}">点击下方键盘选择，最多8位</view>
+    <view class="plate-hint" wx:elif="{{plateChars.length < 8}}">已输入{{plateChars.length}}位，还可输入{{8 - plateChars.length}}位</view>
+    <view class="plate-hint full" wx:else>已输入8位，点击「确认查询」开始查询</view>
+  </view>
+
+  <!-- 键盘区域 -->
+  <view class="keyboard-area">
+    <!-- 第一步：省份简称（currentIndex === 0 时显示） -->
+    <view class="keyboard-section" wx:if="{{currentIndex === 0}}">
+      <view class="section-title">选择省份简称</view>
+      <view class="key-grid">
+        <view
+          class="key-btn province-btn"
+          wx:for="{{provinces}}"
+          wx:key="*this"
+          wx:for-item="province"
+          bindtap="onProvince"
+          data-v="{{province}}"
+        >{{province}}</view>
+      </view>
+    </view>
+
+    <!-- 第二步：大写字母（currentIndex === 1 时显示，第二位必须是字母） -->
+    <view class="keyboard-section" wx:elif="{{currentIndex === 1}}">
+      <view class="section-title">选择字母（第2位）</view>
+      <view class="key-grid">
+        <view
+          class="key-btn letter-btn"
+          wx:for="{{letters}}"
+          wx:key="*this"
+          wx:for-item="letter"
+          bindtap="onLetter"
+          data-v="{{letter}}"
+        >{{letter}}</view>
+      </view>
+    </view>
+
+    <!-- 第三步：数字+字母混合（currentIndex >= 2 时显示） -->
+    <view class="keyboard-section" wx:else>
+      <view class="section-title">选择数字 / 字母（第{{currentIndex + 1}}位）</view>
+      <view class="key-grid">
+        <view
+          class="key-btn mixed-btn {{item >= '0' && item <= '9' ? 'number-btn' : ''}}"
+          wx:for="{{mixed}}"
+          wx:key="*this"
+          wx:for-item="item"
+          bindtap="onMixed"
+          data-v="{{item}}"
+        >{{item}}</view>
+      </view>
+    </view>
+
+    <!-- 操作按钮区 -->
+    <view class="action-row">
+      <view class="key-btn action-btn delete-btn" bindtap="onDelete">
+        <text class="action-icon">⌫</text>
+        <text>退格</text>
+      </view>
+      <view class="key-btn action-btn clear-btn" bindtap="onClear">
+        <text class="action-icon">✕</text>
+        <text>清空</text>
+      </view>
+    </view>
+
+    <!-- 确认查询按钮 -->
+    <button class="confirm-btn" bindtap="onConfirm" loading="{{loading}}" disabled="{{plateChars.length === 0}}">
+      确认查询
+    </button>
+  </view>
+
+  <!-- 查询结果区域 — 工作人员：全部信息 -->
+  <view class="result-area" wx:if="{{queryResult && queryResult.isStaff}}">
+    <view class="result-card">
+      <view class="result-title">车辆信息（工作人员）</view>
+
+      <view class="result-row" wx:if="{{queryResult.vehicleType}}">
+        <text class="result-label">车辆类型</text>
+        <text class="result-value">{{queryResult.vehicleType}}</text>
+      </view>
+
+      <view class="result-row">
+        <text class="result-label">车牌号</text>
+        <text class="result-value plate-number">{{queryResult.plateNumber}}</text>
+      </view>
+
+      <view class="result-row" wx:if="{{queryResult.ownerName}}">
+        <text class="result-label">车主姓名</text>
+        <text class="result-value">{{mask.maskName(queryResult.ownerName)}}</text>
+      </view>
+
+      <view class="result-row" wx:if="{{queryResult.ownerPhone}}">
+        <text class="result-label">车主电话</text>
+        <text class="result-value phone-value">{{queryResult.ownerPhone}}</text>
+      </view>
+
+      <view class="result-row" wx:if="{{queryResult.parkingFee}}">
+        <text class="result-label">车位费</text>
+        <text class="result-value">{{queryResult.parkingFee}}</text>
+      </view>
+
+      <view class="result-row" wx:if="{{queryResult.parkingSpot}}">
+        <text class="result-label">车位编号</text>
+        <text class="result-value">{{queryResult.parkingSpot}}</text>
+      </view>
+
+      <view class="result-row" wx:if="{{queryResult.startDate || queryResult.endDate}}">
+        <text class="result-label">有效日期</text>
+        <text class="result-value">{{queryResult.startDate || '-'}} ~ {{queryResult.endDate || '-'}}</text>
+      </view>
+
+      <view class="result-row" wx:if="{{queryResult.building || queryResult.unit || queryResult.room}}">
+        <text class="result-label">栋单元房号</text>
+        <text class="result-value">{{queryResult.building || ''}}{{queryResult.unit ? '-' + queryResult.unit : ''}}{{queryResult.room ? '-' + queryResult.room : ''}}</text>
+      </view>
+
+      <view class="result-row" wx:if="{{queryResult.remark}}">
+        <text class="result-label">备注</text>
+        <text class="result-value remark-value">{{queryResult.remark}}</text>
+      </view>
+
+      <button class="call-btn" bindtap="onCallOwner" wx:if="{{queryResult.ownerPhone}}">
+        联系车主挪车 ☎
+      </button>
+    </view>
+  </view>
+
+  <!-- 查询结果区域 — 普通用户：仅显示电话 -->
+  <view class="result-area" wx:if="{{queryResult && !queryResult.isStaff}}">
+    <view class="result-card simple-result">
+      <view class="result-row">
+        <text class="result-label">车牌号</text>
+        <text class="result-value plate-number">{{queryResult.plateNumber}}</text>
+      </view>
+      <view class="result-row" wx:if="{{queryResult.ownerPhone}}">
+        <text class="result-label">联系电话</text>
+        <text class="result-value phone-value">{{queryResult.ownerPhone}}</text>
+      </view>
+      <view class="result-tip">点击下方按钮直接拨打车主电话</view>
+      <button class="call-btn" bindtap="onCallOwner" wx:if="{{queryResult.ownerPhone}}">
+        联系车主挪车 ☎
+      </button>
+    </view>
+  </view>
+</view>
+
+<guest-tip></guest-tip>

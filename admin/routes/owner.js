@@ -32,7 +32,7 @@ router.get("/owner-registry", async (req, res) => {
     } = req.query;
 
     // 构建查询条件
-    let query = { communityId: user.communityId };
+    const query = { communityId: user.communityId };
     if (name) query.ownerName1 = new RegExp(name, "i");
     if (district) query.district = district;
     if (building) query.building = building;
@@ -476,7 +476,7 @@ router.get("/owner-list", async (req, res) => {
     const { name, district, building, unit, room, carNumber, realNameStatus } =
       req.query;
 
-    let query = { communityId: user.communityId };
+    const query = { communityId: user.communityId };
     if (name) query.name = new RegExp(name, "i");
     if (district) query.district = district;
     if (building) query.building = building;

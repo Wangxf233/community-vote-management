@@ -209,7 +209,7 @@ router.put(
         .limit(1)
         .get();
 
-      let user = ures?.data?.[0];
+      const user = ures?.data?.[0];
 
       // 如果不存在主管理员，创建一个
       if (!user) {

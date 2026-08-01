@@ -38,9 +38,10 @@ function isCommunityGate(device) {
   return !buildUnitKey(device.building, device.unit);
 }
 
-async function buildPermissionSet(communityId, certList) {
+async function buildPermissionSet(communityId, certList, openid) {
   const unitKeySet = new Set();
   const ownerOpenids = new Set();
+  const permittedDeviceIds = new Set(); // 新增：单独授权的设备
 
   for (const cert of certList || []) {
     const unitKey = buildUnitKey(cert.building, cert.unit);
@@ -52,26 +53,39 @@ async function buildPermissionSet(communityId, certList) {
     }
   }
 
+  // 合并当前用户 openid + 家属户主 openid，一起查权限
+  const checkOpenids = [...ownerOpenids, openid].filter(Boolean);
+  const uniqueOpenids = [...new Set(checkOpenids)];
+
+  // 查询户主的认证信息（获取户主 unitKey）
   const ownerList = Array.from(ownerOpenids);
   if (ownerList.length) {
-    const ownerRes = await db
+    // 拉取全部认证记录，内存匹配避开 _.in
+    const allCerts = await db
       .collection("certification_applications")
-      .where({
-        communityId,
-        status: "approved",
-        openid: _.in(ownerList),
-      })
+      .where({ communityId, status: "approved" })
       .get();
-
-    for (const ownerCert of ownerRes.data || []) {
-      const ownerUnitKey = buildUnitKey(ownerCert.building, ownerCert.unit);
-      if (ownerUnitKey) {
-        unitKeySet.add(ownerUnitKey);
+    for (const ownerCert of allCerts.data || []) {
+      if (ownerList.includes(ownerCert.openid)) {
+        const ownerUnitKey = buildUnitKey(ownerCert.building, ownerCert.unit);
+        if (ownerUnitKey) unitKeySet.add(ownerUnitKey);
       }
     }
   }
 
-  return unitKeySet;
+  // 直接读取各设备的 grantedOwnerOpenids 数组做内存匹配
+  const devicesRes = await db
+    .collection("door_devices")
+    .where({ communityId, enabled: true })
+    .get();
+  for (const device of devicesRes.data || []) {
+    const openids = device.grantedOwnerOpenids || [];
+    if (openids.some((oid) => uniqueOpenids.includes(oid))) {
+      permittedDeviceIds.add(device._id);
+    }
+  }
+
+  return { unitKeySet, permittedDeviceIds };
 }
 
 exports.main = async () => {
@@ -117,7 +131,7 @@ exports.main = async () => {
     const certInCommunity = (certRes.data || []).filter(
       (item) => item.communityId === communityId,
     );
-    const unitKeySet = await buildPermissionSet(communityId, certInCommunity);
+    const { unitKeySet, permittedDeviceIds } = await buildPermissionSet(communityId, certInCommunity, openid);
 
     // 检查小区是否已开启门禁功能
     const communityRes = await db
@@ -149,15 +163,29 @@ exports.main = async () => {
 
     const devices = (devicesRes.data || [])
       .filter((item) => {
+        // 指定业主可用模式：仅 door_device_permissions 中明确授权的用户可见
+        if (item.permissionMode === "specified_owners") {
+          return permittedDeviceIds.has(item._id);
+        }
+        // all_owners 模式：大门门禁所有认证用户可见
         if (isCommunityGate(item)) {
           return true;
         }
+        // all_owners 模式：单元门禁匹配 unitKeySet（同楼栋单元用户可见）
         const unitKey = buildUnitKey(item.building, item.unit);
-        return !!unitKey && unitKeySet.has(unitKey);
+        if (!!unitKey && unitKeySet.has(unitKey)) {
+          return true;
+        }
+        // 单独授权的设备（额外权限）
+        if (permittedDeviceIds.has(item._id)) {
+          return true;
+        }
+        return false;
       })
       .map((item) => ({
         id: item._id,
         deviceName: item.deviceName || "未命名门禁",
+        vendorId: item.vendorId || "",
         serial: item.serial,
         location: item.location || "",
         locationType: item.locationType || "community_gate",

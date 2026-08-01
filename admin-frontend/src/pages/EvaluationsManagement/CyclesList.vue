@@ -475,8 +475,8 @@ const addDimension = () => {
 };
 
 // 删除维度
-const removeDimension = (index: number) => {
-  formData.dimensions.splice(index, 1);
+const removeDimension = (index: number | string) => {
+  formData.dimensions.splice(Number(index), 1);
 };
 
 // 关闭对话框

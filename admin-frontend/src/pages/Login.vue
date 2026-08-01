@@ -77,10 +77,11 @@ async function onLogin() {
   } catch (e) {
     console.error(e);
     // 处理小区到期的特殊错误
-    if (e?.response?.data?.error === "community_expired") {
+    const err = e as any;
+    if (err?.response?.data?.error === "community_expired") {
       ElMessage.error({
         message:
-          e.response.data.message ||
+          err.response.data.message ||
           "该小区服务已到期，请尽快联系管理员续费以继续使用",
         duration: 5000,
       });

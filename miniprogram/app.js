@@ -11,6 +11,15 @@ App({
       });
     }
 
+    // 同步检查：如果本地标记为工作人员，立即跳转，不初始化 Tab
+    const isStaffApproved = wx.getStorageSync("isStaffApproved");
+    if (isStaffApproved) {
+      wx.reLaunch({ url: "/pages/staff-movecar/index" });
+      // 异步验证身份是否仍有效
+      this.verifyStaffStatusAsync();
+      return;
+    }
+
     // 静默登录并检查绑定状态
     this.silentLogin();
   },
@@ -28,6 +37,8 @@ App({
     bindingStatus: "none", // none, guest, pending, approved, rejected
     bindingInfo: null,
     communityId: null, // 社区ID
+    isStaff: false,        // 是否是审核通过的工作人员
+    staffInfo: null,       // 工作人员信息
     cloudImages: cloudImages, // 云存储图片配置
   },
 
@@ -68,6 +79,13 @@ App({
         const binding = res.result.binding;
 
         if (binding) {
+          // 先检查工作人员身份 — 如果是工作人员，优先跳转
+          const isStaffApproved = await this.checkStaffStatusOnly();
+          if (isStaffApproved) {
+            wx.reLaunch({ url: "/pages/staff-movecar/index" });
+            return;
+          }
+
           // 有绑定记录，更新状态
           this.globalData.bindingStatus = binding.status;
           this.globalData.bindingInfo = binding;
@@ -80,7 +98,14 @@ App({
             this.checkUnreadAnnouncements();
           }
         } else {
-          // 无绑定记录，检查是否是游客模式
+          // 无绑定记录，先检查是否是审核通过的工作人员
+          const isStaffApproved = await this.checkStaffStatusOnly();
+          if (isStaffApproved) {
+            wx.reLaunch({ url: "/pages/staff-movecar/index" });
+            return;
+          }
+
+          // 检查是否是游客模式
           if (localStatus === "guest") {
             this.globalData.bindingStatus = "guest";
           } else {
@@ -92,7 +117,6 @@ App({
             wx.reLaunch({
               url: "/pages/welcome/index",
             });
-            // 跳转成功后再标记已看过
             wx.setStorageSync("hasSeenWelcome", true);
           }
         }
@@ -166,6 +190,40 @@ App({
       console.error("检查未读公告失败:", err);
     }
   },
+
+  // 仅查询工作人员状态，不做跳转（返回 boolean）
+  async checkStaffStatusOnly() {
+    try {
+      const res = await wx.cloud.callFunction({
+        name: "getMyStaffStatus",
+        data: {},
+      });
+      if (res.result && res.result.success && res.result.data) {
+        if (res.result.data.isApproved) {
+          this.globalData.isStaff = true;
+          this.globalData.staffInfo = res.result.data.approvedStaff;
+          wx.setStorageSync("isStaffApproved", true);
+          return true;
+        }
+      }
+    } catch (err) {
+      console.error("检查工作人员状态失败:", err);
+    }
+    return false;
+  },
+
+  // 异步验证工作人员身份是否仍有效（用于 onLaunch 提前跳转后的校验）
+  async verifyStaffStatusAsync() {
+    const isApproved = await this.checkStaffStatusOnly();
+    if (!isApproved) {
+      // 身份已被撤销 → 清标记 → 回欢迎页
+      wx.removeStorageSync("isStaffApproved");
+      this.globalData.isStaff = false;
+      this.globalData.staffInfo = null;
+      wx.reLaunch({ url: "/pages/welcome/index" });
+    }
+  },
+
 
   // 检查权限
   checkUserPermission(requiredStatus = "approved") {

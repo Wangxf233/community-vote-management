@@ -1,0 +1,115 @@
+<view class="query-container">
+  <!-- 车牌号输入区域 -->
+  <view class="plate-input-area">
+    <view class="plate-label">请输入车牌号</view>
+    <view class="plate-display">
+      <view
+        wx:for="{{8}}"
+        wx:key="index"
+        class="plate-box {{index === currentIndex ? 'active' : ''}} {{index < plateChars.length ? 'filled' : ''}}"
+      >
+        <text>{{index < plateChars.length ? plateChars[index] : ''}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 键盘区域 -->
+  <view class="keyboard-area">
+    <!-- 第一步：省份简称（currentIndex === 0 时显示） -->
+    <view class="key-section" wx:if="{{currentIndex === 0}}">
+      <view class="key-section-title">选择省份简称</view>
+      <view class="key-grid province-grid">
+        <view
+          wx:for="{{provinces}}"
+          wx:key="index"
+          class="key-btn province-btn"
+          data-v="{{item}}"
+          bindtap="onProvince"
+        >{{item}}</view>
+      </view>
+    </view>
+
+    <!-- 第二步：大写字母（currentIndex === 1 时显示，第二位必须是字母） -->
+    <view class="key-section" wx:elif="{{currentIndex === 1}}">
+      <view class="key-section-title">选择字母（第2位）</view>
+      <view class="key-grid letter-grid">
+        <view
+          wx:for="{{letters}}"
+          wx:key="index"
+          class="key-btn letter-btn"
+          data-v="{{item}}"
+          bindtap="onLetter"
+        >{{item}}</view>
+      </view>
+    </view>
+
+    <!-- 第三步：数字+字母混合（currentIndex >= 2 时显示） -->
+    <view class="key-section" wx:else>
+      <view class="key-section-title">选择数字/字母（第{{currentIndex + 1}}位）</view>
+      <view class="key-grid mixed-grid">
+        <view
+          wx:for="{{mixed}}"
+          wx:key="index"
+          class="key-btn {{index < 10 ? 'number-btn' : 'letter-btn'}}"
+          data-v="{{item}}"
+          bindtap="onMixed"
+        >{{item}}</view>
+      </view>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="key-actions">
+      <view class="key-btn action-btn delete-btn" bindtap="onDelete">退格删除</view>
+      <view class="key-btn action-btn clear-btn" bindtap="onClear">清空</view>
+    </view>
+  </view>
+
+  <!-- 确认查询按钮 -->
+  <button class="confirm-btn" bindtap="onConfirm" loading="{{loading}}" disabled="{{loading}}">
+    确认查询
+  </button>
+
+  <!-- 查询结果 -->
+  <view class="result-card" wx:if="{{queryResult}}">
+    <view class="result-title">车辆信息（工作人员视图）</view>
+    <view class="result-item">
+      <text class="result-label">车辆类型</text>
+      <text class="result-value">{{queryResult.vehicleType || '-'}}</text>
+    </view>
+    <view class="result-item">
+      <text class="result-label">车牌号</text>
+      <text class="result-value highlight">{{queryResult.plateNumber}}</text>
+    </view>
+    <view class="result-item">
+      <text class="result-label">车主姓名</text>
+      <text class="result-value">{{queryResult.ownerName || '-'}}</text>
+    </view>
+    <view class="result-item">
+      <text class="result-label">车主电话</text>
+      <text class="result-value highlight">{{queryResult.ownerPhone}}</text>
+    </view>
+    <view class="result-item">
+      <text class="result-label">车位费</text>
+      <text class="result-value">{{queryResult.parkingFee || '-'}}</text>
+    </view>
+    <view class="result-item">
+      <text class="result-label">车位编号</text>
+      <text class="result-value">{{queryResult.parkingSpot || '-'}}</text>
+    </view>
+    <view class="result-item">
+      <text class="result-label">有效日期</text>
+      <text class="result-value">{{queryResult.startDate || '-'}} ~ {{queryResult.endDate || '-'}}</text>
+    </view>
+    <view class="result-item">
+      <text class="result-label">栋单元房号</text>
+      <text class="result-value">{{queryResult.building || ''}}{{queryResult.unit ? '-' + queryResult.unit : ''}}{{queryResult.room ? '-' + queryResult.room : ''}}</text>
+    </view>
+    <view class="result-item">
+      <text class="result-label">备注</text>
+      <text class="result-value">{{queryResult.remark || '-'}}</text>
+    </view>
+    <view class="result-tip">※ 工作人员视图 — 全部信息明文展示</view>
+  </view>
+</view>
+
+<guest-tip></guest-tip>

@@ -320,6 +320,7 @@ const editForm = reactive({
   phone: "",
   building: "",
   unit: "",
+  block: "",
   room: "",
   residentialArea: 0,
   commercialArea: 0,
