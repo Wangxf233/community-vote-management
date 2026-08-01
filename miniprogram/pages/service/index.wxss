@@ -10,7 +10,7 @@
 /* 广告轮播 */
 .ad-swiper {
   width: 100%;
-  height: 300rpx;
+  height: 350rpx;
   flex-shrink: 0;
   border-radius: 0 0 30rpx 30rpx;
   overflow: hidden;

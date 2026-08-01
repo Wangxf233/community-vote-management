@@ -102,32 +102,29 @@
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="200" fixed="right">
+          <el-table-column label="操作" width="240" fixed="right">
             <template #default="{ row }">
               <el-button
                 type="primary"
                 size="small"
-                link
                 @click="handleEdit(row)"
               >
                 修改
               </el-button>
               <el-button
-                type="danger"
-                size="small"
-                link
-                @click="handleDelete(row)"
-              >
-                删除
-              </el-button>
-              <el-button
                 v-if="row.status === 'pending'"
                 type="success"
                 size="small"
-                link
                 @click="handleApprove(row)"
               >
                 审核
+              </el-button>
+              <el-button
+                type="danger"
+                size="small"
+                @click="handleDelete(row)"
+              >
+                删除
               </el-button>
             </template>
           </el-table-column>

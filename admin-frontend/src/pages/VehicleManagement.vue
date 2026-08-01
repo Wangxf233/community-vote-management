@@ -86,28 +86,24 @@
           </el-table-column>
           <el-table-column prop="parkingFee" label="车位费" width="100" align="right" />
           <el-table-column prop="parkingSpot" label="车位编号" min-width="120" />
-          <el-table-column label="有效开始日期" width="120">
+          <el-table-column prop="startDate" label="有效开始日期" width="120">
             <template #default="{ row }">
-              {{ formatDate(row.startDate) }}
+              {{ row.startDate || '-' }}
             </template>
           </el-table-column>
-          <el-table-column label="有效结束日期" width="120">
+          <el-table-column prop="endDate" label="有效结束日期" width="120">
             <template #default="{ row }">
-              {{ formatDate(row.endDate) }}
+              {{ row.endDate || '-' }}
             </template>
           </el-table-column>
-          <el-table-column label="栋单元房号" min-width="140">
-            <template #default="{ row }">
-              {{ [row.building, row.unit, row.room].filter(Boolean).join('-') || '-' }}
-            </template>
-          </el-table-column>
+          <el-table-column prop="building" label="栋单元房号" min-width="140" show-overflow-tooltip />
           <el-table-column prop="remark" label="备注" min-width="180" show-overflow-tooltip />
-          <el-table-column label="操作" width="160" fixed="right">
+          <el-table-column label="操作" width="180" fixed="right">
             <template #default="{ row }">
-              <el-button type="primary" size="small" link @click="handleEdit(row)">
+              <el-button type="primary" size="small" @click="handleEdit(row)">
                 修改
               </el-button>
-              <el-button type="danger" size="small" link @click="handleDelete(row)">
+              <el-button type="danger" size="small" @click="handleDelete(row)">
                 删除
               </el-button>
             </template>
@@ -197,19 +193,9 @@
           </el-col>
         </el-row>
         <el-row :gutter="16">
-          <el-col :span="8">
-            <el-form-item label="栋" prop="building">
-              <el-input v-model="form.building" placeholder="楼栋" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="单元" prop="unit">
-              <el-input v-model="form.unit" placeholder="单元" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="房号" prop="room">
-              <el-input v-model="form.room" placeholder="房号" />
+          <el-col :span="24">
+            <el-form-item label="栋单元房号" prop="building">
+              <el-input v-model="form.building" placeholder="请输入栋单元房号，如 15-1-602" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -345,8 +331,6 @@ const initForm = () => ({
   startDate: "",
   endDate: "",
   building: "",
-  unit: "",
-  room: "",
   remark: "",
 });
 
@@ -377,11 +361,9 @@ function handleEdit(row: any) {
     ownerPhone: row.ownerPhone || "",
     parkingFee: row.parkingFee ?? "",
     parkingSpot: row.parkingSpot || "",
-    startDate: row.startDate || "",
-    endDate: row.endDate || "",
+    startDate: row.startDate ? formatDate(row.startDate) : "",
+    endDate: row.endDate ? formatDate(row.endDate) : "",
     building: row.building || "",
-    unit: row.unit || "",
-    room: row.room || "",
     remark: row.remark || "",
   });
   dialogVisible.value = true;
@@ -446,7 +428,7 @@ async function handleBatchDelete() {
 
 // --- 导出模板 ---
 function handleExportTemplate() {
-  window.open(`/api/vehicles/template?communityId=${encodeURIComponent(communityId)}`);
+  window.open(`/api/vehicles/template?communityId=${encodeURIComponent(communityId)}&token=${encodeURIComponent(token)}`);
 }
 
 // --- 导出 Excel ---

@@ -1,0 +1,9 @@
+{
+  "name": "staffQueryVehicle",
+  "version": "1.0.0",
+  "description": "工作人员车辆查询",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

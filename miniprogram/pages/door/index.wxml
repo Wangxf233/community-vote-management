@@ -12,13 +12,20 @@
     <text>您的认证未通过，请重新提交后使用开门功能</text>
   </view>
 
-  <view class="status-banner guest" wx:if="{{bindingStatus === 'guest' || bindingStatus === 'none'}}">
-    <text>请先完成业主认证后再使用小区开门</text>
-    <button class="bind-btn" size="mini" bindtap="goBind">去认证</button>
-  </view>
-
   <view class="loading-wrap" wx:if="{{loading}}">
     <text>正在加载门禁设备...</text>
+  </view>
+
+  <!-- 游客模式：展示示例门禁卡片 -->
+  <view class="device-list" wx:if="{{bindingStatus === 'guest'}}">
+    <view class="device-item demo">
+      <view class="device-main">
+        <text class="device-name">小区大门（示例）</text>
+        <text class="device-location">小区主入口</text>
+        <text class="device-serial">门禁编号: DEMO-001</text>
+      </view>
+      <button class="open-btn" type="primary" disabled>开门</button>
+    </view>
   </view>
 
   <view class="empty-wrap" wx:if="{{!loading && devices.length === 0 && canUse}}">
@@ -46,3 +53,5 @@
     </view>
   </view>
 </view>
+
+<guest-tip></guest-tip>

@@ -1,0 +1,374 @@
+/* 挪车页面样式 */
+
+.movecar-page {
+  min-height: 100vh;
+  padding: 24rpx;
+  background: #f5f7fb;
+  box-sizing: border-box;
+}
+
+/* ========== 标题卡片 ========== */
+.header-card {
+  padding: 28rpx;
+  border-radius: 20rpx;
+  background: linear-gradient(135deg, #1aad19, #22c55e);
+  color: #ffffff;
+  margin-bottom: 24rpx;
+}
+
+.header-title {
+  display: block;
+  font-size: 38rpx;
+  font-weight: 700;
+}
+
+.header-subtitle {
+  display: block;
+  font-size: 24rpx;
+  opacity: 0.95;
+  margin-top: 8rpx;
+}
+
+/* ========== 车牌输入展示区 ========== */
+.plate-input-area {
+  background: #ffffff;
+  border-radius: 16rpx;
+  padding: 28rpx 20rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+  text-align: center;
+}
+
+.plate-label {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 600;
+  margin-bottom: 20rpx;
+}
+
+.plate-slots {
+  display: flex;
+  justify-content: center;
+  gap: 12rpx;
+}
+
+.plate-slot {
+  width: 70rpx;
+  height: 70rpx;
+  border: 2rpx solid #d0d5dd;
+  border-radius: 10rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1f2937;
+  background: #fafbfc;
+  transition: all 0.2s ease;
+}
+
+.plate-slot.slot-active {
+  border-color: #1890ff;
+  border-width: 3rpx;
+  background: #e6f7ff;
+  box-shadow: 0 0 0 4rpx rgba(24, 144, 255, 0.12);
+}
+
+.plate-slot.slot-filled {
+  border-color: #52c41a;
+  background: #f6ffed;
+  color: #1f2937;
+}
+
+.plate-hint {
+  font-size: 22rpx;
+  color: #9ca3af;
+  margin-top: 16rpx;
+}
+
+.plate-hint.full {
+  color: #52c41a;
+  font-weight: 500;
+}
+
+/* ========== 键盘区域 ========== */
+.keyboard-area {
+  background: #f5f5f5;
+  border-radius: 16rpx;
+  padding: 16rpx;
+  margin-bottom: 24rpx;
+}
+
+.keyboard-section {
+  margin-bottom: 16rpx;
+}
+
+.keyboard-section:last-of-type {
+  margin-bottom: 12rpx;
+}
+
+.section-title {
+  font-size: 24rpx;
+  color: #8c8c8c;
+  margin-bottom: 10rpx;
+  padding-left: 6rpx;
+  font-weight: 500;
+}
+
+.key-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* ========== 键盘按键基础样式 ========== */
+.key-btn {
+  width: 82rpx;
+  height: 72rpx;
+  margin: 4rpx;
+  border-radius: 10rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 30rpx;
+  font-weight: 600;
+  background: #ffffff;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.key-btn:active {
+  transform: scale(0.94);
+  opacity: 0.85;
+}
+
+/* 省份按键：蓝色边框 */
+.key-btn.province-btn {
+  border: 2rpx solid #1890ff;
+  color: #1890ff;
+  background: #f0f7ff;
+}
+
+.key-btn.province-btn:active {
+  background: #bae0ff;
+}
+
+/* 字母按键：灰色边框 */
+.key-btn.letter-btn {
+  border: 2rpx solid #d9d9d9;
+  color: #595959;
+}
+
+.key-btn.letter-btn:active {
+  background: #f0f0f0;
+}
+
+/* 混合按键：灰色边框 */
+.key-btn.mixed-btn {
+  border: 2rpx solid #d9d9d9;
+  color: #595959;
+}
+
+.key-btn.mixed-btn.number-btn {
+  color: #1f2937;
+  font-weight: 700;
+}
+
+.key-btn.mixed-btn:active {
+  background: #f0f0f0;
+}
+
+/* ========== 操作按钮区 ========== */
+.action-row {
+  display: flex;
+  justify-content: center;
+  gap: 20rpx;
+  margin-top: 12rpx;
+  margin-bottom: 16rpx;
+}
+
+.key-btn.action-btn {
+  width: 180rpx;
+  height: 72rpx;
+  border-radius: 12rpx;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 6rpx;
+  font-size: 26rpx;
+  font-weight: 500;
+}
+
+.action-icon {
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.key-btn.delete-btn {
+  border: 2rpx solid #ff4d4f;
+  color: #ff4d4f;
+  background: #fff2f0;
+}
+
+.key-btn.delete-btn:active {
+  background: #ffd8d5;
+}
+
+.key-btn.clear-btn {
+  border: 2rpx solid #fa8c16;
+  color: #fa8c16;
+  background: #fff7e6;
+}
+
+.key-btn.clear-btn:active {
+  background: #ffe7ba;
+}
+
+/* ========== 确认查询按钮 ========== */
+.confirm-btn {
+  width: 100%;
+  height: 88rpx;
+  line-height: 88rpx;
+  border-radius: 16rpx;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #ffffff;
+  background: linear-gradient(135deg, #1aad19, #22c55e);
+  border: none;
+  padding: 0;
+  letter-spacing: 4rpx;
+  box-shadow: 0 6rpx 20rpx rgba(26, 173, 25, 0.3);
+}
+
+.confirm-btn:active {
+  opacity: 0.9;
+}
+
+.confirm-btn[disabled] {
+  background: #d9d9d9;
+  color: #8c8c8c;
+  box-shadow: none;
+}
+
+.confirm-btn.button-loading {
+  background: #b7eb8f;
+}
+
+/* ========== 查询结果区域 ========== */
+.result-area {
+  margin-top: 8rpx;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(16rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.result-card {
+  background: #ffffff;
+  border-radius: 20rpx;
+  padding: 28rpx;
+  box-shadow: 0 8rpx 28rpx rgba(0, 0, 0, 0.08);
+}
+
+.result-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 24rpx;
+  padding-bottom: 18rpx;
+  border-bottom: 2rpx solid #f0f0f0;
+  text-align: center;
+}
+
+.result-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14rpx 0;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+
+.result-row:last-of-type {
+  border-bottom: none;
+}
+
+.result-label {
+  font-size: 26rpx;
+  color: #8c8c8c;
+  flex-shrink: 0;
+  margin-right: 20rpx;
+}
+
+.result-value {
+  font-size: 28rpx;
+  color: #1f2937;
+  font-weight: 500;
+  text-align: right;
+  word-break: break-all;
+}
+
+.result-value.plate-number {
+  font-weight: 700;
+  color: #1890ff;
+  font-size: 30rpx;
+  letter-spacing: 2rpx;
+}
+
+.result-value.phone-value {
+  color: #595959;
+}
+
+.result-value.remark-value {
+  color: #fa8c16;
+  font-style: italic;
+}
+
+/* 联系车主按钮 */
+.call-btn {
+  width: 100%;
+  height: 88rpx;
+  line-height: 88rpx;
+  border-radius: 16rpx;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #ffffff;
+  background: linear-gradient(135deg, #1aad19, #22c55e);
+  border: none;
+  padding: 0;
+  margin-top: 24rpx;
+  letter-spacing: 4rpx;
+  box-shadow: 0 6rpx 20rpx rgba(26, 173, 25, 0.3);
+}
+
+.call-btn:active {
+  opacity: 0.9;
+}
+
+/* 普通用户简洁结果卡 */
+.simple-result {
+  text-align: center;
+}
+
+.result-icon {
+  font-size: 80rpx;
+  text-align: center;
+  margin-bottom: 16rpx;
+}
+
+.result-tip {
+  font-size: 24rpx;
+  color: #999;
+  text-align: center;
+  margin-top: 16rpx;
+}

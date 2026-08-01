@@ -100,10 +100,10 @@ module.exports = {
     </button>
   </view>
 
-  <!-- 查询结果区域 -->
-  <view class="result-area" wx:if="{{queryResult}}">
+  <!-- 查询结果区域 — 工作人员：全部信息 -->
+  <view class="result-area" wx:if="{{queryResult && queryResult.isStaff}}">
     <view class="result-card">
-      <view class="result-title">车辆信息</view>
+      <view class="result-title">车辆信息（工作人员）</view>
 
       <view class="result-row" wx:if="{{queryResult.vehicleType}}">
         <text class="result-label">车辆类型</text>
@@ -150,10 +150,29 @@ module.exports = {
         <text class="result-value remark-value">{{queryResult.remark}}</text>
       </view>
 
-      <!-- 联系车主按钮 — 明文拨号 -->
+      <button class="call-btn" bindtap="onCallOwner" wx:if="{{queryResult.ownerPhone}}">
+        联系车主挪车 ☎
+      </button>
+    </view>
+  </view>
+
+  <!-- 查询结果区域 — 普通用户：仅显示电话 -->
+  <view class="result-area" wx:if="{{queryResult && !queryResult.isStaff}}">
+    <view class="result-card simple-result">
+      <view class="result-row">
+        <text class="result-label">车牌号</text>
+        <text class="result-value plate-number">{{queryResult.plateNumber}}</text>
+      </view>
+      <view class="result-row" wx:if="{{queryResult.ownerPhone}}">
+        <text class="result-label">联系电话</text>
+        <text class="result-value phone-value">{{queryResult.ownerPhone}}</text>
+      </view>
+      <view class="result-tip">点击下方按钮直接拨打车主电话</view>
       <button class="call-btn" bindtap="onCallOwner" wx:if="{{queryResult.ownerPhone}}">
         联系车主挪车 ☎
       </button>
     </view>
   </view>
 </view>
+
+<guest-tip></guest-tip>

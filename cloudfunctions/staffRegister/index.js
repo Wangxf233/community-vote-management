@@ -28,11 +28,24 @@ exports.main = async (event, context) => {
       return { success: false, error: "手机号格式不正确" };
     }
 
+    // 如果 communityId 不是标准的 CloudBase _id 格式，尝试当作小区名称去查找真正的 _id
+    let resolvedCommunityId = communityId;
+    if (communityId.length < 20) {
+      const commResult = await db
+        .collection("communities")
+        .where({ name: communityId })
+        .limit(1)
+        .get();
+      if (commResult.data && commResult.data.length > 0) {
+        resolvedCommunityId = commResult.data[0]._id;
+      }
+    }
+
     const now = new Date().toISOString();
 
     const result = await db.collection("staff").add({
       data: {
-        communityId,
+        communityId: resolvedCommunityId,
         name: name.trim(),
         phone: phone.trim(),
         position: position || "",

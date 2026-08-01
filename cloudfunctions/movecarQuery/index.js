@@ -4,10 +4,14 @@ const db = cloud.database();
 
 /**
  * 挪车查询 — 根据车牌号查询车辆信息
- * 普通用户使用，返回完整车辆信息 + 真实手机号（明文拨号）
+ * - 普通用户：仅返回车主电话号码（明文拨号）
+ * - 工作人员：返回全部车辆信息
  * 仅能查询本小区车辆
  */
 exports.main = async (event, context) => {
+  const wxContext = cloud.getWXContext();
+  const openid = wxContext.OPENID;
+
   const { plateNumber } = event;
   let { communityId } = event;
 
@@ -19,10 +23,6 @@ exports.main = async (event, context) => {
 
     // 如果没传 communityId，从用户认证信息推断
     if (!communityId) {
-      const wxContext = cloud.getWXContext();
-      const openid = wxContext.OPENID;
-
-      // 尝试从 bindings 表获取当前用户的小区
       const bindingResult = await db
         .collection("bindings")
         .where({ openid, status: "approved" })
@@ -53,23 +53,54 @@ exports.main = async (event, context) => {
 
     const vehicle = result.data[0];
 
-    // 明文拨号：直接返回完整车主手机号
+    // 检查当前用户是否是本小区的审核通过工作人员
+    let isStaff = false;
+    try {
+      const staffResult = await db
+        .collection("staff")
+        .where({
+          openid,
+          communityId,
+          status: "approved",
+        })
+        .limit(1)
+        .get();
+      isStaff = !!(staffResult.data && staffResult.data.length > 0);
+    } catch (e) {
+      // 查 staff 表失败不影响主流程，默认当普通用户
+      console.warn("检查工作人员身份失败:", e.message);
+    }
+
+    if (isStaff) {
+      // 工作人员：返回全部车辆信息
+      return {
+        success: true,
+        data: {
+          _id: vehicle._id,
+          plateNumber: vehicle.plateNumber,
+          vehicleType: vehicle.vehicleType || "",
+          ownerName: vehicle.ownerName || "",
+          ownerPhone: vehicle.ownerPhone || "",
+          parkingFee: vehicle.parkingFee || "",
+          parkingSpot: vehicle.parkingSpot || "",
+          startDate: vehicle.startDate || "",
+          endDate: vehicle.endDate || "",
+          building: vehicle.building || "",
+          unit: vehicle.unit || "",
+          room: vehicle.room || "",
+          remark: vehicle.remark || "",
+          isStaff: true,
+        },
+      };
+    }
+
+    // 普通用户：仅返回电话号码
     return {
       success: true,
       data: {
-        _id: vehicle._id,
         plateNumber: vehicle.plateNumber,
-        vehicleType: vehicle.vehicleType || "",
-        ownerName: vehicle.ownerName || "",
-        ownerPhone: vehicle.ownerPhone || "", // 明文返回
-        parkingFee: vehicle.parkingFee || "",
-        parkingSpot: vehicle.parkingSpot || "",
-        startDate: vehicle.startDate || "",
-        endDate: vehicle.endDate || "",
-        building: vehicle.building || "",
-        unit: vehicle.unit || "",
-        room: vehicle.room || "",
-        remark: vehicle.remark || "",
+        ownerPhone: vehicle.ownerPhone || "",
+        isStaff: false,
       },
     };
   } catch (err) {

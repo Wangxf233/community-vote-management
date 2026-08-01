@@ -64,20 +64,18 @@
             <el-icon><Tools /></el-icon>
             <span>报修管理</span>
           </el-menu-item>
-          <el-sub-menu v-if="doorManagementEnabled" index="door">
-            <template #title>
-              <el-icon><Setting /></el-icon>
-              <span>门禁管理</span>
-            </template>
-            <el-menu-item index="/community-admin/door-management">
-              <el-icon><Setting /></el-icon>
-              <span>设备列表</span>
-            </el-menu-item>
-            <el-menu-item index="/community-admin/door-permissions">
-              <el-icon><Key /></el-icon>
-              <span>开门权限</span>
-            </el-menu-item>
-          </el-sub-menu>
+          <el-menu-item index="/community-admin/vehicles">
+            <el-icon><Van /></el-icon>
+            <span>车辆管理</span>
+          </el-menu-item>
+          <el-menu-item index="/community-admin/staff">
+            <el-icon><Avatar /></el-icon>
+            <span>工作人员管理</span>
+          </el-menu-item>
+          <el-menu-item v-if="doorManagementEnabled" index="/community-admin/door-management">
+            <el-icon><Setting /></el-icon>
+            <span>门禁管理</span>
+          </el-menu-item>
           <el-sub-menu
             v-if="isPrimaryAdmin || hasPermission('announcement')"
             index="announcements"
@@ -272,6 +270,7 @@ import {
   Memo,
   DataLine,
   Key,
+  Van,
 } from "@element-plus/icons-vue";
 const router = useRouter();
 const route = useRoute();

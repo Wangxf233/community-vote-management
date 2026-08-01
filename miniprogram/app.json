@@ -27,13 +27,11 @@
     "pages/profile-settings/index",
     "pages/switch-community/index",
     "pages/family-verify/index",
-    "pages/login/index",
     "pages/owner-verify/index",
-    "pages/select-identity/index",
     "pages/door/index"
     ,"pages/movecar/index"
     ,"pages/staff-register/index"
-    ,"pages/staff-vehicle-query/index"
+    ,"pages/staff-movecar/index"
   ],
   "window": {
     "backgroundTextStyle": "light",

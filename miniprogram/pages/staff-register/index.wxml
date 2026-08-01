@@ -1,32 +1,82 @@
 <view class="staff-register-container">
-  <view class="form-card">
-    <view class="form-title">工作人员注册</view>
-    <view class="form-desc">提交后将由物业管理员审核</view>
+  <view class="header">
+    <text class="title">工作人员注册</text>
+    <text class="subtitle">提交后将由物业管理员审核</text>
+  </view>
 
-    <view class="form-group">
-      <view class="form-label">姓名</view>
-      <input class="form-input" placeholder="请输入姓名" value="{{name}}" bindinput="onNameInput" maxlength="20" />
+  <view class="form-container">
+    <!-- 姓名 -->
+    <view class="form-item">
+      <view class="label">
+        <text class="required">*</text>
+        <text>姓名</text>
+      </view>
+      <input class="input" placeholder="请输入姓名" value="{{name}}" bindinput="onNameInput" maxlength="20" />
     </view>
 
-    <view class="form-group">
-      <view class="form-label">手机号</view>
-      <input class="form-input" type="number" placeholder="请输入手机号" value="{{phone}}" bindinput="onPhoneInput" maxlength="11" />
+    <!-- 手机号 -->
+    <view class="form-item">
+      <view class="label">
+        <text class="required">*</text>
+        <text>手机号</text>
+      </view>
+      <input class="input" type="number" maxlength="11" placeholder="请输入手机号" value="{{phone}}" bindinput="onPhoneInput" />
     </view>
 
-    <view class="form-group">
-      <view class="form-label">职位</view>
-      <input class="form-input" placeholder="请输入职位（如保安、清洁工）" value="{{position}}" bindinput="onPositionInput" maxlength="30" />
+    <!-- 职位 -->
+    <view class="form-item">
+      <view class="label">
+        <text>职位</text>
+      </view>
+      <input class="input" placeholder="请输入职位（如保安、清洁工）" value="{{position}}" bindinput="onPositionInput" maxlength="30" />
     </view>
 
-    <view class="form-group">
-      <view class="form-label">所属小区</view>
-      <picker mode="selector" range="{{communityList}}" range-key="name" bindchange="onCommunityChange">
-        <view class="form-picker {{selectedCommunity ? '' : 'placeholder'}}">
-          {{selectedCommunity ? selectedCommunity : '请选择小区'}}
+    <!-- 省市区选择 -->
+    <view class="form-item">
+      <view class="label">
+        <text class="required">*</text>
+        <text>小区名称</text>
+      </view>
+      <picker mode="region" bindchange="onRegionChange" value="{{region}}">
+        <view class="picker">
+          <text wx:if="{{region[0]}}">{{region[0]}}{{region[1] && region[1] !== '市辖区' ? ' ' + region[1] : ''}} {{region[2]}}</text>
+          <text wx:else class="placeholder">请选择省市区</text>
         </view>
       </picker>
     </view>
 
+    <!-- 小区名称输入（自动检索） -->
+    <view class="form-item">
+      <input
+        class="input"
+        placeholder="请输入小区名称"
+        value="{{communityName}}"
+        bindinput="onCommunityInput"
+        bindfocus="onCommunityFocus"
+        bindblur="onCommunityBlur"
+      />
+      <!-- 小区列表下拉 -->
+      <view class="community-list" wx:if="{{showCommunityList && communityList.length > 0}}">
+        <scroll-view scroll-y class="community-scroll">
+          <view
+            class="community-item"
+            wx:for="{{communityList}}"
+            wx:key="name"
+            data-name="{{item.name}}"
+            data-id="{{item._id}}"
+            bindtap="onSelectCommunity"
+          >
+            <text class="community-name">{{item.name}}</text>
+            <text class="community-address" wx:if="{{item.address}}">{{item.address}}</text>
+          </view>
+        </scroll-view>
+      </view>
+      <view class="community-list-empty" wx:if="{{showCommunityList && communityList.length === 0 && communityName}}">
+        <text>该区域暂无已注册小区</text>
+      </view>
+    </view>
+
+    <!-- 提交按钮 -->
     <button class="submit-btn" bindtap="onSubmit" loading="{{submitting}}" disabled="{{submitting}}">
       提交审核
     </button>

@@ -1451,15 +1451,17 @@ router.get(
 // ============================================================
 router.post(
   "/door/device/:deviceId/grant-permissions",
-  superAdminOnly,
+  authMiddleware,
   async (req, res) => {
     try {
+      const user = req.user;
       const { deviceId } = req.params;
       const { communityId } = req.body || {};
       const rawItems = req.body.items || [];
       const ownerIds = req.body.ownerIds || [];
       const items = rawItems.length > 0 ? rawItems : ownerIds.map((id) => ({ ownerId: id, openid: "" }));
       if (!communityId) return res.status(400).json({ success: false, error: "communityId_required" });
+      if (user && user.role !== "super" && user.communityId !== communityId) return res.status(403).json({ success: false, error: "forbidden" });
       if (items.length === 0) {
         return res
           .status(400)
@@ -1701,7 +1703,7 @@ router.post(
 // ============================================================
 router.post(
   "/door/device/:deviceId/revoke-permissions",
-  superAdminOnly,
+  authMiddleware,
   async (req, res) => {
     try {
       const { deviceId } = req.params;

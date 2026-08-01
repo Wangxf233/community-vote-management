@@ -118,7 +118,7 @@
 .key-grid {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-start;
+  justify-content: center;
 }
 
 /* ========== 键盘按键基础样式 ========== */
@@ -353,4 +353,22 @@
 
 .call-btn:active {
   opacity: 0.9;
+}
+
+/* 普通用户简洁结果卡 */
+.simple-result {
+  text-align: center;
+}
+
+.result-icon {
+  font-size: 80rpx;
+  text-align: center;
+  margin-bottom: 16rpx;
+}
+
+.result-tip {
+  font-size: 24rpx;
+  color: #999;
+  text-align: center;
+  margin-top: 16rpx;
 }

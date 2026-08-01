@@ -208,21 +208,20 @@ Page({
    * 添加新小区
    */
   addNewCommunity() {
-    wx.showModal({
-      title: "选择身份",
-      content: "请选择您在新小区的身份类型",
-      confirmText: "户主",
-      cancelText: "家属",
+    wx.showActionSheet({
+      itemList: ["户主", "家属", "工作人员"],
       success: (res) => {
-        if (res.confirm) {
-          // 户主注册
+        if (res.tapIndex === 0) {
           wx.navigateTo({
             url: "/pages/owner-register/index?isAdding=true",
           });
-        } else if (res.cancel) {
-          // 家属注册
+        } else if (res.tapIndex === 1) {
           wx.navigateTo({
             url: "/pages/family-register/index?isAdding=true",
+          });
+        } else if (res.tapIndex === 2) {
+          wx.navigateTo({
+            url: "/pages/staff-register/index",
           });
         }
       },

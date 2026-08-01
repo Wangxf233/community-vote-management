@@ -1,5 +1,24 @@
 <template>
   <div style="height: calc(100vh - 96px); display: flex; flex-direction: column; overflow: hidden;">
+    <!-- 搜索筛选 -->
+    <el-card style="margin-bottom: 12px; flex-shrink: 0">
+      <el-form :inline="true" :model="deviceFilters" class="filter-form">
+        <el-form-item label="门禁名称" style="margin-bottom: 0">
+          <el-input v-model="deviceFilters.name" placeholder="搜索名称" clearable style="width: 200px" />
+        </el-form-item>
+        <el-form-item label="门禁编号" style="margin-bottom: 0">
+          <el-input v-model="deviceFilters.vendorId" placeholder="搜索编号" clearable style="width: 200px" />
+        </el-form-item>
+        <el-form-item label="门禁地点" style="margin-bottom: 0">
+          <el-input v-model="deviceFilters.location" placeholder="搜索地点" clearable style="width: 200px" />
+        </el-form-item>
+        <el-form-item style="margin-bottom: 0">
+          <el-button type="primary" @click="onDeviceFilter">查询</el-button>
+          <el-button @click="onDeviceFilterReset">重置</el-button>
+        </el-form-item>
+      </el-form>
+    </el-card>
+
     <!-- 列表卡片 -->
     <el-card style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-shrink: 0;">
@@ -10,7 +29,7 @@
           </el-button>
           <el-divider v-if="isSuperAdmin" direction="vertical" />
           <span style="font-size: 14px; color: #606266;">
-            共 <b style="color: #303133;">{{ devices.length }}</b> 台设备
+            共 <b style="color: #303133;">{{ filteredDevices.length }}</b> 台设备
           </span>
           <span v-if="isSuperAdmin" style="color: #c0c4cc;">·</span>
           <span v-if="isSuperAdmin" style="font-size: 14px; color: #909399;">{{ communityName }}</span>
@@ -54,7 +73,7 @@
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="操作" :width="isSuperAdmin ? 380 : 260" fixed="right">
+          <el-table-column label="操作" :width="isSuperAdmin ? 380 : 300" fixed="right">
             <template #default="{ row }">
               <el-button v-if="isSuperAdmin" size="small" type="danger" :loading="row._deleting" @click="onDelete(row)">
                 删除门禁
@@ -258,13 +277,28 @@ const batchDeleting = ref(false);
 const selectedRows = ref<DoorDevice[]>([]);
 const tableRef = ref();
 
+// 设备筛选
+const deviceFilters = reactive({ name: "", vendorId: "", location: "" });
+
+const filteredDevices = computed(() => {
+  return devices.value.filter((d) => {
+    if (deviceFilters.name && !(d.deviceName || "").includes(deviceFilters.name)) return false;
+    if (deviceFilters.vendorId && !(d.vendorId || "").includes(deviceFilters.vendorId)) return false;
+    if (deviceFilters.location && !(d.locationLabel || "").includes(deviceFilters.location)) return false;
+    return true;
+  });
+});
+
+function onDeviceFilter() { currentPage.value = 1; }
+function onDeviceFilterReset() { deviceFilters.name = ""; deviceFilters.vendorId = ""; deviceFilters.location = ""; currentPage.value = 1; }
+
 // 客户端分页
 const currentPage = ref(1);
 const pageSize = ref(20);
 
 const pagedDevices = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value;
-  return devices.value.slice(start, start + pageSize.value);
+  return filteredDevices.value.slice(start, start + pageSize.value);
 });
 
 // 添加门禁弹窗
@@ -661,3 +695,14 @@ onMounted(() => {
   loadDevices();
 });
 </script>
+
+<style scoped>
+.filter-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+}
+.filter-form :deep(.el-form-item) {
+  margin-right: 16px;
+}
+</style>

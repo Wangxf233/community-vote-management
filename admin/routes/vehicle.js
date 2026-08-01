@@ -87,13 +87,27 @@ router.get("/export", async (req, res) => {
       { header: "车主电话", key: "ownerPhone", width: 15 },
       { header: "车位费", key: "parkingFee", width: 15 },
       { header: "车位编号", key: "parkingSpot", width: 15 },
-      { header: "有效开始日期", key: "validStartDate", width: 15 },
-      { header: "有效结束日期", key: "validEndDate", width: 15 },
-      { header: "栋单元房号", key: "address", width: 20 },
+      { header: "有效开始日期", key: "startDate", width: 15 },
+      { header: "有效结束日期", key: "endDate", width: 15 },
+      { header: "栋单元房号", key: "building", width: 20 },
       { header: "备注", key: "remark", width: 20 },
     ];
 
-    worksheet.addRows(result.data);
+    // 写入数据行
+    for (const row of result.data) {
+      worksheet.addRow({
+        vehicleType: row.vehicleType || "",
+        plateNumber: row.plateNumber || "",
+        ownerName: row.ownerName || "",
+        ownerPhone: row.ownerPhone || "",
+        parkingFee: row.parkingFee || "",
+        parkingSpot: row.parkingSpot || "",
+        startDate: row.startDate || "",
+        endDate: row.endDate || "",
+        building: row.building || "",
+        remark: row.remark || "",
+      });
+    }
 
     res.setHeader(
       "Content-Type",
@@ -126,11 +140,25 @@ router.get("/template", async (req, res) => {
       { header: "车主电话*", key: "ownerPhone", width: 15 },
       { header: "车位费", key: "parkingFee", width: 15 },
       { header: "车位编号", key: "parkingSpot", width: 15 },
-      { header: "有效开始日期", key: "validStartDate", width: 15 },
-      { header: "有效结束日期", key: "validEndDate", width: 15 },
-      { header: "栋单元房号", key: "address", width: 20 },
+      { header: "有效开始日期", key: "startDate", width: 15 },
+      { header: "有效结束日期", key: "endDate", width: 15 },
+      { header: "栋单元房号", key: "building", width: 20 },
       { header: "备注", key: "remark", width: 20 },
     ];
+
+    // 第二行：填写示例
+    worksheet.addRow({
+      vehicleType: "月租车",
+      plateNumber: "鄂HB3425",
+      ownerName: "王五",
+      ownerPhone: "13012341234",
+      parkingFee: "300",
+      parkingSpot: "C502",
+      startDate: "2019-10-11",
+      endDate: "2019-12-11",
+      building: "16-2-701",
+      remark: "此人脾气不好",
+    });
 
     res.setHeader(
       "Content-Type",
@@ -183,9 +211,9 @@ router.post("/", async (req, res) => {
       ownerPhone,
       parkingFee: req.body.parkingFee || "",
       parkingSpot: req.body.parkingSpot || "",
-      validStartDate: req.body.validStartDate || "",
-      validEndDate: req.body.validEndDate || "",
-      address: req.body.address || "",
+      startDate: req.body.startDate || "",
+      endDate: req.body.endDate || "",
+      building: req.body.building || "",
       remark: req.body.remark || "",
       createTime: now,
       updateTime: now,
@@ -222,8 +250,8 @@ router.post("/import", upload.single("file"), async (req, res) => {
     let failCount = 0;
     const failures = [];
 
-    // 从第二行开始遍历（第一行是表头）
-    for (let i = 1; i < rows.length; i++) {
+    // 从第三行开始遍历（第一行表头，第二行示例）
+    for (let i = 2; i < rows.length; i++) {
       const row = rows[i];
       const rowNum = i + 1; // Excel 中的行号（1-based）
 
@@ -235,9 +263,9 @@ router.post("/import", upload.single("file"), async (req, res) => {
       const ownerPhone = row[3] ? String(row[3]).trim() : "";
       const parkingFee = row[4] ? String(row[4]).trim() : "";
       const parkingSpot = row[5] ? String(row[5]).trim() : "";
-      const validStartDate = row[6] ? String(row[6]).trim() : "";
-      const validEndDate = row[7] ? String(row[7]).trim() : "";
-      const address = row[8] ? String(row[8]).trim() : "";
+      const startDate = row[6] ? String(row[6]).trim() : "";
+      const endDate = row[7] ? String(row[7]).trim() : "";
+      const building = row[8] ? String(row[8]).trim() : "";
       const remark = row[9] ? String(row[9]).trim() : "";
 
       // 校验必填项
@@ -272,9 +300,9 @@ router.post("/import", upload.single("file"), async (req, res) => {
           ownerPhone,
           parkingFee,
           parkingSpot,
-          validStartDate,
-          validEndDate,
-          address,
+          startDate,
+          endDate,
+          building,
           remark,
           updateTime: now,
         };
@@ -376,9 +404,9 @@ router.put("/:id", async (req, res) => {
     if (ownerPhone !== undefined) updates.ownerPhone = ownerPhone;
     if (req.body.parkingFee !== undefined) updates.parkingFee = req.body.parkingFee;
     if (req.body.parkingSpot !== undefined) updates.parkingSpot = req.body.parkingSpot;
-    if (req.body.validStartDate !== undefined) updates.validStartDate = req.body.validStartDate;
-    if (req.body.validEndDate !== undefined) updates.validEndDate = req.body.validEndDate;
-    if (req.body.address !== undefined) updates.address = req.body.address;
+    if (req.body.startDate !== undefined) updates.startDate = req.body.startDate;
+    if (req.body.endDate !== undefined) updates.endDate = req.body.endDate;
+    if (req.body.building !== undefined) updates.building = req.body.building;
     if (req.body.remark !== undefined) updates.remark = req.body.remark;
 
     await db.collection("vehicles").doc(id).update(updates);

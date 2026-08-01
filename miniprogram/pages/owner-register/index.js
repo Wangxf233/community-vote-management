@@ -120,14 +120,15 @@ Page({
     }
   },
 
-  // 选择小区
+  // 选择小区（picker 模式）
   onSelectCommunity(e) {
-    const communityName = e.currentTarget.dataset.name;
+    const index = e.detail.value;
+    const item = this.data.communityList[index];
+    if (!item) return;
+    const communityName = item.name;
     this.setData({
       "formData.communityName": communityName,
-      showCommunityList: false,
     });
-    // 选择后立即验证
     this.checkCommunity(communityName);
   },
 

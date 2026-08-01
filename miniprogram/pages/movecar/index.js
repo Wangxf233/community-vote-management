@@ -29,20 +29,20 @@ Page({
     ],
   },
 
-  onLoad() {
-    const app = getApp();
-    // 检查权限：需要 approved 状态才能查询
-    if (!app.requirePermission("使用挪车功能")) {
-      // requirePermission 内部会弹出引导弹窗
-    }
-  },
+  onLoad() {},
 
   onShow() {
-    // 每次进入页面时检查权限
     const app = getApp();
-    if (app.globalData.bindingStatus !== "approved") {
-      app.requirePermission("使用挪车功能");
+    // 工作人员已导向独立页面
+    if (app.globalData.isStaff) {
+      wx.reLaunch({ url: "/pages/staff-movecar/index" });
+      return;
     }
+    // 游客模式：不弹窗
+    const status = app.globalData.bindingStatus;
+    if (status === "guest") return;
+    // 非游客：需要认证
+    app.requirePermission("使用挪车功能");
   },
 
   // ========== 省份选择（仅第一位可选省份） ==========
@@ -143,12 +143,6 @@ Page({
 
     if (!plateNumber) {
       wx.showToast({ title: "请输入车牌号", icon: "none" });
-      return;
-    }
-
-    // 检查权限
-    const app = getApp();
-    if (!app.requirePermission("使用挪车功能")) {
       return;
     }
 

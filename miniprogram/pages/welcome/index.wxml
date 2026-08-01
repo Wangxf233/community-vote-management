@@ -1,38 +1,43 @@
-<view class="welcome-container">
-  <view class="welcome-content">
-    <image src="/images/welcome-logo.png" class="logo" mode="aspectFit"></image>
-    
-    <view class="welcome-title">欢迎使用众议票评系统</view>
-    
-    <view class="feature-list">
-      <view class="feature-item">
-        <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/welcome-vote.png" class="feature-icon"></image>
-        <text class="feature-text">参与社区投票决策</text>
-      </view>
-      <view class="feature-item">
-        <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/welcome-star.png" class="feature-icon"></image>
-        <text class="feature-text">物业服务评价反馈</text>
-      </view>
-      <view class="feature-item">
-        <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/welcome-repair.png" class="feature-icon"></image>
-        <text class="feature-text">便捷报修报事服务</text>
-      </view>
-      <view class="feature-item">
-        <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/welcome-notice.png" class="feature-icon"></image>
-        <text class="feature-text">及时接收重要通知</text>
-      </view>
-    </view>
+<view class="welcome-page">
+  <!-- 顶部 -->
+  <view class="hero">
+    <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/Logo.jpg" class="logo" mode="aspectFit" />
+    <text class="hero-title">众议票评</text>
+    <text class="hero-subtitle">便捷 · 透明 · 高效</text>
+  </view>
 
-    <view class="bind-tip">
-      <view class="tip-box">
-        <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/welcome-tip.png" class="tip-icon"></image>
-        <text class="tip-text">绑定后可使用投票、评价、报修等功能，审核通常在24小时内完成</text>
-      </view>
+  <!-- 中间简介 -->
+  <view class="intro-card">
+    <view class="intro-item">
+      <text class="intro-num">01</text>
+      <text class="intro-text">参与社区投票决策，共建美好家园</text>
+    </view>
+    <view class="intro-item">
+      <text class="intro-num">02</text>
+      <text class="intro-text">物业服务评价反馈，提升服务品质</text>
+    </view>
+    <view class="intro-item">
+      <text class="intro-num">03</text>
+      <text class="intro-text">便捷报修报事，快速解决生活问题</text>
+    </view>
+    <view class="intro-item">
+      <text class="intro-num">04</text>
+      <text class="intro-text">及时接收通知，掌握社区动态</text>
+    </view>
+    <view class="intro-item">
+      <text class="intro-num">05</text>
+      <text class="intro-text">手机一键开门，挪车便捷联系</text>
     </view>
   </view>
 
-  <view class="action-buttons">
-    <button class="btn-primary" bindtap="goToSelectIdentity">立即绑定</button>
-    <button class="btn-secondary" bindtap="enterAsGuest">先看看</button>
+  <!-- 提示 -->
+  <view class="bind-tip">
+    <text class="tip-text">绑定后可使用全部功能，审核通常在24小时内完成</text>
+  </view>
+
+  <!-- 按钮 -->
+  <view class="actions">
+    <button class="btn-bind" bindtap="goToSelectIdentity">立即绑定</button>
+    <button class="btn-guest" bindtap="enterAsGuest">先看看</button>
   </view>
 </view>

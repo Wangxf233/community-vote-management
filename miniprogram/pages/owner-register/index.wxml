@@ -35,32 +35,12 @@
     </view>
 
     <view class="form-item">
-      <input 
-        class="input" 
-        placeholder="请输入小区名称" 
-        value="{{formData.communityName}}" 
-        bindinput="onCommunityInput" 
-        bindfocus="onCommunityFocus"
-        bindblur="onCommunityInputBlur" 
-      />
-      <!-- 小区列表下拉框 -->
-      <view class="community-list" wx:if="{{showCommunityList && communityList.length > 0}}">
-        <scroll-view scroll-y class="community-scroll">
-          <view 
-            class="community-item" 
-            wx:for="{{communityList}}" 
-            wx:key="name"
-            data-name="{{item.name}}"
-            bindtap="onSelectCommunity"
-          >
-            <text class="community-name">{{item.name}}</text>
-            <text class="community-address" wx:if="{{item.address}}">{{item.address}}</text>
-          </view>
-        </scroll-view>
-      </view>
-      <view class="community-list-empty" wx:if="{{showCommunityList && communityList.length === 0}}">
-        <text>该区域暂无已注册小区</text>
-      </view>
+      <picker mode="selector" range="{{communityList}}" range-key="name" bindchange="onSelectCommunity" disabled="{{communityList.length === 0}}">
+        <view class="picker {{communityList.length === 0 ? 'disabled' : ''}}">
+          <text wx:if="{{formData.communityName}}">{{formData.communityName}}</text>
+          <text wx:else class="placeholder">请选择小区</text>
+        </view>
+      </picker>
     </view>
 
     <view class="form-item" wx:if="{{communityNotFound}}">
