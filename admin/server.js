@@ -75,17 +75,10 @@ app.use("/api/login", loginLimiter);
 
 app.use(bodyParser.json());
 
-// CORS — 仅允许已知来源
-const ALLOWED_ORIGINS = [
-  "http://localhost:5173",
-  "http://localhost:3000",
-  "https://cloud1-6ghienoi526fff51.tcloudbaseapp.com",
-];
+// CORS — 允许所有来源（CloudBase 上域名多，统一放行）
 app.use((req, res, next) => {
-  const origin = req.headers.origin || "";
-  if (ALLOWED_ORIGINS.includes(origin) || !origin) {
-    res.header("Access-Control-Allow-Origin", origin || "*");
-  }
+  const origin = req.headers.origin || "*";
+  res.header("Access-Control-Allow-Origin", origin);
   res.header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
   res.header(
     "Access-Control-Allow-Headers",
