@@ -388,6 +388,16 @@ router.post("/community-admins", authMiddleware, async (req, res) => {
       return res.status(400).json({ success: false, error: "缺少用户名" });
     }
 
+    // 检查用户名是否重复（全局唯一）
+    const existing = await db
+      .collection("users")
+      .where({ username })
+      .limit(1)
+      .get();
+    if (existing.data && existing.data.length > 0) {
+      return res.status(409).json({ success: false, error: "账号名重复" });
+    }
+
     const initialPassword =
       password && String(password).trim()
         ? String(password)

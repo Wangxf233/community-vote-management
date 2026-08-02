@@ -180,10 +180,13 @@ const availablePermissions = [
   { value: "survey", label: "问卷调查" },
   { value: "service_evaluation", label: "服务人员评价" },
   { value: "property_evaluation", label: "物业公司评价" },
-  { value: "repair", label: "报修" },
-  { value: "report", label: "报事" },
+  { value: "repair", label: "报修管理" },
+  { value: "report", label: "报事管理" },
   { value: "announcement", label: "信息公示" },
   { value: "notification", label: "通知公告" },
+  { value: "vehicle", label: "车辆管理" },
+  { value: "staff", label: "工作人员管理" },
+  { value: "door", label: "门禁管理" },
 ];
 
 const selectAll = computed({

@@ -64,15 +64,15 @@
             <el-icon><Tools /></el-icon>
             <span>报修管理</span>
           </el-menu-item>
-          <el-menu-item index="/community-admin/vehicles">
+          <el-menu-item v-if="isPrimaryAdmin || hasPermission('vehicle')" index="/community-admin/vehicles">
             <el-icon><Van /></el-icon>
             <span>车辆管理</span>
           </el-menu-item>
-          <el-menu-item index="/community-admin/staff">
+          <el-menu-item v-if="isPrimaryAdmin || hasPermission('staff')" index="/community-admin/staff">
             <el-icon><Avatar /></el-icon>
             <span>工作人员管理</span>
           </el-menu-item>
-          <el-menu-item v-if="doorManagementEnabled" index="/community-admin/door-management">
+          <el-menu-item v-if="doorManagementEnabled && (isPrimaryAdmin || hasPermission('door'))" index="/community-admin/door-management">
             <el-icon><Setting /></el-icon>
             <span>门禁管理</span>
           </el-menu-item>

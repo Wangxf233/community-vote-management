@@ -44,3 +44,5 @@ project.private.config.json
 cloudfunctions/**/node_modules/
 cloudfunctions/**/.DS_Store
 node_modules
+.env.production
+.vs/

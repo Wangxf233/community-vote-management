@@ -338,9 +338,10 @@ async function onAddMember() {
     ElMessage.success("添加成功");
     addDialog.value = false;
     loadMembers();
-  } catch (e) {
+  } catch (e: any) {
     console.error(e);
-    ElMessage.error("添加失败");
+    const backendErr = e?.response?.data?.error;
+    ElMessage.error(backendErr || "添加失败");
   }
 }
 
