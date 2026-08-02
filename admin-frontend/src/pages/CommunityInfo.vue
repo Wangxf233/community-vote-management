@@ -281,7 +281,7 @@
               </div>
             </div>
           </div>
-          <div class="upload-tip">建议上传小区平面布局图</div>
+          <div class="upload-tip">仅支持 JPG/PNG 格式，大小不超过 5MB。建议上传小区平面布局图</div>
         </el-form-item>
 
         <el-form-item label="小区效果图">
@@ -317,7 +317,7 @@
               </div>
             </div>
           </div>
-          <div class="upload-tip">建议上传小区外观效果图</div>
+          <div class="upload-tip">仅支持 JPG/PNG 格式，大小不超过 5MB。建议上传小区外观效果图</div>
         </el-form-item>
 
         <el-divider content-position="left">广告轮播图</el-divider>
@@ -372,7 +372,7 @@
             </div>
           </div>
           <div class="upload-tip">
-            最多上传5张，建议尺寸750×300像素，将在小程序服务页顶部轮播展示
+            仅支持 JPG/PNG 格式，大小不超过 5MB。最多上传 5 张，建议尺寸 750×350 像素，将在小程序服务页顶部轮播展示
           </div>
         </el-form-item>
 
@@ -457,7 +457,7 @@ const formData = ref<CommunityInfo>({
 });
 
 const uploadAction = ref(
-  `${import.meta.env.VITE_API_BASE_URL || "http://localhost:3000"}/api/upload`,
+  `${import.meta.env.VITE_API_BASE_URL || "/api"}/upload`,
 );
 
 const uploadHeaders = ref({
@@ -576,16 +576,17 @@ function removeAdImage(idx: number) {
 }
 
 function beforeImageUpload(file: File) {
-  const isImage = file.type.startsWith("image/");
+  const validTypes = ["image/jpeg", "image/png"];
+  const isValidType = validTypes.includes(file.type);
   const isLt5M = file.size / 1024 / 1024 < 5;
 
-  if (!isImage) {
-    ElMessage.error("只能上传图片文件!");
+  if (!isValidType) {
+    ElMessage.error("仅支持 JPG/PNG 格式的图片!");
   }
   if (!isLt5M) {
     ElMessage.error("图片大小不能超过 5MB!");
   }
-  return isImage && isLt5M;
+  return isValidType && isLt5M;
 }
 
 onMounted(() => {

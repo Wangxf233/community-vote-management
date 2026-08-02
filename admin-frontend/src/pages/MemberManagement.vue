@@ -500,7 +500,9 @@ onMounted(() => {
 .filter-form {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
+  gap: 0;
+}
+.filter-form :deep(.el-form-item) {
+  margin-right: 16px;
 }
 </style>

@@ -65,23 +65,23 @@
     </div>
     <el-card style="margin-bottom: 12px; flex-shrink: 0">
       <el-form :inline="true" :model="filters" class="filter-form">
-        <el-form-item label="省/市/区">
+        <el-form-item label="省/市/区" style="margin-bottom: 0">
           <el-cascader
             v-model="filters.region"
             :options="regionOptions"
             clearable
           />
         </el-form-item>
-        <el-form-item label="小区名称">
+        <el-form-item label="小区名称" style="margin-bottom: 0">
           <el-input v-model="filters.name" placeholder="小区名称" />
         </el-form-item>
-        <el-form-item label="负责人">
+        <el-form-item label="负责人" style="margin-bottom: 0">
           <el-input v-model="filters.ownerName" placeholder="负责姓名" />
         </el-form-item>
-        <el-form-item label="联系方式">
+        <el-form-item label="联系方式" style="margin-bottom: 0">
           <el-input v-model="filters.ownerPhone" placeholder="手机号" />
         </el-form-item>
-        <el-form-item label="开通时间范围">
+        <el-form-item label="开通时间范围" style="margin-bottom: 0">
           <el-date-picker
             v-model="filters.startRange"
             type="daterange"
@@ -90,7 +90,7 @@
             end-placeholder="结束日期"
           />
         </el-form-item>
-        <el-form-item>
+        <el-form-item style="margin-bottom: 0">
           <el-button type="primary" @click="onQuery">查询</el-button>
           <el-button @click="onReset">重置</el-button>
         </el-form-item>
@@ -902,7 +902,10 @@ onMounted(() => {
 .filter-form {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 0;
+}
+.filter-form :deep(.el-form-item) {
+  margin-right: 16px;
 }
 .sortable-header {
   display: inline-flex;

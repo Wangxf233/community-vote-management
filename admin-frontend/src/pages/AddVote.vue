@@ -166,7 +166,7 @@ const fileList = ref<any[]>([]);
 const submitting = ref(false);
 const uploading = ref(false);
 
-const uploadUrl = "/api/upload";
+const uploadUrl = `${import.meta.env.VITE_API_BASE_URL || "/api"}/upload`;
 const uploadHeaders = computed(() => {
   const token = localStorage.getItem("admin-token") || "";
   return token ? { Authorization: `Bearer ${token}` } : {};

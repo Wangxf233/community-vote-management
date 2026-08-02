@@ -21,9 +21,30 @@ router.get("/communities", async (req, res) => {
     const pageSize = parseInt(req.query.pageSize || "50", 10);
 
     const q = {};
-    if (req.query.name) q.name = req.query.name;
-    // 过滤已删除的记录
+    if (req.query.name) q.name = db.RegExp({ regexp: req.query.name, options: "i" });
+    if (req.query.region) {
+      try { q.region = JSON.parse(req.query.region); } catch (_) {}
+    }
+    if (req.query.ownerName) q.ownerName = db.RegExp({ regexp: req.query.ownerName, options: "i" });
+    if (req.query.ownerPhone) q.ownerPhone = req.query.ownerPhone;
+    if (req.query.startFrom || req.query.startTo) {
+      const from = req.query.startFrom ? new Date(req.query.startFrom) : null;
+      const to = req.query.startTo ? new Date(req.query.startTo) : null;
+      if (from && to) {
+        q.createdAt = db.command.and(
+          db.command.gte(from),
+          db.command.lte(to),
+        );
+      } else if (from) {
+        q.createdAt = db.command.gte(from);
+      } else if (to) {
+        q.createdAt = db.command.lte(to);
+      }
+    }
     q.deleted = db.command.neq(true);
+
+    const sortField = req.query.sortField || "createdAt";
+    const sortOrder = req.query.sortOrder === "asc" ? "asc" : "desc";
 
     const countRes = await db.collection("communities").where(q).count();
     const total = countRes.total || 0;
@@ -31,6 +52,7 @@ router.get("/communities", async (req, res) => {
     const list = await db
       .collection("communities")
       .where(q)
+      .orderBy(sortField, sortOrder)
       .skip((page - 1) * pageSize)
       .limit(pageSize)
       .get();
@@ -343,11 +365,19 @@ router.put(
  */
 router.get("/community-admins", authMiddleware, async (req, res) => {
   try {
+    res.header("Cache-Control", "no-store, no-cache, must-revalidate");
+    res.header("Pragma", "no-cache");
+
     const user = req.user;
     const page = parseInt(req.query.page || "1", 10);
     const pageSize = parseInt(req.query.pageSize || "20", 10);
 
     const query = { communityId: user.communityId, role: "community_admin" };
+    if (req.query.department) query.department = req.query.department;
+    if (req.query.position) query.position = db.RegExp({ regexp: req.query.position, options: "i" });
+    if (req.query.name) query.name = db.RegExp({ regexp: req.query.name, options: "i" });
+    if (req.query.phone) query.phone = req.query.phone;
+    if (req.query.username) query.username = db.RegExp({ regexp: req.query.username, options: "i" });
     const countRes = await db.collection("users").where(query).count();
     const total = countRes.total || 0;
 

@@ -1,11 +1,11 @@
 <template>
   <div style="height: calc(100vh - 96px); display: flex; flex-direction: column; overflow: hidden">
     <el-card style="margin-bottom: 12px; flex-shrink: 0">
-      <el-form :inline="true" :model="filters">
-        <el-form-item label="小区名称">
+      <el-form :inline="true" :model="filters" class="filter-form">
+        <el-form-item label="小区名称" style="margin-bottom: 0">
           <el-input v-model="filters.name" placeholder="搜索小区名称" clearable @keyup.enter="onQuery" />
         </el-form-item>
-        <el-form-item>
+        <el-form-item style="margin-bottom: 0">
           <el-button type="primary" @click="onQuery">查询</el-button>
           <el-button @click="onReset">重置</el-button>
         </el-form-item>
@@ -128,3 +128,14 @@ onMounted(() => {
   fetchList();
 });
 </script>
+
+<style scoped>
+.filter-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+}
+.filter-form :deep(.el-form-item) {
+  margin-right: 16px;
+}
+</style>

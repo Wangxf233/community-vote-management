@@ -161,9 +161,7 @@ const formRules = {
 };
 
 const uploadAction = ref(
-  import.meta.env.PROD
-    ? "https://admin-213370-7-1325504194.sh.run.tcloudbase.com/api/upload"
-    : "/api/upload"
+  `${import.meta.env.VITE_API_BASE_URL || "/api"}/upload`
 );
 const uploadHeaders = ref({
   Authorization: `Bearer ${localStorage.getItem("admin-token")}`,

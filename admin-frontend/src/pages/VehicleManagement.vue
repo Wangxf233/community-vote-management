@@ -428,7 +428,7 @@ async function handleBatchDelete() {
 
 // --- 导出模板 ---
 function handleExportTemplate() {
-  window.open(`/api/vehicles/template?communityId=${encodeURIComponent(communityId)}&token=${encodeURIComponent(token)}`);
+  window.open(`${import.meta.env.VITE_API_BASE_URL || "/api"}/vehicles/template?communityId=${encodeURIComponent(communityId)}&token=${encodeURIComponent(token)}`);
 }
 
 // --- 导出 Excel ---

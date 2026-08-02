@@ -146,9 +146,7 @@ const communityId = getCommunityId();
 const token = localStorage.getItem("admin-token") || "";
 
 // 上传地址和请求头
-const uploadUrl = import.meta.env.PROD
-  ? "https://admin-213370-7-1325504194.sh.run.tcloudbase.com/api/upload"
-  : "/api/upload";
+const uploadUrl = `${import.meta.env.VITE_API_BASE_URL || "/api"}/upload`;
 const uploadHeaders = {
   Authorization: `Bearer ${token}`,
 };
