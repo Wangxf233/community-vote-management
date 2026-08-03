@@ -111,14 +111,14 @@
         <el-form-item label="门禁名称" prop="deviceName">
           <el-input v-model="createForm.deviceName" placeholder="如：西门门禁、1号门" />
         </el-form-item>
-        <el-form-item label="门禁地点分类" prop="locationType">
+        <el-form-item label="门禁类别" prop="locationType">
           <el-radio-group v-model="createForm.locationType" @change="onLocationTypeChange">
             <el-radio value="community_gate">大门门禁</el-radio>
             <el-radio value="unit_gate">单元门禁</el-radio>
           </el-radio-group>
         </el-form-item>
         <!-- 大门门禁：手动填大门名称 -->
-        <el-form-item v-if="createForm.locationType === 'community_gate'" label="大门名称" prop="gateName">
+        <el-form-item v-if="createForm.locationType === 'community_gate'" label="安装位置" prop="gateName">
           <el-input v-model="createForm.gateName" placeholder="如：西门、南门" />
         </el-form-item>
         <!-- 单元门禁：楼栋单元下拉 -->

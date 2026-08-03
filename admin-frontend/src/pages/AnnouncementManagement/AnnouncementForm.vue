@@ -63,7 +63,7 @@
           <el-button type="primary">点击上传</el-button>
           <template #tip>
             <div class="el-upload__tip">
-              支持上传图片（jpg/png）、文档（pdf/doc/docx）和表格（xls/xlsx），单个文件不超过10MB
+              支持上传图片（jpg/png）、文档（pdf/doc/docx）和表格（xls/xlsx），单个文件不超过1MB
             </div>
           </template>
         </el-upload>
@@ -163,9 +163,9 @@ const beforeUpload = (file: File) => {
     return false;
   }
 
-  const isLt10M = file.size / 1024 / 1024 < 10;
-  if (!isLt10M) {
-    ElMessage.error("文件大小不能超过10MB");
+  const isLt1M = file.size / 1024 / 1024 < 1;
+  if (!isLt1M) {
+    ElMessage.error("文件大小不能超过1MB");
     return false;
   }
 

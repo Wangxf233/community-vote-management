@@ -10,34 +10,47 @@
       stripe
       style="width: 100%; margin-top: 20px"
     >
-      <el-table-column prop="title" label="评价标题" min-width="200" />
-      <el-table-column label="评价周期" width="220">
+      <el-table-column prop="title" label="评价标题" min-width="180" />
+      <el-table-column label="总周期" width="220">
+        <template #default="{ row }">
+          <template v-if="row.recurring && row.recurring.enabled">
+            {{ formatDate(row.recurring.firstDate) }} 至 {{ row.recurring.totalEndDate ? formatDate(row.recurring.totalEndDate) : '至今' }}
+          </template>
+          <template v-else>
+            {{ formatDate(row.startDate) }} 至 {{ formatDate(row.endDate) }}
+          </template>
+        </template>
+      </el-table-column>
+      <el-table-column label="当前期" width="220">
         <template #default="{ row }">
           {{ formatDate(row.startDate) }} 至 {{ formatDate(row.endDate) }}
         </template>
       </el-table-column>
-      <el-table-column label="开始提交时间" width="160">
+      <el-table-column label="发布周期" width="90" align="center">
         <template #default="{ row }">
-          {{
-            row.startSubmitTime
-              ? formatDateTime(row.startSubmitTime)
-              : "立即发布"
-          }}
+          <template v-if="row.recurring && row.recurring.enabled">
+            <el-tag size="small" type="success">{{ getFrequencyText(row.recurring.frequency) }}</el-tag>
+          </template>
+          <span v-else style="color: #c0c4cc">—</span>
         </template>
       </el-table-column>
-      <el-table-column label="截止提交时间" width="160">
+      <el-table-column label="下次发布" width="120" align="center">
         <template #default="{ row }">
-          {{ formatDateTime(row.deadline) }}
+          <template v-if="row.recurring && row.recurring.enabled">
+            {{ getNextPublishDate(row) }}
+          </template>
+          <span v-else style="color: #c0c4cc">—</span>
         </template>
       </el-table-column>
-      <el-table-column label="发布状态" width="100">
+      <el-table-column label="状态" width="110" align="center">
         <template #default="{ row }">
-          <el-tag :type="getStatusType(row.status)">
+          <el-tag v-if="row.recurring && row.recurring.enabled" size="small" type="info" style="margin-right: 4px">定期</el-tag>
+          <el-tag :type="getStatusType(row.status)" size="small">
             {{ getStatusText(row.status) }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="参与人数" width="100">
+      <el-table-column label="参与人数" width="100" align="center">
         <template #default="{ row }">
           {{ row.participantCount || 0 }}
         </template>
@@ -87,41 +100,43 @@
             placeholder="如：2024年第一季度物业服务满意度评价"
           />
         </el-form-item>
-        <el-form-item label="评价周期" prop="dateRange">
-          <el-date-picker
-            v-model="formData.dateRange"
-            type="daterange"
-            range-separator="至"
-            start-placeholder="开始日期"
-            end-placeholder="结束日期"
-            format="YYYY-MM-DD"
-            value-format="YYYY-MM-DD"
-          />
-        </el-form-item>
-        <el-form-item label="开始提交时间" prop="startSubmitTime">
-          <el-radio-group v-model="startSubmitType" style="margin-bottom: 10px">
-            <el-radio :label="'now'">立即发布</el-radio>
-            <el-radio :label="'custom'">自定义时间</el-radio>
-          </el-radio-group>
-          <el-date-picker
-            v-if="startSubmitType === 'custom'"
-            v-model="formData.startSubmitTime"
-            type="datetime"
-            placeholder="选择开始日期时间"
-            format="YYYY-MM-DD HH:mm"
-            value-format="YYYY-MM-DD HH:mm"
-            style="width: 100%"
-          />
-        </el-form-item>
-        <el-form-item label="截止提交时间" prop="deadline">
-          <el-date-picker
-            v-model="formData.deadline"
-            type="datetime"
-            placeholder="选择截止日期时间"
-            format="YYYY-MM-DD HH:mm"
-            value-format="YYYY-MM-DD HH:mm"
-          />
-        </el-form-item>
+        <template v-if="!formData.recurringEnabled">
+          <el-form-item label="评价周期" prop="dateRange">
+            <el-date-picker
+              v-model="formData.dateRange"
+              type="daterange"
+              range-separator="至"
+              start-placeholder="开始日期"
+              end-placeholder="结束日期"
+              format="YYYY-MM-DD"
+              value-format="YYYY-MM-DD"
+            />
+          </el-form-item>
+          <el-form-item label="开始提交时间" prop="startSubmitTime">
+            <el-radio-group v-model="startSubmitType" style="margin-bottom: 10px">
+              <el-radio :label="'now'">立即发布</el-radio>
+              <el-radio :label="'custom'">自定义时间</el-radio>
+            </el-radio-group>
+            <el-date-picker
+              v-if="startSubmitType === 'custom'"
+              v-model="formData.startSubmitTime"
+              type="datetime"
+              placeholder="选择开始日期时间"
+              format="YYYY-MM-DD HH:mm"
+              value-format="YYYY-MM-DD HH:mm"
+              style="width: 100%"
+            />
+          </el-form-item>
+          <el-form-item label="截止提交时间" prop="deadline">
+            <el-date-picker
+              v-model="formData.deadline"
+              type="datetime"
+              placeholder="选择截止日期时间"
+              format="YYYY-MM-DD HH:mm"
+              value-format="YYYY-MM-DD HH:mm"
+            />
+          </el-form-item>
+        </template>
         <el-form-item label="选择被评人员" prop="staffIds">
           <el-button @click="showStaffSelector"
             >选择人员 (已选 {{ formData.staffIds.length }} 人)</el-button
@@ -152,6 +167,97 @@
             >
           </div>
         </el-form-item>
+
+        <el-divider content-position="left">自动发布设置</el-divider>
+
+        <el-form-item label="定期自动发布">
+          <el-switch v-model="formData.recurringEnabled" />
+          <span style="margin-left: 8px; color: #909399; font-size: 12px">
+            开启后，每期结束后系统自动创建下一期评价
+          </span>
+        </el-form-item>
+
+        <template v-if="formData.recurringEnabled">
+          <el-form-item label="重复周期">
+            <el-select
+              v-model="formData.recurringFrequency"
+              style="width: 200px"
+            >
+              <el-option label="每月" value="monthly" />
+              <el-option label="每季度" value="quarterly" />
+              <el-option label="每半年" value="semi_annual" />
+              <el-option label="每年" value="annual" />
+            </el-select>
+          </el-form-item>
+
+          <el-form-item label="首次日期" prop="recurringFirstDate">
+            <el-date-picker
+              v-model="formData.recurringFirstDate"
+              type="date"
+              placeholder="选择首次发布日期"
+              format="YYYY-MM-DD"
+              value-format="YYYY-MM-DD"
+              :disabled-date="disablePastDates"
+            />
+            <div style="color: #909399; font-size: 12px; margin-top: 4px">
+              每期第一天自动发布，建议选未来的日期
+            </div>
+          </el-form-item>
+
+          <el-form-item label="每期持续">
+            <el-input-number
+              v-model="formData.recurringDurationDays"
+              :min="7"
+              :max="365"
+              :step="1"
+            />
+            <span style="margin-left: 8px; color: #606266">天</span>
+            <div style="color: #909399; font-size: 12px; margin-top: 4px">
+              从发布日起持续的天数（建议：每月→30天，每季度→90天）
+            </div>
+          </el-form-item>
+
+          <el-form-item label="总结束日期">
+            <el-date-picker
+              v-model="formData.recurringTotalEndDate"
+              type="date"
+              placeholder="选填，不选则无限期发布"
+              format="YYYY-MM-DD"
+              value-format="YYYY-MM-DD"
+              :disabled-date="disablePastDates"
+            />
+            <div style="color: #909399; font-size: 12px; margin-top: 4px">
+              到达此日期后不再自动发布新一期评价，留空则无限期
+            </div>
+          </el-form-item>
+
+          <el-form-item label="预览" v-if="recurringPreview.length > 0">
+            <div
+              style="
+                background: #f5f7fa;
+                padding: 12px 16px;
+                border-radius: 6px;
+                font-size: 13px;
+                line-height: 2;
+              "
+            >
+              <div v-for="(p, i) in recurringPreview" :key="i">
+                第{{ i + 1 }}期：<span style="color: #409eff">{{ p.start }}</span> → <span style="color: #67c23a">{{ p.end }}</span>
+              </div>
+              <div
+                style="
+                  color: #909399;
+                  font-size: 12px;
+                  margin-top: 6px;
+                  border-top: 1px solid #e4e7ed;
+                  padding-top: 6px;
+                "
+              >
+                共预览 {{ recurringPreview.length }} 期，之后依此类推
+              </div>
+            </div>
+          </el-form-item>
+        </template>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
@@ -195,7 +301,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, nextTick } from "vue";
+import { ref, reactive, computed, onMounted, nextTick } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
 import axios from "../../utils/axios";
@@ -248,6 +354,11 @@ const formData = reactive<any>({
     { name: "专业技能", weight: 10 },
   ],
   communityId: "",
+  recurringEnabled: false,
+  recurringFrequency: "quarterly",
+  recurringFirstDate: "",
+  recurringDurationDays: 90,
+  recurringTotalEndDate: "",
 });
 
 const formRules = {
@@ -257,7 +368,59 @@ const formRules = {
     { required: true, message: "请选择截止提交时间", trigger: "change" },
   ],
   staffIds: [{ required: true, message: "请选择被评人员", trigger: "change" }],
+  recurringFirstDate: [
+    { required: true, message: "请选择首次发布日期", trigger: "change" },
+  ],
 };
+
+// 禁用过去的日期
+const disablePastDates = (date: Date) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return date.getTime() < today.getTime();
+};
+
+// 自动发布预览
+const formatDateStr = (d: Date) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
+
+const recurringPreview = computed(() => {
+  if (!formData.recurringEnabled || !formData.recurringFirstDate) return [];
+  const previews: { start: string; end: string }[] = [];
+  const current = new Date(formData.recurringFirstDate);
+  const duration = formData.recurringDurationDays || 90;
+  const frequency = formData.recurringFrequency || "quarterly";
+
+  for (let i = 0; i < 3; i++) {
+    const start = new Date(current);
+    const end = new Date(current);
+    end.setDate(end.getDate() + duration - 1);
+    previews.push({
+      start: formatDateStr(start),
+      end: formatDateStr(end),
+    });
+
+    switch (frequency) {
+      case "monthly":
+        current.setMonth(current.getMonth() + 1);
+        break;
+      case "quarterly":
+        current.setMonth(current.getMonth() + 3);
+        break;
+      case "semi_annual":
+        current.setMonth(current.getMonth() + 6);
+        break;
+      case "annual":
+        current.setFullYear(current.getFullYear() + 1);
+        break;
+    }
+  }
+  return previews;
+});
 
 // 格式化日期
 const formatDate = (date: string) => {
@@ -265,17 +428,33 @@ const formatDate = (date: string) => {
   return date.split("T")[0];
 };
 
-// 格式化日期时间
-const formatDateTime = (date: string) => {
-  if (!date) return "";
-  const d = new Date(date);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
-    2,
-    "0",
-  )}-${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(
-    2,
-    "0",
-  )}:${String(d.getMinutes()).padStart(2, "0")}`;
+// 获取频率文本
+const getFrequencyText = (freq: string) => {
+  const map: Record<string, string> = {
+    monthly: "每月",
+    quarterly: "每季度",
+    semi_annual: "每半年",
+    annual: "每年",
+  };
+  return map[freq] || freq;
+};
+
+// 计算下次发布日期
+const getNextPublishDate = (row: any) => {
+  const rec = row.recurring;
+  if (!rec || !rec.enabled) return "—";
+  const base = rec.lastGeneratedDate
+    ? new Date(rec.lastGeneratedDate)
+    : new Date(row.startDate);
+  const next = new Date(base);
+  switch (rec.frequency) {
+    case "monthly": next.setMonth(next.getMonth() + 1); break;
+    case "quarterly": next.setMonth(next.getMonth() + 3); break;
+    case "semi_annual": next.setMonth(next.getMonth() + 6); break;
+    case "annual": next.setFullYear(next.getFullYear() + 1); break;
+    default: next.setMonth(next.getMonth() + 3);
+  }
+  return formatDateStr(next);
 };
 
 // 获取状态类型
@@ -354,6 +533,11 @@ const handleAdd = async () => {
     ],
     communityId: JSON.parse(localStorage.getItem("admin-user") || "{}")
       .communityId,
+    recurringEnabled: false,
+    recurringFrequency: "quarterly",
+    recurringFirstDate: "",
+    recurringDurationDays: 90,
+    recurringTotalEndDate: "",
   });
   dialogVisible.value = true;
 };
@@ -364,6 +548,7 @@ const handleEdit = async (row: Cycle) => {
   dialogTitle.value = "编辑评价";
   editingId.value = row._id || null;
   startSubmitType.value = row.startSubmitTime ? "custom" : "now";
+  const rec = (row as any).recurring || {};
   Object.assign(formData, {
     title: row.title,
     dateRange: [row.startDate, row.endDate],
@@ -372,6 +557,11 @@ const handleEdit = async (row: Cycle) => {
     staffIds: [...row.staffIds],
     dimensions: [...row.dimensions],
     communityId: row.communityId,
+    recurringEnabled: rec.enabled || false,
+    recurringFrequency: rec.frequency || "quarterly",
+    recurringFirstDate: rec.firstDate || "",
+    recurringDurationDays: rec.durationDays || 90,
+    recurringTotalEndDate: rec.totalEndDate || "",
   });
   dialogVisible.value = true;
 };
@@ -414,14 +604,49 @@ const handleSubmit = async () => {
   try {
     await formRef.value.validate();
 
+    let startDate, endDate, startSubmitTime, deadline;
+
+    if (formData.recurringEnabled) {
+      // 自动发布模式：从 recurring 设置推算日期
+      startDate = formData.recurringFirstDate;
+      const end = new Date(formData.recurringFirstDate);
+      end.setDate(end.getDate() + (formData.recurringDurationDays || 90) - 1);
+      const y = end.getFullYear();
+      const m = String(end.getMonth() + 1).padStart(2, "0");
+      const d = String(end.getDate()).padStart(2, "0");
+      endDate = `${y}-${m}-${d}`;
+      startSubmitTime = undefined; // 立即发布
+      deadline = endDate;
+    } else {
+      startDate = formData.dateRange[0];
+      endDate = formData.dateRange[1];
+      startSubmitTime =
+        startSubmitType.value === "now" ? undefined : formData.startSubmitTime;
+      deadline = formData.deadline;
+    }
+
     const submitData = {
       ...formData,
-      startDate: formData.dateRange[0],
-      endDate: formData.dateRange[1],
-      startSubmitTime:
-        startSubmitType.value === "now" ? undefined : formData.startSubmitTime,
+      startDate,
+      endDate,
+      startSubmitTime,
+      deadline,
+      recurring: formData.recurringEnabled
+        ? {
+            enabled: true,
+            frequency: formData.recurringFrequency,
+            firstDate: formData.recurringFirstDate,
+            durationDays: formData.recurringDurationDays,
+            totalEndDate: formData.recurringTotalEndDate || undefined,
+          }
+        : undefined,
     };
     delete submitData.dateRange;
+    delete submitData.recurringEnabled;
+    delete submitData.recurringFrequency;
+    delete submitData.recurringFirstDate;
+    delete submitData.recurringDurationDays;
+    delete submitData.recurringTotalEndDate;
 
     const url = editingId.value
       ? `/evaluation/cycles/${editingId.value}`

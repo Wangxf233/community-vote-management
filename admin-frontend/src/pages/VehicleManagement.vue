@@ -54,6 +54,7 @@
             :headers="uploadHeaders"
             :show-file-list="false"
             accept=".xlsx,.xls"
+            :before-upload="beforeImportUpload"
             :on-success="handleImportSuccess"
             :on-error="handleImportError"
           >
@@ -461,6 +462,15 @@ async function handleExportExcel() {
 // --- 导入 ---
 const failDialogVisible = ref(false);
 const failList = ref<any[]>([]);
+
+function beforeImportUpload(file: File) {
+  const maxSize = 10 * 1024 * 1024; // 10MB
+  if (file.size > maxSize) {
+    ElMessage.error("Excel 文件大小不能超过 10MB");
+    return false;
+  }
+  return true;
+}
 
 function handleImportSuccess(response: any) {
   const res = response.data || response;

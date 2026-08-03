@@ -249,6 +249,7 @@ router.post("/cycles", verifyToken, async (req, res) => {
       staffIds,
       dimensions,
       communityId,
+      recurring,
     } = req.body;
 
     if (
@@ -292,6 +293,17 @@ router.post("/cycles", verifyToken, async (req, res) => {
       updatedAt: now,
     };
 
+    if (recurring && recurring.enabled) {
+      cycleData.recurring = {
+        enabled: true,
+        frequency: recurring.frequency || "quarterly",
+        firstDate: recurring.firstDate,
+        durationDays: recurring.durationDays || 90,
+        totalEndDate: recurring.totalEndDate || null,
+        lastGeneratedDate: null,
+      };
+    }
+
     const result = await db.collection("evaluation_cycles").add(cycleData);
 
     res.json({
@@ -334,6 +346,20 @@ router.put("/cycles/:id", verifyToken, async (req, res) => {
     }
     if (staffIds) updateData.staffIds = staffIds;
     if (dimensions) updateData.dimensions = dimensions;
+    if (req.body.recurring !== undefined) {
+      if (req.body.recurring && req.body.recurring.enabled) {
+        updateData.recurring = {
+          enabled: true,
+          frequency: req.body.recurring.frequency || "quarterly",
+          firstDate: req.body.recurring.firstDate,
+          durationDays: req.body.recurring.durationDays || 90,
+          totalEndDate: req.body.recurring.totalEndDate || null,
+          lastGeneratedDate: req.body.recurring.lastGeneratedDate || null,
+        };
+      } else {
+        updateData.recurring = _.remove();
+      }
+    }
 
     // 重新计算状态
     if (deadline || startSubmitTime !== undefined) {
@@ -733,6 +759,7 @@ router.post("/company-cycles", verifyToken, async (req, res) => {
       deadline,
       dimensions,
       communityId,
+      recurring,
     } = req.body;
 
     if (
@@ -774,6 +801,17 @@ router.post("/company-cycles", verifyToken, async (req, res) => {
       updatedAt: now,
     };
 
+    if (recurring && recurring.enabled) {
+      cycleData.recurring = {
+        enabled: true,
+        frequency: recurring.frequency || "quarterly",
+        firstDate: recurring.firstDate,
+        durationDays: recurring.durationDays || 90,
+        totalEndDate: recurring.totalEndDate || null,
+        lastGeneratedDate: null,
+      };
+    }
+
     const result = await db.collection("evaluation_cycles").add(cycleData);
 
     res.json({
@@ -808,6 +846,20 @@ router.put("/company-cycles/:id", verifyToken, async (req, res) => {
       updateData.deadline = new Date(deadline).toISOString();
     }
     if (dimensions) updateData.dimensions = dimensions;
+    if (req.body.recurring !== undefined) {
+      if (req.body.recurring && req.body.recurring.enabled) {
+        updateData.recurring = {
+          enabled: true,
+          frequency: req.body.recurring.frequency || "quarterly",
+          firstDate: req.body.recurring.firstDate,
+          durationDays: req.body.recurring.durationDays || 90,
+          totalEndDate: req.body.recurring.totalEndDate || null,
+          lastGeneratedDate: req.body.recurring.lastGeneratedDate || null,
+        };
+      } else {
+        updateData.recurring = _.remove();
+      }
+    }
 
     // 重新计算状态
     if (deadline || startSubmitTime !== undefined) {
@@ -1061,6 +1113,117 @@ router.get("/company-results/:cycleId", verifyToken, async (req, res) => {
     });
   } catch (error) {
     console.error("获取物业公司评价结果失败:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ==================== 定期自动发布 ====================
+
+// 计算下一期开始日期
+function addInterval(date, frequency) {
+  const d = new Date(date);
+  switch (frequency) {
+    case "monthly":
+      d.setMonth(d.getMonth() + 1);
+      break;
+    case "quarterly":
+      d.setMonth(d.getMonth() + 3);
+      break;
+    case "semi_annual":
+      d.setMonth(d.getMonth() + 6);
+      break;
+    case "annual":
+      d.setFullYear(d.getFullYear() + 1);
+      break;
+    default:
+      d.setMonth(d.getMonth() + 3);
+  }
+  return d;
+}
+
+// 检查并自动生成下一期评价（供定时任务调用）
+router.get("/check-recurring", async (req, res) => {
+  try {
+    const now = new Date();
+    const closedCycles = await db
+      .collection("evaluation_cycles")
+      .where({
+        "recurring.enabled": true,
+        status: "closed",
+      })
+      .limit(100)
+      .get();
+
+    let generated = 0;
+    const cycles = closedCycles.data || [];
+
+    for (const cycle of cycles) {
+      const rec = cycle.recurring;
+      if (!rec || !rec.enabled) continue;
+
+      // 计算下一期开始日期
+      const baseDate = rec.lastGeneratedDate
+        ? new Date(rec.lastGeneratedDate)
+        : new Date(cycle.startDate);
+      const nextStart = addInterval(baseDate, rec.frequency);
+
+      // 超过总结束日期，不再生成
+      if (rec.totalEndDate && nextStart > new Date(rec.totalEndDate)) continue;
+
+      // 还没到下一期发布时间
+      if (nextStart > now) continue;
+
+      // 计算下一期结束日期
+      const nextEnd = new Date(nextStart);
+      nextEnd.setDate(nextEnd.getDate() + (rec.durationDays || 90) - 1);
+
+      const fmtDate = (d) => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${day}`;
+      };
+
+      const newCycle = {
+        title: cycle.title,
+        startDate: fmtDate(nextStart),
+        endDate: fmtDate(nextEnd),
+        startSubmitTime: nextStart.toISOString(),
+        deadline: nextEnd.toISOString(),
+        staffIds: cycle.staffIds || [],
+        dimensions: cycle.dimensions || [],
+        status: nextStart <= now && now < nextEnd ? "ongoing" : "draft",
+        type: cycle.type || "staff",
+        communityId: cycle.communityId,
+        recurring: {
+          enabled: true,
+          frequency: rec.frequency,
+          firstDate: rec.firstDate,
+          durationDays: rec.durationDays,
+          totalEndDate: rec.totalEndDate || null,
+          lastGeneratedDate: null,
+        },
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      await db.collection("evaluation_cycles").add(newCycle);
+
+      // 更新原始周期的 lastGeneratedDate
+      await db
+        .collection("evaluation_cycles")
+        .doc(cycle._id)
+        .update({
+          "recurring.lastGeneratedDate": fmtDate(nextStart),
+          updatedAt: now,
+        });
+
+      generated++;
+    }
+
+    res.json({ success: true, generated, checkedAt: now.toISOString() });
+  } catch (error) {
+    console.error("检查自动发布失败:", error);
     res.status(500).json({ success: false, error: error.message });
   }
 });

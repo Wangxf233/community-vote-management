@@ -39,7 +39,7 @@
             </el-button>
             <template #tip>
               <div style="color: #999; font-size: 12px">
-                支持文档或图片，最大10MB
+                支持文档或图片，最大1MB
               </div>
             </template>
           </el-upload>
@@ -216,9 +216,9 @@ function onDeadlineModeChange() {
 }
 
 function beforeUpload(file: File) {
-  const maxSize = 10 * 1024 * 1024; // 10MB
+  const maxSize = 1 * 1024 * 1024; // 1MB
   if (file.size > maxSize) {
-    ElMessage.error("文件大小不能超过10MB");
+    ElMessage.error("文件大小不能超过1MB");
     return false;
   }
   console.log("Starting upload:", file.name, file.size);

@@ -127,7 +127,104 @@ const PORT = Number(process.env.PORT || 3000);
 
 const server = app.listen(PORT, () => {
   console.log(`Admin service listening on port ${PORT}`);
+
+  // 定期检查自动发布评价（每小时一次）
+  checkRecurringEvaluations();
+  setInterval(checkRecurringEvaluations, 60 * 60 * 1000);
 });
+
+function addInterval(date, frequency) {
+  const d = new Date(date);
+  switch (frequency) {
+    case "monthly": d.setMonth(d.getMonth() + 1); break;
+    case "quarterly": d.setMonth(d.getMonth() + 3); break;
+    case "semi_annual": d.setMonth(d.getMonth() + 6); break;
+    case "annual": d.setFullYear(d.getFullYear() + 1); break;
+    default: d.setMonth(d.getMonth() + 3);
+  }
+  return d;
+}
+
+function fmtDate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+// 自动发布检查
+async function checkRecurringEvaluations() {
+  try {
+    const now = new Date();
+    const { db } = require("./config/db");
+    const closedCycles = await db
+      .collection("evaluation_cycles")
+      .where({ "recurring.enabled": true, status: "closed" })
+      .limit(100)
+      .get();
+
+    let generated = 0;
+    const cycles = closedCycles.data || [];
+
+    for (const cycle of cycles) {
+      const rec = cycle.recurring;
+      if (!rec || !rec.enabled) continue;
+
+      const baseDate = rec.lastGeneratedDate
+        ? new Date(rec.lastGeneratedDate)
+        : new Date(cycle.startDate);
+      const nextStart = addInterval(baseDate, rec.frequency);
+
+      if (rec.totalEndDate && nextStart > new Date(rec.totalEndDate)) continue;
+
+      if (nextStart > now) continue;
+
+      const nextEnd = new Date(nextStart);
+      nextEnd.setDate(nextEnd.getDate() + (rec.durationDays || 90) - 1);
+
+      const newCycle = {
+        title: cycle.title,
+        startDate: fmtDate(nextStart),
+        endDate: fmtDate(nextEnd),
+        startSubmitTime: nextStart.toISOString(),
+        deadline: nextEnd.toISOString(),
+        staffIds: cycle.staffIds || [],
+        dimensions: cycle.dimensions || [],
+        status: nextStart <= now && now < nextEnd ? "ongoing" : "draft",
+        type: cycle.type || "staff",
+        communityId: cycle.communityId,
+        recurring: {
+          enabled: true,
+          frequency: rec.frequency,
+          firstDate: rec.firstDate,
+          durationDays: rec.durationDays,
+          totalEndDate: rec.totalEndDate || null,
+          lastGeneratedDate: null,
+        },
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      await db.collection("evaluation_cycles").add(newCycle);
+
+      await db
+        .collection("evaluation_cycles")
+        .doc(cycle._id)
+        .update({
+          "recurring.lastGeneratedDate": fmtDate(nextStart),
+          updatedAt: now,
+        });
+
+      generated++;
+    }
+
+    if (generated > 0) {
+      console.log(`[自动发布] 已生成 ${generated} 期新评价`);
+    }
+  } catch (err) {
+    console.error("[自动发布] 检查失败:", err.message);
+  }
+}
 
 server.on("error", (err) => {
   console.error("Server error:", err);

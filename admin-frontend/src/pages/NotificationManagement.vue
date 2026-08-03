@@ -173,7 +173,7 @@
           formatDateTime(currentRow.publishTime)
         }}</el-descriptions-item>
         <el-descriptions-item label="详情" :span="2">
-          <div style="white-space: pre-wrap">{{ currentRow.content }}</div>
+          <div style="white-space: pre-wrap; word-break: break-all; overflow-wrap: break-word; overflow: hidden">{{ currentRow.content }}</div>
         </el-descriptions-item>
         <el-descriptions-item label="附件" :span="2">
           <div

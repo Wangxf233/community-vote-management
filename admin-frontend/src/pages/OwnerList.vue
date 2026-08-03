@@ -47,13 +47,6 @@
             clearable
           />
         </el-form-item>
-        <el-form-item label="车牌号">
-          <el-input
-            v-model="searchForm.carNumber"
-            placeholder="请输入车牌号"
-            clearable
-          />
-        </el-form-item>
         <el-form-item label="实名状态">
           <el-select
             v-model="searchForm.realNameStatus"
@@ -144,20 +137,6 @@
             <el-table-column prop="room" label="房号" min-width="80">
               <template #default="{ row }">
                 {{ formatRoom(row.room) }}
-              </template>
-            </el-table-column>
-            <el-table-column label="车牌号" min-width="150">
-              <template #default="{ row }">
-                <el-tooltip
-                  v-if="row.carNumber && row.carNumber.length > 15"
-                  :content="row.carNumber"
-                  placement="top"
-                >
-                  <span style="cursor: pointer">{{
-                    row.carNumber.substring(0, 15) + "..."
-                  }}</span>
-                </el-tooltip>
-                <span v-else>{{ row.carNumber || "-" }}</span>
               </template>
             </el-table-column>
             <el-table-column prop="area" label="专有面积(㎡)" min-width="120" />
@@ -392,41 +371,6 @@
           + 添加房产
         </el-button>
 
-        <el-divider content-position="left">车牌号</el-divider>
-        <div
-          v-for="(carNumber, index) in editForm.carNumbers"
-          :key="'car-' + index"
-          style="margin-bottom: 12px"
-        >
-          <el-form-item
-            :label="'车牌号 ' + (index + 1)"
-            :prop="`carNumbers.${index}`"
-          >
-            <div style="display: flex; gap: 8px; width: 100%">
-              <el-input
-                v-model="editForm.carNumbers[index]"
-                placeholder="例如：粤B12345（如无则留空）"
-                style="flex: 1"
-              />
-              <el-button
-                v-if="editForm.carNumbers.length > 1"
-                type="danger"
-                text
-                @click="removeCarNumber(index)"
-              >
-                删除
-              </el-button>
-            </div>
-          </el-form-item>
-        </div>
-        <el-button
-          type="primary"
-          plain
-          @click="addCarNumber"
-          style="width: 100%; margin-bottom: 16px"
-        >
-          + 添加车牌号
-        </el-button>
       </el-form>
       <template #footer>
         <el-button @click="editDialog = false">取消</el-button>
@@ -614,7 +558,6 @@ const searchForm = reactive({
   building: "",
   unit: "",
   room: "",
-  carNumber: "",
   realNameStatus: "",
 });
 
@@ -632,7 +575,6 @@ const editForm = reactive({
       remark: "",
     },
   ] as any[],
-  carNumbers: [""] as string[],
 });
 
 const formRules = {
@@ -692,12 +634,6 @@ async function loadList() {
           remark: item.remark,
           _id: item._id,
         });
-        // 合并车牌号
-        if (item.carNumber && !owner.carNumber.includes(item.carNumber)) {
-          owner.carNumber = owner.carNumber
-            ? `${owner.carNumber},${item.carNumber}`
-            : item.carNumber;
-        }
       } else {
         // 新户主记录 - 不初始化 properties 数组
         ownerMap.set(key, {
@@ -724,7 +660,6 @@ function resetSearch() {
   searchForm.building = "";
   searchForm.unit = "";
   searchForm.room = "";
-  searchForm.carNumber = "";
   searchForm.realNameStatus = "";
   search();
 }
@@ -760,13 +695,6 @@ function handleEdit(row: any) {
     ];
   }
 
-  // 处理多车牌号
-  if (row.carNumber) {
-    editForm.carNumbers = row.carNumber.split(",").map((c: string) => c.trim());
-  } else {
-    editForm.carNumbers = [""];
-  }
-
   editDialog.value = true;
 }
 
@@ -780,10 +708,6 @@ async function submitEdit() {
       name: editForm.name,
       phone: editForm.phone,
       properties: editForm.properties,
-      carNumber: editForm.carNumbers
-        .filter((c) => c && c.trim())
-        .map((c) => c.trim())
-        .join(","),
     };
 
     await request.put(`/owner-list/${editForm.id}`, submitData);
@@ -808,14 +732,6 @@ function addProperty() {
 
 function removeProperty(index: number) {
   editForm.properties.splice(index, 1);
-}
-
-function addCarNumber() {
-  editForm.carNumbers.push("");
-}
-
-function removeCarNumber(index: number) {
-  editForm.carNumbers.splice(index, 1);
 }
 
 function handleSelectionChange(selection: any[]) {

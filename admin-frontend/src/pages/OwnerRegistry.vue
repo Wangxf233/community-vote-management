@@ -175,12 +175,7 @@
           </el-table-column>
           <el-table-column
             prop="ownerName1"
-            label="户主姓名1"
-            min-width="120"
-          />
-          <el-table-column
-            prop="ownerName2"
-            label="户主姓名2"
+            label="户主姓名"
             min-width="120"
           />
           <el-table-column prop="building" label="楼栋号" min-width="80" />
@@ -188,20 +183,6 @@
           <el-table-column prop="room" label="房号" min-width="80">
             <template #default="{ row }">
               {{ formatRoom(row.room) }}
-            </template>
-          </el-table-column>
-          <el-table-column label="车牌号" min-width="150">
-            <template #default="{ row }">
-              <el-tooltip
-                v-if="row.carNumber && row.carNumber.length > 15"
-                :content="row.carNumber"
-                placement="top"
-              >
-                <span style="cursor: pointer">{{
-                  row.carNumber.substring(0, 15) + "..."
-                }}</span>
-              </el-tooltip>
-              <span v-else>{{ row.carNumber || "-" }}</span>
             </template>
           </el-table-column>
           <el-table-column prop="area" label="专有面积(㎡)" min-width="120" />
@@ -313,11 +294,8 @@
         :rules="formRules"
         ref="formRef"
       >
-        <el-form-item label="户主姓名1" prop="ownerName1">
-          <el-input v-model="editForm.ownerName1" placeholder="必填" />
-        </el-form-item>
-        <el-form-item label="户主姓名2">
-          <el-input v-model="editForm.ownerName2" placeholder="选填" />
+        <el-form-item label="户主姓名" prop="ownerName1">
+          <el-input v-model="editForm.ownerName1" placeholder="请输入户主姓名" />
         </el-form-item>
 
         <el-divider content-position="left">房产信息</el-divider>
@@ -441,42 +419,6 @@
           style="width: 100%; margin-bottom: 16px"
         >
           + 添加房产
-        </el-button>
-
-        <el-divider content-position="left">车牌号</el-divider>
-        <div
-          v-for="(carNumber, index) in editForm.carNumbers"
-          :key="'car-' + index"
-          style="margin-bottom: 12px"
-        >
-          <el-form-item
-            :label="'车牌号 ' + (index + 1)"
-            :prop="`carNumbers.${index}`"
-          >
-            <div style="display: flex; gap: 8px; width: 100%">
-              <el-input
-                v-model="editForm.carNumbers[index]"
-                placeholder="例如：粤B12345（如无则留空）"
-                style="flex: 1"
-              />
-              <el-button
-                v-if="editForm.carNumbers.length > 1"
-                type="danger"
-                text
-                @click="removeCarNumber(index)"
-              >
-                删除
-              </el-button>
-            </div>
-          </el-form-item>
-        </div>
-        <el-button
-          type="primary"
-          plain
-          @click="addCarNumber"
-          style="width: 100%; margin-bottom: 16px"
-        >
-          + 添加车牌号
         </el-button>
 
         <el-form-item label="导入状态" prop="status">
@@ -680,7 +622,6 @@ const editDialog = ref(false);
 const editForm = reactive({
   id: "",
   ownerName1: "",
-  ownerName2: "",
   properties: [
     {
       building: "",
@@ -689,12 +630,11 @@ const editForm = reactive({
       area: "",
     },
   ] as any[],
-  carNumbers: [""] as string[],
   status: "valid",
 });
 
 const formRules = {
-  ownerName1: [{ required: true, message: "请输入户主姓名1", trigger: "blur" }],
+  ownerName1: [{ required: true, message: "请输入户主姓名", trigger: "blur" }],
   building: [{ required: true, message: "请输入楼栋号", trigger: "blur" }],
   unit: [{ required: true, message: "请输入单元号", trigger: "blur" }],
   room: [{ required: true, message: "请输入房号", trigger: "blur" }],
@@ -748,7 +688,7 @@ async function loadList() {
     const ownerMap = new Map();
 
     rawList.forEach((item: any) => {
-      const key = `${item.ownerName1}_${item.ownerName2 || ""}`;
+      const key = item.ownerName1;
 
       if (ownerMap.has(key)) {
         // 已存在该户主，将当前房产添加到 properties
@@ -764,12 +704,6 @@ async function loadList() {
           remark: item.remark,
           _id: item._id,
         });
-        // 合并车牌号
-        if (item.carNumber && !owner.carNumber.includes(item.carNumber)) {
-          owner.carNumber = owner.carNumber
-            ? `${owner.carNumber},${item.carNumber}`
-            : item.carNumber;
-        }
       } else {
         // 新户主记录 - 不初始化 properties 数组
         ownerMap.set(key, {
@@ -818,35 +752,30 @@ function downloadTemplate() {
     [
       "1. 一个户主多套房：第一行填完整信息，后续房产只填楼栋号、单元号、房号、专有面积，户主姓名留空",
     ],
-    ["2. 一个户主多辆车：在车牌号单元格用逗号分隔，如：粤B12345,粤B67890"],
     [""],
     [
-      "户主姓名1（必填）",
-      "户主姓名2（如无，留空）",
-      "楼栋号（必填）",
-      "单元号（必填）",
-      "房号（必填）",
-      "车牌号（多个用逗号分隔，如无则留空）",
-      "专有面积（必填）",
+      "户主姓名 *",
+      "楼栋号 *",
+      "单元号 *",
+      "房号 *",
+      "专有面积 *",
       "备注（如无，留空）",
     ],
-    ["张三", "李四", "1", "1", "101", "粤B12345,粤B67890", "100", "商户"],
-    ["", "", "1", "2", "201", "", "120", ""],
-    ["王五", "", "3", "1", "102", "粤A88888", "95", ""],
+    ["张三", "1", "1", "101", "100", "商户"],
+    ["", "1", "2", "201", "120", ""],
+    ["王五", "3", "1", "102", "95", ""],
   ];
 
   const ws = XLSX.utils.aoa_to_sheet(template);
 
   // 设置列宽
   const colWidths = [
-    { wch: 20 }, // 户主姓名1
-    { wch: 22 }, // 户主姓名2
-    { wch: 15 }, // 楼栋号
-    { wch: 15 }, // 单元号
-    { wch: 15 }, // 房号
-    { wch: 30 }, // 车牌号
-    { wch: 20 }, // 专有面积
-    { wch: 20 }, // 备注
+    { wch: 16 }, // 户主姓名
+    { wch: 12 }, // 楼栋号
+    { wch: 12 }, // 单元号
+    { wch: 12 }, // 房号
+    { wch: 14 }, // 专有面积
+    { wch: 22 }, // 备注
   ];
   ws["!cols"] = colWidths;
 
@@ -856,6 +785,12 @@ function downloadTemplate() {
 }
 
 async function handleImport(file: File) {
+  const maxSize = 10 * 1024 * 1024; // 10MB
+  if (file.size > maxSize) {
+    ElMessage.error("Excel 文件大小不能超过 10MB");
+    return false;
+  }
+
   importing.value = true;
   const loading = ElMessage({
     message: "正在导入，请稍候...",
@@ -875,8 +810,8 @@ async function handleImport(file: File) {
         header: 1,
       }) as any[][];
 
-      // 跳过前9行（提示1行、说明2行、空行1行、表头1行、示例数据3行）
-      const rows = jsonData.slice(9).filter((row) => row.length > 0);
+      // 跳过前8行（提示1行、说明1行、空行1行、表头1行、示例数据3行）
+      const rows = jsonData.slice(8).filter((row) => row.length > 0);
 
       // 预处理数据：合并同一户主的多套房产
       const processedData: any[] = [];
@@ -886,14 +821,12 @@ async function handleImport(file: File) {
         const ownerName1 = row[0]?.toString() || "";
         const rowData = {
           ownerName1,
-          ownerName2: row[1]?.toString() || "",
-          building: row[2]?.toString() || "",
-          unit: row[3]?.toString() || "",
-          room: row[4]?.toString() || "",
-          carNumber: row[5]?.toString() || "",
-          area: row[6]?.toString() || "",
-          remark: row[7]?.toString() || "",
-          rowNumber: index + 10,
+          building: row[1]?.toString() || "",
+          unit: row[2]?.toString() || "",
+          room: row[3]?.toString() || "",
+          area: row[4]?.toString() || "",
+          remark: row[5]?.toString() || "",
+          rowNumber: index + 9,
         };
 
         if (ownerName1) {
@@ -1009,7 +942,6 @@ async function handleImport(file: File) {
 function showAddDialog() {
   editForm.id = "";
   editForm.ownerName1 = "";
-  editForm.ownerName2 = "";
   editForm.properties = [
     {
       building: "",
@@ -1019,7 +951,6 @@ function showAddDialog() {
       remark: "",
     },
   ];
-  editForm.carNumbers = [""];
   editForm.status = "valid";
   editDialog.value = true;
 }
@@ -1038,18 +969,9 @@ function removeProperty(index: number) {
   editForm.properties.splice(index, 1);
 }
 
-function addCarNumber() {
-  editForm.carNumbers.push("");
-}
-
-function removeCarNumber(index: number) {
-  editForm.carNumbers.splice(index, 1);
-}
-
 function handleEdit(row: any) {
   editForm.id = row._id;
   editForm.ownerName1 = row.ownerName1 || "";
-  editForm.ownerName2 = row.ownerName2 || "";
 
   // 处理多房产
   if (row.properties && row.properties.length > 0) {
@@ -1077,13 +999,6 @@ function handleEdit(row: any) {
     ];
   }
 
-  // 处理多车牌号
-  if (row.carNumber) {
-    editForm.carNumbers = row.carNumber.split(",").map((c: string) => c.trim());
-  } else {
-    editForm.carNumbers = [""];
-  }
-
   editForm.status = row.status || "valid";
   editDialog.value = true;
 }
@@ -1096,12 +1011,7 @@ async function submitEdit() {
     const submitData = {
       id: editForm.id,
       ownerName1: editForm.ownerName1,
-      ownerName2: editForm.ownerName2,
       properties: editForm.properties,
-      carNumber: editForm.carNumbers
-        .filter((c) => c && c.trim())
-        .map((c) => c.trim())
-        .join(","),
       status: editForm.status,
     };
 
@@ -1157,7 +1067,7 @@ async function handleSelect50Data() {
       // 合并同一户主的多套房产
       const ownerMap = new Map();
       rawList.forEach((item: any) => {
-        const key = `${item.ownerName1}_${item.ownerName2 || ""}`;
+        const key = item.ownerName1;
         if (ownerMap.has(key)) {
           const owner = ownerMap.get(key);
           if (!owner.properties) {
@@ -1171,11 +1081,6 @@ async function handleSelect50Data() {
             remark: item.remark,
             _id: item._id,
           });
-          if (item.carNumber && !owner.carNumber.includes(item.carNumber)) {
-            owner.carNumber = owner.carNumber
-              ? `${owner.carNumber},${item.carNumber}`
-              : item.carNumber;
-          }
         } else {
           ownerMap.set(key, { ...item });
         }

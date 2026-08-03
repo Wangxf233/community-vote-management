@@ -1011,6 +1011,10 @@ async function saveConfig() {
         name: b.name,
         units: b.units.map((u) => ({
           name: u.name,
+          floors: u.floors,
+          roomsPerFloor: u.roomsPerFloor,
+          startRoom: u.startRoom,
+          endRoom: u.endRoom,
           rooms: u.rooms || [],
         })),
       })),
@@ -1042,10 +1046,10 @@ async function loadConfig() {
           units:
             b.units?.map((u: any) => ({
               name: u.name,
-              floors: 6,
-              roomsPerFloor: 6,
-              startRoom: "0101",
-              endRoom: "0606",
+              floors: u.floors || 6,
+              roomsPerFloor: u.roomsPerFloor || 6,
+              startRoom: u.startRoom || "0101",
+              endRoom: u.endRoom || "0606",
               rooms: u.rooms || [],
             })) || [],
         })) || [];

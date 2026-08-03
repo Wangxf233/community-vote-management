@@ -89,7 +89,7 @@
             <el-icon v-else class="avatar-uploader-icon"><Plus /></el-icon>
           </el-upload>
           <div class="upload-tip">
-            建议尺寸：200x200，支持 jpg/png 格式，不超过 2MB
+            建议尺寸：200x200，支持 jpg/png 格式，不超过 1MB
           </div>
         </el-form-item>
         <el-form-item label="姓名" prop="name">
@@ -290,14 +290,14 @@ const handleSubmit = async () => {
 // 图片上传前验证
 const beforeUpload = (file: File) => {
   const isImage = file.type === "image/jpeg" || file.type === "image/png";
-  const isLt2M = file.size / 1024 / 1024 < 2;
+  const isLt1M = file.size / 1024 / 1024 < 1;
 
   if (!isImage) {
     ElMessage.error("只能上传 JPG/PNG 格式的图片！");
     return false;
   }
-  if (!isLt2M) {
-    ElMessage.error("图片大小不能超过 2MB！");
+  if (!isLt1M) {
+    ElMessage.error("图片大小不能超过 1MB！");
     return false;
   }
   return true;
