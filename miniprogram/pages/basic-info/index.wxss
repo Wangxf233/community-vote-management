@@ -1,33 +1,36 @@
 .basic-info-page {
-  background-color: #f5f5f5;
+  background-color: #f5f7fb;
   min-height: 100vh;
-  padding: 20rpx;
+  padding: 24rpx;
 }
 
+/* ========== 头部 ========== */
 .page-header {
-  background: white;
-  padding: 30rpx;
-  border-radius: 12rpx;
-  margin-bottom: 20rpx;
+  background: linear-gradient(135deg, #1aad19 0%, #22c55e 50%, #16a34a 100%);
+  padding: 36rpx 30rpx;
+  border-radius: 20rpx;
+  margin-bottom: 24rpx;
   text-align: center;
+  box-shadow: 0 8rpx 24rpx rgba(26, 173, 25, 0.2);
 }
 
 .page-title {
-  font-size: 36rpx;
-  font-weight: 600;
-  color: #333;
+  display: block;
+  font-size: 38rpx;
+  font-weight: 700;
+  color: #fff;
 }
 
-/* 加载和错误状态 */
+/* ========== 加载和错误 ========== */
 .loading-container,
 .error-container {
-  padding: 80rpx 30rpx;
+  padding: 120rpx 30rpx;
   text-align: center;
 }
 
 .loading-text {
   font-size: 28rpx;
-  color: #999;
+  color: #9ca3af;
 }
 
 .error-text {
@@ -35,119 +38,88 @@
   color: #f56c6c;
 }
 
-/* 小区图片区域 */
-.images-section {
+/* ========== 信息卡片通用 ========== */
+.info-card {
+  background: #fff;
+  border-radius: 16rpx;
   margin-bottom: 20rpx;
-}
-
-.image-item {
-  background: white;
-  border-radius: 12rpx;
-  padding: 20rpx;
-  margin-bottom: 20rpx;
-}
-
-.image-label {
-  font-size: 28rpx;
-  color: #666;
-  display: block;
-  margin-bottom: 15rpx;
-}
-
-.community-image {
-  width: 100%;
-  height: 400rpx;
-  border-radius: 8rpx;
-  background-color: #f5f5f5;
-}
-
-/* 信息表格 */
-.info-table {
-  background: white;
-  border-radius: 12rpx;
   overflow: hidden;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
 }
 
-.table-row {
+.card-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #1f2937;
+  padding: 24rpx 28rpx 0;
+}
+
+.card-body {
+  padding: 20rpx 28rpx 24rpx;
+}
+
+/* ========== 信息行 ========== */
+.info-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 28rpx 30rpx;
-  border-bottom: 1rpx solid #f0f0f0;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #f3f4f6;
 }
 
-.table-row:last-child {
+.info-row:last-child {
   border-bottom: none;
 }
 
-.table-label {
-  font-size: 30rpx;
-  color: #666;
-  flex: 1;
+.info-row.sub .info-label {
+  padding-left: 28rpx;
+  font-size: 26rpx;
+  color: #9ca3af;
 }
 
-.table-value {
-  font-size: 30rpx;
-  color: #333;
-  font-weight: 500;
-  text-align: right;
-  flex: 1;
+.info-row.sub .info-value {
+  font-size: 26rpx;
+  font-weight: 400;
 }
 
-/* 可点击行样式 */
-.table-row.clickable {
-  background-color: #fff;
-  transition: background-color 0.2s;
-}
-
-.table-row.clickable:active {
-  background-color: #f5f5f5;
-}
-
-.link-text {
-  color: #1989fa;
+.info-label {
   font-size: 28rpx;
+  color: #6b7280;
+  flex-shrink: 0;
 }
 
-/* 嵌套行样式 */
-.table-row.nested {
-  flex-direction: column;
-  align-items: stretch;
-  padding: 0;
+.info-value {
+  font-size: 28rpx;
+  color: #1f2937;
+  font-weight: 600;
+  text-align: right;
 }
 
-.table-row.nested .table-label {
-  padding: 28rpx 30rpx;
-  border-bottom: 1rpx solid #f8f8f8;
-}
-
-.nested-content {
+/* ========== 单张图片 ========== */
+.single-image {
   width: 100%;
+  border-radius: 8rpx;
+  background: #f3f4f6;
 }
 
-.nested-row {
+/* ========== 小区介绍 ========== */
+.intro-text {
+  font-size: 28rpx;
+  color: #4b5563;
+  line-height: 1.9;
+  white-space: pre-wrap;
+}
+
+/* ========== 资料图片网格 ========== */
+.image-grid {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20rpx 30rpx;
-  border-bottom: 1rpx solid #f8f8f8;
+  flex-wrap: wrap;
+  gap: 16rpx;
 }
 
-.nested-row:last-child {
-  border-bottom: 1rpx solid #f0f0f0;
-}
-
-.nested-label {
-  font-size: 28rpx;
-  color: #888;
-  flex: 1;
-  padding-left: 40rpx;
-}
-
-.nested-value {
-  font-size: 28rpx;
-  color: #333;
-  font-weight: 500;
-  text-align: right;
-  flex: 1;
+.info-image {
+  width: 210rpx;
+  height: 210rpx;
+  border-radius: 8rpx;
+  background: #f3f4f6;
 }

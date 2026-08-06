@@ -111,6 +111,16 @@ Page({
   },
 
   /**
+   * 预览社区资料图片
+   */
+  previewCommunityImage(e) {
+    const url = e.currentTarget.dataset.url;
+    const { communityInfo } = this.data;
+    const urls = communityInfo.communityImages || [];
+    wx.previewImage({ urls, current: url });
+  },
+
+  /**
    * 下拉刷新
    */
   onPullDownRefresh() {

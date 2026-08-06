@@ -3,6 +3,12 @@ const cloudImages = require("./config/cloudImages");
 
 App({
   onLaunch() {
+    // 从缓存恢复实名认证开关
+    const cachedRealName = wx.getStorageSync("requireRealName");
+    if (cachedRealName !== "" && cachedRealName !== undefined) {
+      this.globalData.requireRealName = cachedRealName;
+    }
+
     // 初始化云开发
     if (wx.cloud) {
       wx.cloud.init({
@@ -39,6 +45,7 @@ App({
     communityId: null, // 社区ID
     isStaff: false,        // 是否是审核通过的工作人员
     staffInfo: null,       // 工作人员信息
+    requireRealName: true, // 投票/评价是否需要实名认证，默认开启，启动后从缓存或云端更新
     cloudImages: cloudImages, // 云存储图片配置
   },
 

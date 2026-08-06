@@ -33,12 +33,19 @@ Page({
     wx.cloud.callFunction({
       name: "getCommunityInfo",
       success: (res) => {
-        if (res.result.success && res.result.data) {
-          const data = res.result.data;
-          this.setData({
-            propertyName: data.propertyName || "物业服务",
-            adImages: data.adImages || [],
-          });
+        if (res.result.success) {
+          // 缓存实名认证开关状态（globalData + 本地存储双写）
+          const app = getApp();
+          const requireRealName = res.result.requireRealName !== false;
+          app.globalData.requireRealName = requireRealName;
+          wx.setStorageSync("requireRealName", requireRealName);
+          if (res.result.data) {
+            const data = res.result.data;
+            this.setData({
+              propertyName: data.propertyName || "物业服务",
+              adImages: data.adImages || [],
+            });
+          }
         }
       },
       fail: (err) => {

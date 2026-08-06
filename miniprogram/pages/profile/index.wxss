@@ -98,3 +98,17 @@
   align-items: center; /* 箭头图片垂直居中 */
   justify-content: center;
 }
+
+/* 客服按钮 — 覆盖 button 默认样式，与 menu-item 保持一致 */
+.contact-btn {
+  width: 100%;
+  border: none;
+  border-radius: 0;
+  padding: 28rpx 30rpx;
+  font-size: inherit;
+  line-height: inherit;
+  box-sizing: border-box;
+}
+.contact-btn::after {
+  border: none;
+}

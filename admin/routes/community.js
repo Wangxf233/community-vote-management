@@ -612,4 +612,54 @@ router.put(
   },
 );
 
+/**
+ * GET /api/communities/:id/real-name-setting — 获取投票/评价实名认证开关状态
+ */
+router.get(
+  "/communities/:id/real-name-setting",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const doc = await db.collection("communities").doc(id).get();
+      let data = doc?.data;
+      if (Array.isArray(data)) data = data[0] || {};
+      // 默认为 true（需要实名认证）
+      const requireRealName = data?.requireRealName !== false;
+      return res.json({ success: true, requireRealName });
+    } catch (e) {
+      return res.status(500).json({ success: false, error: e.message });
+    }
+  },
+);
+
+/**
+ * PUT /api/communities/:id/real-name-setting — 设置投票/评价实名认证开关
+ */
+router.put(
+  "/communities/:id/real-name-setting",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { requireRealName } = req.body;
+      if (typeof requireRealName !== "boolean") {
+        return res
+          .status(400)
+          .json({ success: false, error: "缺少 requireRealName 参数" });
+      }
+      await db
+        .collection("communities")
+        .doc(id)
+        .update({
+          requireRealName,
+          updatedAt: new Date(),
+        });
+      return res.json({ success: true, requireRealName });
+    } catch (e) {
+      return res.status(500).json({ success: false, error: e.message });
+    }
+  },
+);
+
 module.exports = router;

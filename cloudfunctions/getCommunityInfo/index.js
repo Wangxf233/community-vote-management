@@ -57,6 +57,7 @@ exports.main = async (event, context) => {
 
     // 2b. 查询 communities 集合获取门禁开关状态
     let doorManagementEnabled = false;
+    let requireRealName = true; // 默认需要实名
     try {
       const commRes = await db.collection("communities").doc(communityId).get();
       const commDoc = Array.isArray(commRes.data)
@@ -65,6 +66,7 @@ exports.main = async (event, context) => {
       doorManagementEnabled = !!(
         commDoc && commDoc.doorManagementEnabled === true
       );
+      requireRealName = commDoc?.requireRealName !== false;
     } catch (e) {
       console.warn(
         "getCommunityInfo: failed to load communities doc",
@@ -78,6 +80,7 @@ exports.main = async (event, context) => {
         success: true,
         communityName: communityName,
         doorManagementEnabled,
+        requireRealName,
         data: {
           propertyName: "",
           buildingCount: 0,
@@ -99,6 +102,8 @@ exports.main = async (event, context) => {
           planImage: "",
           effectImage: "",
           adImages: [],
+          communityHistory: "",
+          communityImages: [],
         },
       };
     }
@@ -110,6 +115,7 @@ exports.main = async (event, context) => {
       success: true,
       communityName: communityName,
       doorManagementEnabled,
+      requireRealName,
       data: {
         propertyName: communityInfo.propertyName || "",
         buildingCount: communityInfo.buildingCount || 0,
@@ -131,6 +137,8 @@ exports.main = async (event, context) => {
         planImage: communityInfo.planImage || "",
         effectImage: communityInfo.effectImage || "",
         adImages: communityInfo.adImages || [],
+        communityHistory: communityInfo.communityHistory || "",
+        communityImages: communityInfo.communityImages || [],
       },
     };
   } catch (err) {

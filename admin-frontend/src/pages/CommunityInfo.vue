@@ -376,6 +376,80 @@
           </div>
         </el-form-item>
 
+        <el-divider content-position="left">小区介绍</el-divider>
+
+        <el-form-item label="小区介绍">
+          <template v-if="isEditing">
+            <el-input
+              v-model="formData.communityHistory"
+              type="textarea"
+              :rows="4"
+              placeholder="请输入小区介绍"
+              maxlength="2000"
+              show-word-limit
+            />
+          </template>
+          <span v-else class="display-value" style="white-space: pre-wrap">{{
+            formData.communityHistory || "未设置"
+          }}</span>
+        </el-form-item>
+
+        <el-divider content-position="left">小区资料图片</el-divider>
+
+        <el-form-item label="资料图片">
+          <div class="ad-images-wrapper">
+            <div
+              v-for="(img, idx) in formData.communityImages"
+              :key="idx"
+              class="ad-image-item"
+            >
+              <img :src="img" class="ad-thumbnail" />
+              <div v-if="isEditing" class="ad-image-remove">
+                <el-button
+                  size="small"
+                  type="danger"
+                  circle
+                  @click="removeCommunityImage(idx)"
+                >
+                  <el-icon><Close /></el-icon>
+                </el-button>
+              </div>
+            </div>
+            <div
+              style="position: relative"
+              v-if="isEditing && formData.communityImages.length < 9"
+            >
+              <el-upload
+                class="image-uploader ad-image-uploader"
+                :action="uploadAction"
+                :headers="uploadHeaders"
+                :show-file-list="false"
+                :on-success="handleCommunityImageSuccess"
+                :on-progress="handleCommunityImageProgress"
+                :before-upload="beforeImageUpload"
+              >
+                <el-icon class="uploader-icon"><Plus /></el-icon>
+              </el-upload>
+              <div
+                v-if="uploadProgress.communityImage > 0 && uploadProgress.communityImage < 100"
+                class="upload-progress-overlay"
+              >
+                <div class="progress-content">
+                  <el-progress
+                    type="circle"
+                    :percentage="uploadProgress.communityImage"
+                    :width="80"
+                  />
+                  <div class="progress-text">上传中...</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="upload-tip">
+            仅支持 JPG/PNG 格式，大小不超过 1MB。最多上传 9 张
+          </div>
+        </el-form-item>
+
         <el-form-item v-if="isEditing">
           <div class="form-actions">
             <el-button @click="cancelEdit" size="large">取消</el-button>
@@ -408,6 +482,7 @@ const uploadProgress = ref({
   plan: 0,
   effect: 0,
   ad: 0,
+  communityImage: 0,
 });
 
 interface CommunityInfo {
@@ -431,6 +506,8 @@ interface CommunityInfo {
   planImage: string;
   effectImage: string;
   adImages: string[];
+  communityHistory: string;
+  communityImages: string[];
 }
 
 const formData = ref<CommunityInfo>({
@@ -454,6 +531,8 @@ const formData = ref<CommunityInfo>({
   planImage: "",
   effectImage: "",
   adImages: [],
+  communityHistory: "",
+  communityImages: [],
 });
 
 const uploadAction = ref(
@@ -573,6 +652,26 @@ function handleAdImageSuccess(res: any) {
 
 function removeAdImage(idx: number) {
   formData.value.adImages = formData.value.adImages.filter((_, i) => i !== idx);
+}
+
+function removeCommunityImage(idx: number) {
+  formData.value.communityImages = formData.value.communityImages.filter((_, i) => i !== idx);
+}
+
+function handleCommunityImageProgress(evt: any) {
+  if (evt.percent) {
+    uploadProgress.value.communityImage = Math.floor(evt.percent);
+  }
+}
+
+function handleCommunityImageSuccess(res: any) {
+  uploadProgress.value.communityImage = 0;
+  if (res.url) {
+    formData.value.communityImages = [...formData.value.communityImages, res.url];
+    ElMessage.success("上传成功");
+  } else {
+    ElMessage.error("上传失败");
+  }
 }
 
 function beforeImageUpload(file: File) {

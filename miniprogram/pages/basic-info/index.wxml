@@ -16,92 +16,122 @@
 
   <!-- 内容区域 -->
   <view wx:elif="{{communityInfo}}" class="content">
-    <!-- 基本信息表格 -->
-    <view class="info-table">
-      <view class="table-row">
-        <text class="table-label">楼栋数量</text>
-        <text class="table-value">{{communityInfo.buildingCount}}栋</text>
-      </view>
-      <view class="table-row">
-        <text class="table-label">单元数量</text>
-        <text class="table-value">{{communityInfo.unitCount}}个</text>
-      </view>
-      <view class="table-row">
-        <text class="table-label">住宅数量</text>
-        <text class="table-value">{{communityInfo.residentialCount}}户</text>
-      </view>
-      <view class="table-row">
-        <text class="table-label">商铺数量</text>
-        <text class="table-value">{{communityInfo.shopCount}}户</text>
-      </view>
-      <view class="table-row">
-        <text class="table-label">业主数量</text>
-        <text class="table-value">{{communityInfo.ownerCount}}人</text>
-      </view>
-      <view class="table-row">
-        <text class="table-label">占地面积</text>
-        <text class="table-value">{{communityInfo.landArea}}㎡</text>
-      </view>
-      
-      <!-- 小区平面图 -->
-      <view class="table-row clickable" wx:if="{{communityInfo.planImage}}" bindtap="previewPlanImage">
-        <text class="table-label">小区平面图</text>
-        <text class="table-value link-text">点击预览 ></text>
-      </view>
-      
-      <!-- 小区效果图 -->
-      <view class="table-row clickable" wx:if="{{communityInfo.effectImage}}" bindtap="previewEffectImage">
-        <text class="table-label">小区效果图</text>
-        <text class="table-value link-text">点击预览 ></text>
-      </view>
-      
-      <!-- 建筑面积 -->
-      <view class="table-row nested">
-        <text class="table-label">建筑面积</text>
-        <view class="nested-content">
-          <view class="nested-row">
-            <text class="nested-label">住宅面积</text>
-            <text class="nested-value">{{communityInfo.buildingArea.residential}}㎡</text>
-          </view>
-          <view class="nested-row">
-            <text class="nested-label">商户面积</text>
-            <text class="nested-value">{{communityInfo.buildingArea.commercial}}㎡</text>
-          </view>
-        </view>
-      </view>
-      
-      <!-- 专有面积 -->
-      <view class="table-row nested">
-        <text class="table-label">专有面积</text>
-        <view class="nested-content">
-          <view class="nested-row">
-            <text class="nested-label">住宅面积</text>
-            <text class="nested-value">{{communityInfo.exclusiveArea.residential}}㎡</text>
-          </view>
-          <view class="nested-row">
-            <text class="nested-label">商户面积</text>
-            <text class="nested-value">{{communityInfo.exclusiveArea.commercial}}㎡</text>
-          </view>
-        </view>
-      </view>
-      
-      <view class="table-row">
-        <text class="table-label">地下车库面积</text>
-        <text class="table-value">{{communityInfo.undergroundParkingArea}}㎡</text>
-      </view>
-      <view class="table-row">
-        <text class="table-label">地面车位数量</text>
-        <text class="table-value">{{communityInfo.surfaceParkingCount}}个</text>
-      </view>
-      <view class="table-row">
-        <text class="table-label">地下车位数量</text>
-        <text class="table-value">{{communityInfo.undergroundParkingCount}}个</text>
-      </view>
-      <view class="table-row">
-        <text class="table-label">车辆数量</text>
-        <text class="table-value">{{communityInfo.vehicleCount}}辆</text>
+
+    <!-- 小区介绍 -->
+    <view class="info-card" wx:if="{{communityInfo.communityHistory}}">
+      <view class="card-title">小区介绍</view>
+      <view class="card-body">
+        <text class="intro-text">{{communityInfo.communityHistory}}</text>
       </view>
     </view>
+
+    <!-- 基本概况 -->
+    <view class="info-card">
+      <view class="card-title">基本概况</view>
+      <view class="card-body">
+        <view class="info-row">
+          <text class="info-label">楼栋数量</text>
+          <text class="info-value">{{communityInfo.buildingCount}} 栋</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">单元数量</text>
+          <text class="info-value">{{communityInfo.unitCount}} 个</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">住宅数量</text>
+          <text class="info-value">{{communityInfo.residentialCount}} 户</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">商铺数量</text>
+          <text class="info-value">{{communityInfo.shopCount}} 户</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">业主数量</text>
+          <text class="info-value">{{communityInfo.ownerCount}} 人</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 面积信息 -->
+    <view class="info-card">
+      <view class="card-title">面积信息</view>
+      <view class="card-body">
+        <view class="info-row">
+          <text class="info-label">占地面积</text>
+          <text class="info-value">{{communityInfo.landArea}} ㎡</text>
+        </view>
+        <view class="info-row sub">
+          <text class="info-label">住宅面积</text>
+          <text class="info-value">{{communityInfo.buildingArea.residential || 0}} ㎡</text>
+        </view>
+        <view class="info-row sub">
+          <text class="info-label">商户面积</text>
+          <text class="info-value">{{communityInfo.buildingArea.commercial || 0}} ㎡</text>
+        </view>
+        <view class="info-row sub">
+          <text class="info-label">住宅专有面积</text>
+          <text class="info-value">{{communityInfo.exclusiveArea.residential || 0}} ㎡</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">地下车库面积</text>
+          <text class="info-value">{{communityInfo.undergroundParkingArea}} ㎡</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 车位与车辆 -->
+    <view class="info-card">
+      <view class="card-title">车位与车辆</view>
+      <view class="card-body">
+        <view class="info-row">
+          <text class="info-label">地面车位数量</text>
+          <text class="info-value">{{communityInfo.surfaceParkingCount}} 个</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">地下车位数量</text>
+          <text class="info-value">{{communityInfo.undergroundParkingCount}} 个</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">车辆数量</text>
+          <text class="info-value">{{communityInfo.vehicleCount}} 辆</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 小区平面图 -->
+    <view class="info-card" wx:if="{{communityInfo.planImage}}">
+      <view class="card-title">小区平面图</view>
+      <view class="card-body">
+        <image src="{{communityInfo.planImage}}" mode="widthFix" class="single-image" bindtap="previewPlanImage"></image>
+      </view>
+    </view>
+
+    <!-- 小区效果图 -->
+    <view class="info-card" wx:if="{{communityInfo.effectImage}}">
+      <view class="card-title">小区效果图</view>
+      <view class="card-body">
+        <image src="{{communityInfo.effectImage}}" mode="widthFix" class="single-image" bindtap="previewEffectImage"></image>
+      </view>
+    </view>
+
+    <!-- 小区资料图片 -->
+    <view class="info-card" wx:if="{{communityInfo.communityImages && communityInfo.communityImages.length > 0}}">
+      <view class="card-title">小区资料图片</view>
+      <view class="card-body">
+        <view class="image-grid">
+          <image
+            wx:for="{{communityInfo.communityImages}}"
+            wx:key="index"
+            src="{{item}}"
+            mode="aspectFill"
+            class="info-image"
+            bindtap="previewCommunityImage"
+            data-url="{{item}}"
+          ></image>
+        </view>
+      </view>
+    </view>
+
   </view>
 </view>
 

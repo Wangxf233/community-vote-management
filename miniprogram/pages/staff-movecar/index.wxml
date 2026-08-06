@@ -23,31 +23,42 @@
 
   <!-- 键盘区域 -->
   <view class="keyboard-area">
+    <!-- 步骤指示器 -->
+    <view class="step-indicator">
+      <view class="step-dot {{currentIndex === 0 ? 'step-active' : ''}} {{plateChars.length > 0 ? 'step-done' : ''}}">1</view>
+      <view class="step-line {{plateChars.length >= 2 ? 'step-done' : ''}}"></view>
+      <view class="step-dot {{currentIndex === 1 ? 'step-active' : ''}} {{plateChars.length >= 2 ? 'step-done' : ''}}">2</view>
+      <view class="step-line {{plateChars.length >= 3 ? 'step-done' : ''}}"></view>
+      <view class="step-dot {{plateChars.length >= 3 ? 'step-done' : ''}} {{plateChars.length >= 3 ? '' : 'step-next'}}">3+</view>
+    </view>
     <!-- 省份 -->
     <view class="keyboard-section" wx:if="{{currentIndex === 0}}">
-      <view class="section-title">选择省份简称</view>
-      <view class="key-grid">
-        <view class="key-btn province-btn" wx:for="{{provinces}}" wx:key="*this" wx:for-item="item" bindtap="onProvince" data-v="{{item}}">{{item}}</view>
+      <view class="section-title">选择省份</view>
+      <view class="key-grid province-grid">
+        <view class="key-btn key-province" wx:for="{{provinces}}" wx:key="*this" wx:for-item="item" bindtap="onProvince" data-v="{{item}}">{{item}}</view>
       </view>
     </view>
     <!-- 字母 -->
     <view class="keyboard-section" wx:elif="{{currentIndex === 1}}">
-      <view class="section-title">选择字母（第2位）</view>
-      <view class="key-grid">
-        <view class="key-btn letter-btn" wx:for="{{letters}}" wx:key="*this" wx:for-item="item" bindtap="onLetter" data-v="{{item}}">{{item}}</view>
+      <view class="section-title">选择字母</view>
+      <view class="key-grid letter-grid">
+        <view class="key-btn key-letter" wx:for="{{letters}}" wx:key="*this" wx:for-item="item" bindtap="onLetter" data-v="{{item}}">{{item}}</view>
       </view>
     </view>
-    <!-- 数字/字母 -->
+    <!-- 数字/字母分两行 -->
     <view class="keyboard-section" wx:else>
-      <view class="section-title">选择数字 / 字母（第{{currentIndex + 1}}位）</view>
-      <view class="key-grid">
-        <view class="key-btn mixed-btn {{item >= '0' && item <= '9' ? 'number-btn' : ''}}" wx:for="{{mixed}}" wx:key="*this" wx:for-item="item" bindtap="onMixed" data-v="{{item}}">{{item}}</view>
+      <view class="section-title">第 {{currentIndex + 1}} 位 — 数字或字母</view>
+      <view class="number-row">
+        <view class="key-btn key-number" wx:for="{{numbers}}" wx:key="*this" wx:for-item="n" bindtap="onMixed" data-v="{{n}}">{{n}}</view>
+      </view>
+      <view class="letter-row">
+        <view class="key-btn key-letter-mix" wx:for="{{letters}}" wx:key="*this" wx:for-item="l" bindtap="onMixed" data-v="{{l}}">{{l}}</view>
       </view>
     </view>
     <!-- 操作按钮 -->
     <view class="action-row">
-      <view class="key-btn action-btn delete-btn" bindtap="onDelete"><text class="action-icon">⌫</text><text>退格</text></view>
-      <view class="key-btn action-btn clear-btn" bindtap="onClear"><text class="action-icon">✕</text><text>清空</text></view>
+      <view class="action-btn action-back" bindtap="onDelete"><text>⌫ 退格</text></view>
+      <view class="action-btn action-reset" bindtap="onClear"><text>清空</text></view>
     </view>
     <button class="confirm-btn" bindtap="onConfirm" loading="{{loading}}" disabled="{{plateChars.length === 0}}">确认查询</button>
   </view>

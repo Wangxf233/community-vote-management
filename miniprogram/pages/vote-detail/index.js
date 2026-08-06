@@ -1,5 +1,3 @@
-const app = getApp();
-
 Page({
   data: {
     voteId: null,
@@ -11,6 +9,7 @@ Page({
   },
 
   onLoad(options) {
+    const app = getApp();
     const bindingStatus = app.globalData.bindingStatus || "guest";
     const { id, type } = options;
     this.setData({
@@ -41,6 +40,16 @@ Page({
           });
         },
       });
+      return;
+    }
+
+    // 检查是否开启了实名认证要求
+    // 优先读 localStorage（服务页加载时写入），其次 globalData，都没有则默认要求实名
+    const cached = wx.getStorageSync("requireRealName");
+    const requireRealName = cached !== "" ? cached : app.globalData.requireRealName;
+    if (requireRealName === false) {
+      // 管理员关闭了实名认证要求，直接加载
+      this.loadVoteDetail();
       return;
     }
 
@@ -280,7 +289,6 @@ Page({
 
         if (res.result.success) {
           const voteData = res.result.data;
-
           // 确保 showResult 字段总为布尔值，后端未返回时默认为 false
           voteData.showResult = !!voteData.showResult;
 

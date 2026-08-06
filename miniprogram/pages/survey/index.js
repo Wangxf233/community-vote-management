@@ -1,5 +1,3 @@
-const app = getApp();
-
 Page({
   data: {
     surveyList: [],
@@ -10,6 +8,7 @@ Page({
   },
 
   onLoad(options) {
+    const app = getApp();
     const bindingStatus = app.globalData.bindingStatus || "guest";
     this.setData({
       isGuest: bindingStatus === "guest",
@@ -56,11 +55,13 @@ Page({
 
     this.setData({ loading: true });
 
-    // 临时：不传 communityId，查询所有问卷用于测试
     // 获取问卷列表
+    const app = getApp();
+    const communityId = app.globalData.communityId || "";
     wx.cloud.callFunction({
       name: "listVotes",
       data: {
+        communityId,
         type: "survey",
       },
       success: (res) => {

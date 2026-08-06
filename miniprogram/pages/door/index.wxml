@@ -52,6 +52,11 @@
       </button>
     </view>
   </view>
+
+  <view class="door-warning" wx:if="{{devices.length > 0 || bindingStatus === 'guest'}}">
+    <text class="warning-icon">⚠️</text>
+    <text class="warning-text">请勿短时间内重复按开门，避免烧毁电锁</text>
+  </view>
 </view>
 
 <guest-tip></guest-tip>

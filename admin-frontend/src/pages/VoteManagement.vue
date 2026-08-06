@@ -15,14 +15,27 @@
     <template v-else>
       <!-- 选项卡切换 -->
       <el-card style="margin-bottom: 12px; flex-shrink: 0">
-        <el-radio-group v-model="activeTab" @change="onTabChange">
-          <el-radio-button v-if="hasPermission('vote')" label="vote"
-            >投票表决</el-radio-button
-          >
-          <el-radio-button v-if="hasPermission('survey')" label="survey"
-            >问卷调查</el-radio-button
-          >
-        </el-radio-group>
+        <div style="display: flex; align-items: center; justify-content: space-between">
+          <el-radio-group v-model="activeTab" @change="onTabChange">
+            <el-radio-button v-if="hasPermission('vote')" label="vote"
+              >投票表决</el-radio-button
+            >
+            <el-radio-button v-if="hasPermission('survey')" label="survey"
+              >问卷调查</el-radio-button
+            >
+          </el-radio-group>
+          <div style="display: flex; align-items: center; gap: 8px">
+            <span style="font-size: 13px; color: #909399">实名认证</span>
+            <el-switch
+              v-model="realNameRequired"
+              :loading="realNameLoading"
+              @change="onRealNameToggle"
+            />
+            <el-tooltip content="开启后，小程序用户必须完成实名认证才能使用投票和评价功能；关闭后用户可直接使用，无需实名认证" placement="bottom">
+              <el-icon style="color: #909399; cursor: help"><QuestionFilled /></el-icon>
+            </el-tooltip>
+          </div>
+        </div>
       </el-card>
 
       <!-- 筛选条件 -->
@@ -276,6 +289,7 @@
 import { ref, reactive, computed, onMounted, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
+import { QuestionFilled } from "@element-plus/icons-vue";
 import request from "@/utils/axios";
 
 const router = useRouter();
@@ -527,17 +541,55 @@ async function saveVoteSettings() {
   }
 }
 
-onMounted(() => {
-  loadPermissions();
-  if (hasAnyPermission.value) {
-    loadList();
+const realNameRequired = ref(true);
+const realNameLoading = ref(false);
+
+async function fetchRealNameSetting() {
+  try {
+    const user = JSON.parse(localStorage.getItem("admin-user") || "{}");
+    const communityId = user.communityId;
+    if (!communityId) return;
+    const res: any = await request.get(`/communities/${communityId}/real-name-setting`);
+    realNameRequired.value = res.requireRealName !== false;
+  } catch (e) {
+    console.error("获取实名认证开关失败:", e);
   }
-});
+}
+
+async function onRealNameToggle(val: boolean) {
+  if (!val) {
+    try {
+      await ElMessageBox.confirm(
+        "关闭实名认证后，未实名的小程序用户也可以直接参与投票和评价。这可能导致投票过程不够规范，请确认是否继续？",
+        "关闭实名认证",
+        { confirmButtonText: "确认关闭", cancelButtonText: "取消", type: "warning" },
+      );
+    } catch {
+      realNameRequired.value = true;
+      return;
+    }
+  }
+  realNameLoading.value = true;
+  try {
+    const user = JSON.parse(localStorage.getItem("admin-user") || "{}");
+    const communityId = user.communityId;
+    await request.put(`/communities/${communityId}/real-name-setting`, {
+      requireRealName: val,
+    });
+    ElMessage.success(val ? "已开启实名认证" : "已关闭实名认证");
+  } catch (e: any) {
+    ElMessage.error(e?.response?.data?.error || "设置失败");
+    realNameRequired.value = !val;
+  } finally {
+    realNameLoading.value = false;
+  }
+}
 
 onMounted(() => {
   loadPermissions();
   if (hasAnyPermission.value) {
     loadList();
+    fetchRealNameSetting();
   }
 });
 

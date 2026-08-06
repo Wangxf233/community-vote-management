@@ -28,7 +28,7 @@ Page({
       case "property":
         pageTitle = "物业信息";
         break;
-      case "law":
+      case "laws":
         pageTitle = "法律法规";
         break;
       default:
