@@ -66,16 +66,29 @@ exports.main = async (event, context) => {
       return { success: false, error: "no_openid" };
     }
 
-    // 查询认证申请表（排除已移出的记录）
-    const certRes = await db
+    // 查询认证申请（优先返回户主，再家属，排除已移出的记录）
+    let certRes = await db
       .collection("certification_applications")
       .where({
         openid: openid,
-        status: _.neq("removed"), // 排除已移出的记录
+        type: "owner",
+        status: "approved",
       })
       .orderBy("createdAt", "desc")
       .limit(1)
       .get();
+
+    if (!certRes.data || certRes.data.length === 0) {
+      certRes = await db
+        .collection("certification_applications")
+        .where({
+          openid: openid,
+          status: _.neq("removed"),
+        })
+        .orderBy("createdAt", "desc")
+        .limit(1)
+        .get();
+    }
 
     if (certRes && certRes.data && certRes.data.length > 0) {
       const cert = certRes.data[0];

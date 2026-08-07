@@ -45,9 +45,12 @@ Page({
       return;
     }
 
+    const app = getApp();
+    const communityId = app.globalData.communityId || "";
     wx.cloud
       .callFunction({
         name: "getMyVoteRecords",
+        data: { communityId },
       })
       .then((res) => {
         console.log("getMyVoteRecords result:", res);

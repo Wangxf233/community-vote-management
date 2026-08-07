@@ -3,7 +3,7 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 
 exports.main = async (event, context) => {
-  const { voteId } = event;
+  const { voteId, communityId } = event;
   const wxContext = cloud.getWXContext();
   const openid = wxContext.OPENID;
 
@@ -20,6 +20,11 @@ exports.main = async (event, context) => {
     }
 
     const vote = voteRes.data;
+
+    // 小区隔离校验
+    if (communityId && vote.communityId && vote.communityId !== communityId) {
+      return { success: false, error: "无权查看该投票" };
+    }
 
     // 调试日志：查看投票数据
     console.log("投票原始数据:", JSON.stringify(vote));

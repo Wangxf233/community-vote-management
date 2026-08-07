@@ -42,8 +42,10 @@ Page({
     wx.showLoading({ title: "加载中..." });
 
     try {
+      const app = getApp();
       const res = await wx.cloud.callFunction({
         name: "listCompanyEvaluationCycles",
+        data: { communityId: app.globalData.communityId || "" },
       });
 
       if (res.result.success) {
@@ -118,9 +120,10 @@ Page({
   async loadEvaluationHistory(cycleId) {
     wx.showLoading({ title: "加载中..." });
     try {
+      const app = getApp();
       const res = await wx.cloud.callFunction({
         name: "getMyCompanyEvaluations",
-        data: { cycleId: cycleId },
+        data: { cycleId: cycleId, communityId: app.globalData.communityId || "" },
       });
 
       if (res.result.success) {
@@ -205,12 +208,14 @@ Page({
     wx.showLoading({ title: "提交中..." });
 
     try {
+      const app = getApp();
       const res = await wx.cloud.callFunction({
         name: "submitCompanyEvaluation",
         data: {
           cycleId: currentCycle._id,
           scores: scores,
           comment: this.data.comment,
+          communityId: app.globalData.communityId || "",
         },
       });
 

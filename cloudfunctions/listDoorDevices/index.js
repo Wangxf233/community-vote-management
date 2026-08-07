@@ -88,24 +88,22 @@ async function buildPermissionSet(communityId, certList, openid) {
   return { unitKeySet, permittedDeviceIds };
 }
 
-exports.main = async () => {
+exports.main = async (event) => {
   try {
     const wxContext = cloud.getWXContext();
     const openid = wxContext.OPENID;
+    const { communityId: inputCommunityId } = event || {};
 
     if (!openid) {
-      return {
-        success: false,
-        error: "未获取到用户身份",
-      };
+      return { success: false, error: "未获取到用户身份" };
     }
+
+    const certWhere = { openid, status: "approved" };
+    if (inputCommunityId) certWhere.communityId = inputCommunityId;
 
     const certRes = await db
       .collection("certification_applications")
-      .where({
-        openid,
-        status: "approved",
-      })
+      .where(certWhere)
       .orderBy("updatedAt", "desc")
       .get();
 
@@ -117,8 +115,7 @@ exports.main = async () => {
       };
     }
 
-    const certification = certRes.data[0];
-    const communityId = certification.communityId;
+    const communityId = inputCommunityId || certRes.data[0].communityId;
 
     if (!communityId) {
       return {
@@ -145,7 +142,7 @@ exports.main = async () => {
       return {
         success: true,
         data: {
-          communityId,
+          communityId: communityId,
           devices: [],
         },
         code: "DOOR_DISABLED",
@@ -155,7 +152,7 @@ exports.main = async () => {
     const devicesRes = await db
       .collection("door_devices")
       .where({
-        communityId,
+        communityId: communityId,
         enabled: true,
       })
       .orderBy("sort", "asc")
@@ -194,7 +191,7 @@ exports.main = async () => {
     return {
       success: true,
       data: {
-        communityId,
+        communityId: communityId,
         devices,
       },
     };

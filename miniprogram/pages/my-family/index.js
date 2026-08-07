@@ -58,9 +58,10 @@ Page({
     }
 
     try {
+      const app = getApp();
       const result = await wx.cloud.callFunction({
         name: "generateInviteCode",
-        data: {},
+        data: { communityId: app.globalData.communityId || "" },
       });
 
       if (
@@ -112,10 +113,12 @@ Page({
 
     try {
       // 如果已有邀请码，传入forceNew参数强制生成新的
+      const app = getApp();
       const result = await wx.cloud.callFunction({
         name: "generateInviteCode",
         data: {
-          forceNew: !!this.data.inviteCode, // 如果已有邀请码，强制生成新的
+          forceNew: !!this.data.inviteCode,
+          communityId: app.globalData.communityId || "",
         },
       });
 
@@ -204,9 +207,10 @@ Page({
     }
 
     try {
+      const app = getApp();
       const result = await wx.cloud.callFunction({
         name: "getFamilyList",
-        data: {},
+        data: { communityId: app.globalData.communityId || "" },
       });
 
       if (result.result && result.result.code === 0) {

@@ -26,8 +26,10 @@ Page({
   async loadDevices() {
     this.setData({ loading: true });
     try {
+      const app = getApp();
       const res = await wx.cloud.callFunction({
         name: "listDoorDevices",
+        data: { communityId: app.globalData.communityId || "" },
       });
 
       if (!res.result || !res.result.success) {
@@ -57,9 +59,13 @@ Page({
 
     this.setData({ openingSerial: serial });
     try {
+      const app = getApp();
       const res = await wx.cloud.callFunction({
         name: "openDoor",
-        data: { serial },
+        data: {
+          serial,
+          communityId: app.globalData.communityId || "",
+        },
       });
 
       if (!res.result || !res.result.success) {

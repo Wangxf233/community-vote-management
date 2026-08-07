@@ -5,10 +5,14 @@ const db = cloud.database();
 const _ = db.command;
 
 exports.main = async (event, context) => {
-  const { cycleId } = event;
+  const { cycleId, communityId } = event;
   const { OPENID } = cloud.getWXContext();
 
   try {
+    if (!communityId) {
+      return { success: false, error: "无法确定所属小区" };
+    }
+
     // 获取评价周期信息
     const cycleResult = await db
       .collection("evaluation_cycles")
@@ -16,13 +20,14 @@ exports.main = async (event, context) => {
       .get();
 
     if (!cycleResult.data) {
-      return {
-        success: false,
-        error: "评价周期不存在",
-      };
+      return { success: false, error: "评价周期不存在" };
     }
 
     const cycle = cycleResult.data;
+
+    if (cycle.communityId && cycle.communityId !== communityId) {
+      return { success: false, error: "无权查看该评价" };
+    }
 
     // 获取用户的所有评价记录
     const evaluationsResult = await db

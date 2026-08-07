@@ -124,9 +124,10 @@ Page({
   // 检查工作人员状态
   async checkStaffStatus() {
     try {
+      const communityId = app.globalData.communityId || "";
       const res = await wx.cloud.callFunction({
         name: "getMyStaffStatus",
-        data: {},
+        data: { communityId },
       });
       if (res.result && res.result.success && res.result.data) {
         this.setData({

@@ -6,7 +6,7 @@
       <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/icon-community.png" class="community-icon" mode="aspectFit"/>
       <view class="community-info">
         <text class="community-name">{{currentCommunity.communityName}}</text>
-        <text class="community-address">{{currentCommunity.fullAddress}}</text>
+        <text class="community-address">{{currentCommunity.address}}</text>
       </view>
       <view class="current-badge">当前</view>
     </view>
@@ -28,7 +28,7 @@
         <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/icon-community.png" class="community-icon" mode="aspectFit"/>
         <view class="community-info">
           <text class="community-name">{{item.communityName}}</text>
-          <text class="community-address">{{item.fullAddress}}</text>
+          <text class="community-address">{{item.address}}</text>
         </view>
         <text class="switch-arrow">></text>
       </view>

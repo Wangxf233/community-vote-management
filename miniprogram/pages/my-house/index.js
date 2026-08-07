@@ -62,9 +62,11 @@ Page({
       return;
     }
 
+    const app = getApp();
     wx.cloud
       .callFunction({
         name: "getMyHouses",
+        data: { communityId: app.globalData.communityId || "" },
       })
       .then((res) => {
         console.log("getMyHouses result:", res);

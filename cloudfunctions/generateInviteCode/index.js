@@ -14,18 +14,24 @@ exports.main = async (event, context) => {
   try {
     const wxContext = cloud.getWXContext();
     const openid = wxContext.OPENID;
+    const { communityId } = event;
 
     if (!openid) {
       return { code: -1, message: "无法获取用户身份" };
     }
 
-    // 验证当前用户是否为已认证的户主
+    if (!communityId) {
+      return { code: -1, message: "无法确定当前小区，请先切换小区" };
+    }
+
+    // 验证当前用户是否为该小区的已认证户主
     const ownerRes = await db
       .collection("certification_applications")
       .where({
         openid,
         type: "owner",
         status: "approved",
+        communityId,
       })
       .limit(1)
       .get();

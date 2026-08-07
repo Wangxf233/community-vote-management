@@ -26,13 +26,8 @@ Page({
         _id: "guest-binding-1",
         communityId: "guest-community-1",
         communityName: "星河苑",
-        region: ["浙江省", "杭州市", "滨江区"],
-        district: "江南大道",
-        building: "3幢",
-        unit: "2单元",
-        room: "1001",
+        address: "杭州市滨江区江南大道1888号",
         status: "guest",
-        fullAddress: "浙江省杭州市滨江区江南大道3幢2单元1001",
       };
 
       const otherCommunities = [
@@ -40,13 +35,8 @@ Page({
           _id: "guest-binding-2",
           communityId: "guest-community-2",
           communityName: "湖畔嘉园",
-          region: ["浙江省", "杭州市", "西湖区"],
-          district: "文三路",
-          building: "6幢",
-          unit: "1单元",
-          room: "0802",
+          address: "杭州市西湖区文三路256号",
           status: "guest",
-          fullAddress: "浙江省杭州市西湖区文三路6幢1单元0802",
         },
       ];
 
@@ -88,29 +78,9 @@ Page({
           (b) => b.communityId !== currentCommunityId,
         );
 
-        // 为每个小区添加完整地址
-        const formatBinding = (binding) => {
-          const region = binding.region || [];
-          const district = binding.district || "";
-          const building = binding.building || "";
-          const unit = binding.unit || "";
-          const room = binding.room || "";
-
-          let address = region.join("");
-          if (district) address += district;
-          if (building) address += building;
-          if (unit) address += unit;
-          if (room) address += room;
-
-          return {
-            ...binding,
-            fullAddress: address,
-          };
-        };
-
         this.setData({
-          currentCommunity: current ? formatBinding(current) : null,
-          otherCommunities: others.map(formatBinding),
+          currentCommunity: current || null,
+          otherCommunities: others,
           allBindings: bindings,
         });
       } else {
@@ -188,10 +158,10 @@ Page({
         duration: 1500,
       });
 
-      // 延迟后返回上一页并刷新
+      // 跳转到首页并刷新全部数据
       setTimeout(() => {
-        wx.navigateBack({
-          delta: 1,
+        wx.reLaunch({
+          url: "/pages/service/index",
         });
       }, 1500);
     } catch (err) {

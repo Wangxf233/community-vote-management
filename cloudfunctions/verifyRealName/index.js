@@ -11,15 +11,20 @@ const db = cloud.database();
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
   const openid = wxContext.OPENID;
+  const { communityId } = event;
 
   try {
+    // 构建查询条件
+    const certWhere = {
+      openid: openid,
+      status: "approved",
+    };
+    if (communityId) certWhere.communityId = communityId;
+
     // 1. 先查询用户的认证申请，获取房号信息
     const certAppRes = await db
       .collection("certification_applications")
-      .where({
-        openid: openid,
-        status: "approved", // 只查询已通过的认证
-      })
+      .where(certWhere)
       .orderBy("createdAt", "desc")
       .limit(1)
       .get();

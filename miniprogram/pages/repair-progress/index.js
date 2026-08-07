@@ -56,9 +56,11 @@ Page({
     }
 
     // 直接使用 openid 查询报修记录
+    const app = getApp();
     wx.cloud
       .callFunction({
         name: "getMyRepairs",
+        data: { communityId: app.globalData.communityId || "" },
       })
       .then((res) => {
         console.log("getMyRepairs result:", res);

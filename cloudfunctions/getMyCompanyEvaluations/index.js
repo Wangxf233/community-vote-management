@@ -12,14 +12,14 @@ const db = cloud.database();
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
   const openid = wxContext.OPENID;
-  const { cycleId } = event;
+  const { cycleId, communityId } = event;
 
   try {
     if (!cycleId) {
-      return {
-        success: false,
-        error: "缺少评价周期ID",
-      };
+      return { success: false, error: "缺少评价周期ID" };
+    }
+    if (!communityId) {
+      return { success: false, error: "无法确定所属小区" };
     }
 
     // 获取评价周期信息
@@ -36,6 +36,10 @@ exports.main = async (event, context) => {
     }
 
     const cycle = cycleResult.data;
+
+    if (cycle.communityId && cycle.communityId !== communityId) {
+      return { success: false, error: "无权查看该评价" };
+    }
 
     // 获取用户的评价记录
     const evaluationResult = await db

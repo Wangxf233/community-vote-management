@@ -12,10 +12,9 @@ const db = cloud.database();
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
   const openid = wxContext.OPENID;
-  const { cycleId, staffId, scores, comment } = event;
+  const { cycleId, staffId, scores, comment, communityId } = event;
 
   try {
-    // 参数验证
     if (!cycleId || !staffId || !scores) {
       return {
         success: false,
@@ -54,6 +53,11 @@ exports.main = async (event, context) => {
     }
 
     const cycle = cycleResult.data;
+
+    // 小区隔离校验
+    if (communityId && cycle.communityId && cycle.communityId !== communityId) {
+      return { success: false, error: "无权提交该评价" };
+    }
 
     // 验证评价时间
     const now = new Date();

@@ -1062,8 +1062,72 @@ router.post("/door/open-from-cloud", async (req, res) => {
     // 权限校验：specified_owners 模式下仅白名单用户可开
     if (device.permissionMode === "specified_owners") {
       const granted = device.grantedOwnerOpenids || [];
+      // 家属继承户主权限：查找家属关联的户主openid
+      let effectiveOpenid = openid;
       if (!granted.includes(openid)) {
+        const familyCert = await db
+          .collection("certification_applications")
+          .where({ openid, communityId, type: "family", status: "approved" })
+          .limit(1)
+          .get();
+        if (familyCert.data && familyCert.data.length > 0) {
+          const ownerOpenid = familyCert.data[0].ownerOpenid;
+          if (ownerOpenid && granted.includes(ownerOpenid)) {
+            effectiveOpenid = ownerOpenid;
+          }
+        }
+      }
+      if (!granted.includes(openid) && !(effectiveOpenid !== openid && granted.includes(effectiveOpenid))) {
         return res.status(403).json({ success: false, error: "NO_DOOR_PERMISSION", message: "该用户无此设备的开门权限" });
+      }
+    }
+
+    // 未在厂商侧注册的用户自动注册
+    const existingGranted = device.grantedOwnerOpenids || [];
+    if (!existingGranted.includes(openid)) {
+      try {
+        const cert = await db
+          .collection("certification_applications")
+          .where({ openid, communityId, status: "approved" })
+          .limit(1)
+          .get();
+        if (cert.data && cert.data.length > 0) {
+          const user = cert.data[0];
+          const keyId = Math.random().toString(16).slice(2, 10);
+          const now = Math.floor(Date.now() / 1000);
+          const keyDate = Math.floor((Date.now() + 10 * 365 * 24 * 60 * 60 * 1000) / 1000);
+
+          const client = new FondcardClient({
+            platform: device.platform || process.env.FONDCARD_DEFAULT_PLATFORM,
+            loginId: device.loginId || process.env.FONDCARD_DEFAULT_LOGIN_ID,
+          });
+
+          await client.addKey({
+            serial: device.serial,
+            password: device.password,
+            keyType: 1,
+            keyId,
+            keyCount: 1,
+            startDate: now,
+            keyDate,
+            periodNo: 0,
+          });
+
+          try {
+            await client.mqttKeyUpdate({ serial: device.serial, password: device.password, userId: device.loginId || process.env.FONDCARD_DEFAULT_LOGIN_ID });
+          } catch (_) {}
+
+          // 更新设备白名单
+          const updatedOpenids = [...new Set([...existingGranted, openid])];
+          await db.collection("door_devices").doc(device._id).update({
+            grantedOwnerOpenids: updatedOpenids,
+            updatedAt: new Date(),
+          });
+
+          console.log(`[open-from-cloud] 已自动注册用户 ${openid} 到设备 ${serial}`);
+        }
+      } catch (regErr) {
+        console.warn(`[open-from-cloud] 自动注册用户 ${openid} 失败:`, regErr.message);
       }
     }
 
@@ -1194,6 +1258,29 @@ router.get("/door/communities", superAdminOnly, async (req, res) => {
     return res.status(500).json({
       success: false,
       error: error.message || "door_communities_error",
+    });
+  }
+});
+
+/**
+ * PUT /api/door/communities/:id — 编辑小区的续费时间和备注
+ */
+router.put("/door/communities/:id", superAdminOnly, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { renewalTime, remark } = req.body;
+    const updateData = { updatedAt: new Date() };
+
+    if (renewalTime !== undefined) updateData.renewalTime = renewalTime;
+    if (remark !== undefined) updateData.remark = remark;
+
+    await db.collection("communities").doc(id).update(updateData);
+    return res.json({ success: true });
+  } catch (error) {
+    console.error("PUT /door/communities/:id error:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || "更新失败",
     });
   }
 });

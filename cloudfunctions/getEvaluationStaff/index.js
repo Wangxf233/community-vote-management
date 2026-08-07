@@ -12,14 +12,15 @@ const db = cloud.database();
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
   const openid = wxContext.OPENID;
-  const { cycleId } = event;
+  const { cycleId, communityId } = event;
 
   try {
     if (!cycleId) {
-      return {
-        success: false,
-        error: "缺少评价周期ID",
-      };
+      return { success: false, error: "缺少评价周期ID" };
+    }
+
+    if (!communityId) {
+      return { success: false, error: "无法确定所属小区" };
     }
 
     // 获取评价周期信息
@@ -29,13 +30,15 @@ exports.main = async (event, context) => {
       .get();
 
     if (!cycleResult.data) {
-      return {
-        success: false,
-        error: "评价周期不存在",
-      };
+      return { success: false, error: "评价周期不存在" };
     }
 
     const cycle = cycleResult.data;
+
+    // 小区隔离校验
+    if (cycle.communityId && cycle.communityId !== communityId) {
+      return { success: false, error: "无权查看该评价" };
+    }
 
     // 获取周期中的服务人员信息
     const staffIds = cycle.staffIds || [];

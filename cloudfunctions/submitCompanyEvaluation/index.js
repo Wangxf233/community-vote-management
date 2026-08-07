@@ -12,15 +12,23 @@ const db = cloud.database();
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
   const openid = wxContext.OPENID;
-  const { cycleId, scores, comment } = event;
+  const { cycleId, scores, comment, communityId } = event;
 
   try {
-    // 参数验证
     if (!cycleId || !scores) {
-      return {
-        success: false,
-        error: "缺少必填参数",
-      };
+      return { success: false, error: "缺少必填参数" };
+    }
+    if (!communityId) {
+      return { success: false, error: "无法确定所属小区" };
+    }
+
+    // 校验评价周期属于本小区
+    const cycleResult = await db.collection("evaluation_cycles").doc(cycleId).get();
+    if (!cycleResult.data) {
+      return { success: false, error: "评价周期不存在" };
+    }
+    if (cycleResult.data.communityId && cycleResult.data.communityId !== communityId) {
+      return { success: false, error: "无权提交评价" };
     }
 
     // 获取用户信息（从 owner_list 中查询）
@@ -28,6 +36,7 @@ exports.main = async (event, context) => {
       .collection("owner_list")
       .where({
         openid: openid,
+        communityId: communityId,
       })
       .get();
 
@@ -101,6 +110,7 @@ exports.main = async (event, context) => {
     // 创建评价记录
     const evaluationData = {
       cycleId: cycleId,
+      communityId: communityId,
       openid: openid,
       userId: owner._id,
       scores: scores,

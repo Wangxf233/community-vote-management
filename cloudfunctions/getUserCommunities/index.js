@@ -36,27 +36,47 @@ exports.main = async (event, context) => {
       };
     }
 
+    // 收集所有社区ID，批量查询社区地址
+    const communityIds = [...new Set(result.data.map((item) => item.communityId).filter(Boolean))];
+    const communityMap = {};
+    if (communityIds.length > 0) {
+      const _ = db.command;
+      const commRes = await db
+        .collection("communities")
+        .where({ _id: _.in(communityIds) })
+        .get();
+      if (commRes.data) {
+        commRes.data.forEach((c) => {
+          communityMap[c._id] = c;
+        });
+      }
+    }
+
     // 格式化返回数据
-    const bindings = result.data.map((item) => ({
-      _id: item._id,
-      type: item.type || "owner",
-      openid: item.openid,
-      phone: item.phone,
-      name: item.name,
-      communityName: item.communityName,
-      communityId: item.communityId,
-      region: item.region || [],
-      district: item.district || "",
-      building: item.building || "",
-      unit: item.unit || "",
-      room: item.room || "",
-      relation: item.relation || null,
-      ownerOpenid: item.ownerOpenid || null,
-      ownerName: item.ownerName || null,
-      status: item.status,
-      createdAt: item.createdAt,
-      updatedAt: item.updatedAt,
-    }));
+    const bindings = result.data.map((item) => {
+      const comm = communityMap[item.communityId] || {};
+      return {
+        _id: item._id,
+        type: item.type || "owner",
+        openid: item.openid,
+        phone: item.phone,
+        name: item.name,
+        communityName: item.communityName,
+        communityId: item.communityId,
+        address: comm.address || "",
+        region: item.region || [],
+        district: item.district || "",
+        building: item.building || "",
+        unit: item.unit || "",
+        room: item.room || "",
+        relation: item.relation || null,
+        ownerOpenid: item.ownerOpenid || null,
+        ownerName: item.ownerName || null,
+        status: item.status,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+      };
+    });
 
     return {
       success: true,

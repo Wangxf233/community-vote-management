@@ -210,29 +210,15 @@ async function handleFamilyCertification(openid, event) {
     return { code: -1, message: "邀请码已被使用" };
   }
 
-  // 获取户主信息
-  const ownerRes = await db
-    .collection("certification_applications")
-    .where({
-      openid: invite.ownerOpenid,
-      status: "approved",
-      type: "owner",
-    })
-    .limit(1)
-    .get();
+  // 使用邀请码中记录的小区ID，不再重新查户主（避免跨小区问题）
+  const targetCommunityId = invite.communityId;
 
-  if (!ownerRes.data || ownerRes.data.length === 0) {
-    return { code: -1, message: "户主信息不存在或未通过认证" };
-  }
-
-  const owner = ownerRes.data[0];
-
-  // 检查该用户在当前小区是否已有待审核或已通过的申请
+  // 检查该用户在目标小区是否已有待审核或已通过的申请
   const existingRes = await db
     .collection("certification_applications")
     .where({
       openid,
-      communityId: owner.communityId,
+      communityId: targetCommunityId,
       status: db.command.in(["pending", "approved"]),
     })
     .limit(1)
@@ -243,17 +229,17 @@ async function handleFamilyCertification(openid, event) {
     if (existing.status === "approved") {
       return {
         code: -1,
-        message: `您在${owner.communityName}小区已完成认证`,
+        message: `您在该小区已完成认证`,
       };
     } else {
       return {
         code: -1,
-        message: `您在${owner.communityName}小区已有待审核的申请，请等待审核结果`,
+        message: `您在该小区已有待审核的申请，请等待审核结果`,
       };
     }
   }
 
-  // 创建家属认证申请（自动通过）
+  // 创建家属认证申请（自动通过，使用邀请码中记录的小区信息）
   const now = new Date().toISOString();
   const application = {
     openid,
@@ -262,13 +248,13 @@ async function handleFamilyCertification(openid, event) {
     phone,
     relation: relation || "其他家庭成员",
     ownerOpenid: invite.ownerOpenid,
-    ownerName: owner.name,
-    communityId: owner.communityId,
-    communityName: owner.communityName,
-    district: owner.district,
-    building: owner.building,
-    unit: owner.unit,
-    room: owner.room,
+    ownerName: invite.ownerName || "",
+    communityId: invite.communityId,
+    communityName: invite.communityName || "",
+    district: invite.district || "",
+    building: invite.building || "",
+    unit: invite.unit || "",
+    room: invite.room || "",
     inviteCode,
     status: "approved", // 自动通过，不需要户主审核
     createdAt: now,
@@ -292,7 +278,14 @@ async function handleFamilyCertification(openid, event) {
       },
     });
 
-  return { code: 0, message: "注册成功，您已成为该户主的家属成员" };
+  return {
+    code: 0,
+    message: "注册成功，您已成为该户主的家属成员",
+    data: {
+      communityId: invite.communityId,
+      communityName: invite.communityName || "",
+    },
+  };
 }
 
 /**

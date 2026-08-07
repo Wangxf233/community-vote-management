@@ -32,6 +32,7 @@ Page({
     // 所有用户都尝试加载物业名称，包括游客
     wx.cloud.callFunction({
       name: "getCommunityInfo",
+      data: { communityId: app.globalData.communityId || "" },
       success: (res) => {
         if (res.result.success) {
           // 缓存实名认证开关状态（globalData + 本地存储双写）

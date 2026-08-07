@@ -127,20 +127,18 @@ function postJson(url, body, headers = {}, timeout = 12000) {
 exports.main = async (event) => {
   const wxContext = cloud.getWXContext();
   const openid = wxContext.OPENID;
-  const { serial } = event;
+  const { serial, communityId } = event;
 
   if (!openid) {
-    return {
-      success: false,
-      error: "未获取到用户身份",
-    };
+    return { success: false, error: "未获取到用户身份" };
   }
 
   if (!serial) {
-    return {
-      success: false,
-      error: "缺少门禁设备序列号",
-    };
+    return { success: false, error: "缺少门禁设备序列号" };
+  }
+
+  if (!communityId) {
+    return { success: false, error: "缺少小区ID" };
   }
 
   try {
@@ -148,6 +146,7 @@ exports.main = async (event) => {
       .collection("certification_applications")
       .where({
         openid,
+        communityId,
         status: "approved",
       })
       .orderBy("updatedAt", "desc")
@@ -160,9 +159,6 @@ exports.main = async (event) => {
         code: "NO_APPROVED_BINDING",
       };
     }
-
-    const certification = certRes.data[0];
-    const communityId = certification.communityId;
 
     const certInCommunity = (certRes.data || []).filter(
       (item) => item.communityId === communityId,

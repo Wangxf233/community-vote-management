@@ -1,62 +1,65 @@
-<view class="family-container">
+<view class="family-page">
+  <!-- 头部 -->
+  <view class="page-header">
+    <text class="header-title">我的家属</text>
+    <text class="header-count" wx:if="{{familyList.length > 0}}">共 {{familyList.length}} 位家庭成员</text>
+  </view>
 
   <!-- 邀请码卡片 -->
-  <view class="invite-card">
-    <view class="card-title">
-      <text class="icon">🎫</text>
-      <text>邀请家属</text>
-    </view>
-    <view class="card-content">
-      <view class="invite-code-display" wx:if="{{inviteCode}}">
-        <text class="label">邀请码</text>
-        <view class="code-box">
-          <text class="code">{{inviteCode}}</text>
-          <button class="copy-btn" size="mini" bindtap="copyInviteCode">复制</button>
-          <button class="share-btn" size="mini" open-type="share">分享</button>
+  <view class="invite-section">
+    <view class="section-label">邀请家属加入</view>
+    <view class="invite-card">
+      <view wx:if="{{inviteCode}}" class="code-area">
+        <view class="code-row">
+          <text class="code-text">{{inviteCode}}</text>
+          <view class="code-actions">
+            <text class="action-link" bindtap="copyInviteCode">复制</text>
+            <text class="action-divider">|</text>
+            <button class="action-link share-link" open-type="share">分享</button>
+          </view>
         </view>
-        <text class="expires-text">有效期至：{{expiresAt}}</text>
+        <text class="code-expire">有效期至 {{expiresAt}}</text>
       </view>
-      <button class="generate-btn" bindtap="generateInviteCode" disabled="{{generating}}">
-        {{generating ? '生成中...' : (inviteCode ? '重新生成' : '生成邀请码')}}
+      <view wx:else class="code-empty">
+        <text class="empty-hint">点击下方按钮生成专属邀请码，分享给家人即可加入</text>
+      </view>
+      <button class="gen-btn" bindtap="generateInviteCode" loading="{{generating}}">
+        {{inviteCode ? '重新生成邀请码' : '生成邀请码'}}
       </button>
     </view>
   </view>
 
   <!-- 家属列表 -->
-  <view class="family-list">
-    <view class="list-header">
-      <text class="list-title">家庭成员</text>
-      <text class="count">共{{familyList.length}}人</text>
-    </view>
+  <view class="family-section">
+    <view class="section-label">家庭成员</view>
 
-    <view wx:if="{{loading}}" class="loading">
+    <view wx:if="{{loading}}" class="loading-wrap">
       <text>加载中...</text>
     </view>
 
-    <view wx:elif="{{familyList.length === 0}}" class="empty">
-      <text class="empty-icon">👥</text>
+    <view wx:elif="{{familyList.length === 0}}" class="empty-wrap">
+      <view class="empty-avatar">
+        <text class="empty-avatar-text">家</text>
+      </view>
       <text class="empty-text">暂无家属成员</text>
-      <text class="empty-hint">生成邀请码后，家属可使用邀请码注册</text>
+      <text class="empty-desc">生成邀请码后，家人扫码或输入邀请码即可加入</text>
     </view>
 
-    <view wx:else class="list-items">
-      <view class="family-item" wx:for="{{familyList}}" wx:key="_id">
-        <view class="item-left">
-          <view class="avatar">
-            <text class="avatar-icon">👨‍👩‍👧‍👦</text>
-          </view>
-          <view class="info">
-            <text class="name">{{item.name}}</text>
-            <text class="relation">{{item.relation || '家属'}}</text>
-          </view>
+    <view wx:else class="member-list">
+      <view class="member-item" wx:for="{{familyList}}" wx:key="_id">
+        <view class="member-avatar">
+          <view class="avatar-head"></view>
+          <view class="avatar-body"></view>
         </view>
-        <view class="item-right">
-          <view class="phone-info">
-            <text class="phone">{{item.phone}}</text>
+        <view class="member-info">
+          <view class="member-name-row">
+            <text class="member-name">{{item.name}}</text>
+            <text class="member-relation">{{item.relation || '家属'}}</text>
           </view>
-          <button class="remove-btn" size="mini" bindtap="removeMember" data-id="{{item._id}}" data-name="{{item.name}}">
-            移出
-          </button>
+          <text class="member-phone">{{item.phone}}</text>
+        </view>
+        <view class="member-action" catchtap="removeMember" data-id="{{item._id}}" data-name="{{item.name}}">
+          <text class="remove-text">移出</text>
         </view>
       </view>
     </view>

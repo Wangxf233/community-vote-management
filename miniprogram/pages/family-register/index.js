@@ -19,6 +19,19 @@ Page({
     if (options && options.isAdding === "true") {
       this.setData({ isAdding: true });
     }
+
+    // 从分享链接自动填充邀请码
+    if (options && options.inviteCode) {
+      this.setData({ "formData.inviteCode": decodeURIComponent(options.inviteCode) });
+    }
+
+    // 从小程序码 scene 参数填充邀请码
+    if (options && options.scene) {
+      const scene = decodeURIComponent(options.scene);
+      if (scene.startsWith("inviteCode=")) {
+        this.setData({ "formData.inviteCode": scene.replace("inviteCode=", "") });
+      }
+    }
   },
 
   /**
@@ -109,29 +122,23 @@ Page({
       });
 
       if (result.result && result.result.code === 0) {
-        // 家属注册自动通过，设置绑定状态为已批准
+        // 家属注册自动通过，更新全局状态
         app.globalData.bindingStatus = "approved";
         wx.setStorageSync("bindingStatus", "approved");
-
-        const successMessage = this.data.isAdding
-          ? "欢迎您，您已成功加入家庭！审核通过后可在切换小区页面看到该小区。"
-          : "欢迎您，您已成功加入家庭！";
+        if (result.result.data && result.result.data.communityId) {
+          app.globalData.communityId = result.result.data.communityId;
+          wx.setStorageSync("communityId", result.result.data.communityId);
+        }
 
         wx.showModal({
           title: "注册成功",
-          content: successMessage,
+          content: "欢迎您，您已成功加入家庭！",
           showCancel: false,
           success: () => {
             if (this.data.isAdding) {
-              // 添加新小区模式，返回切换小区页面
-              wx.navigateBack({
-                delta: 1,
-              });
+              wx.navigateBack({ delta: 1 });
             } else {
-              // 首次注册模式，跳转到首页
-              wx.reLaunch({
-                url: "/pages/service/index",
-              });
+              wx.reLaunch({ url: "/pages/service/index" });
             }
           },
         });

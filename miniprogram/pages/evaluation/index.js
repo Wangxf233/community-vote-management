@@ -68,8 +68,10 @@ Page({
           ? "listEvaluationCycles" // 服务人员
           : "listCompanyEvaluationCycles"; // 物业公司
 
+      const app = getApp();
       const res = await wx.cloud.callFunction({
         name: functionName,
+        data: { communityId: app.globalData.communityId || "" },
       });
 
       if (res.result.success) {
@@ -109,9 +111,10 @@ Page({
   // 加载服务人员列表
   async loadStaffList(cycleId) {
     try {
+      const app = getApp();
       const res = await wx.cloud.callFunction({
         name: "getEvaluationStaff",
-        data: { cycleId: cycleId },
+        data: { cycleId: cycleId, communityId: app.globalData.communityId || "" },
       });
 
       if (res.result.success) {
@@ -244,9 +247,10 @@ Page({
           ? "getMyEvaluations" // 服务人员
           : "getMyCompanyEvaluations"; // 物业公司
 
+      const app = getApp();
       const res = await wx.cloud.callFunction({
         name: functionName,
-        data: { cycleId: cycleId },
+        data: { cycleId: cycleId, communityId: app.globalData.communityId || "" },
       });
 
       if (res.result.success) {
@@ -510,10 +514,12 @@ Page({
           ? "submitEvaluation" // 服务人员
           : "submitCompanyEvaluation"; // 物业公司
 
+      const app = getApp();
       const data = {
         cycleId: this.data.currentCycle._id,
         scores: this.data.scores,
         comment: this.data.comment,
+        communityId: app.globalData.communityId || "",
       };
 
       // 服务人员评价需要传staffId

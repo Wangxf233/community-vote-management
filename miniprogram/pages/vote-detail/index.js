@@ -279,10 +279,12 @@ Page({
       title: "加载中...",
     });
 
+    const app = getApp();
     wx.cloud.callFunction({
       name: "getVoteDetail",
       data: {
         voteId: this.data.voteId,
+        communityId: app.globalData.communityId || "",
       },
       success: (res) => {
         wx.hideLoading();

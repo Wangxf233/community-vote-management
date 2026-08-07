@@ -20,6 +20,11 @@ exports.main = async (event, context) => {
       whereCondition.communityId = communityId;
     }
 
+    // 查 vote_records 时强制要求 communityId（关键：防止跨小区数据泄露）
+    if (!whereCondition.communityId) {
+      return { success: false, error: "无法确定所属小区" };
+    }
+
     // 查询该用户的所有投票记录
     const recordsRes = await db
       .collection("vote_records")
@@ -34,12 +39,15 @@ exports.main = async (event, context) => {
 
     const votesMap = {};
     if (voteIds.length > 0) {
-      // 批量查询投票信息
+      // 批量查询投票信息（排除已删除 + 本小区）
+      const whereVotes = {
+        _id: _.in(voteIds),
+        deleted: _.neq(true),
+      };
+      if (communityId) whereVotes.communityId = communityId;
       const votesRes = await db
         .collection("votes")
-        .where({
-          _id: _.in(voteIds),
-        })
+        .where(whereVotes)
         .get();
 
       votesRes.data.forEach((vote) => {
@@ -54,20 +62,22 @@ exports.main = async (event, context) => {
       { id: "option3", text: "弃权" },
     ];
 
-    // 为每条记录添加投票信息和选项文本
-    const enrichedRecords = records.map((record) => {
-      const vote = votesMap[record.voteId] || {};
-      const option = fixedOptions.find((opt) => opt.id === record.optionId);
+    // 过滤掉已删除的投票记录，然后为每条记录添加投票信息和选项文本
+    const enrichedRecords = records
+      .filter((record) => votesMap[record.voteId])
+      .map((record) => {
+        const vote = votesMap[record.voteId];
+        const option = fixedOptions.find((opt) => opt.id === record.optionId);
 
-      return {
-        ...record,
-        voteTitle: vote.title || "未知投票",
-        voteType: vote.type || "vote",
-        voteStatus: vote.status || "unknown",
-        voteDeadline: vote.deadlineTime,
-        optionText: option ? option.text : "未知选项",
-      };
-    });
+        return {
+          ...record,
+          voteTitle: vote.title,
+          voteType: vote.type || "vote",
+          voteStatus: vote.status || "unknown",
+          voteDeadline: vote.deadlineTime,
+          optionText: option ? option.text : "未知选项",
+        };
+      });
 
     return {
       success: true,
