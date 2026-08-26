@@ -82,6 +82,12 @@ class FondcardClient {
   }
 
   async call(method, params = {}) {
+    // 压测/测试模式：FONDCARD_MOCK_MODE=1 时不真实调用厂商接口，直接返回成功响应
+    // （正式环境不设置该变量，行为不变）
+    if (process.env.FONDCARD_MOCK_MODE === "1") {
+      return { code: 0, message: "mock_success", data: { mock: true } };
+    }
+
     const url = `${this.baseUrl}${this.baseUrl.includes("?") ? "&" : "?"}method=${encodeURIComponent(method)}`;
     const result = await postForm(url, sanitizeParams(params), this.timeout);
 

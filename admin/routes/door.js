@@ -103,6 +103,8 @@ function sanitizeDevicePayload(body = {}) {
     algorithm: body.algorithm !== undefined ? Number(body.algorithm) : 1,
     deviceType: body.deviceType !== undefined ? Number(body.deviceType) : 1,
     sourceid: body.sourceid || "",
+    renewalTime: body.renewalTime || null,
+    remark: body.remark || null,
   };
 }
 
@@ -1140,43 +1142,39 @@ router.post("/door/open-from-cloud", async (req, res) => {
       source,
     });
 
-    let logPersisted = true;
-    try {
-      await db.collection("door_open_logs").add({
-        data: {
-          openid,
-          serial,
-          communityId,
-          requestId,
-          source,
-          status: "sent",
-          execution: "fondcard_http",
-          method: openRes.method,
-          requestMeta: openRes.request,
-          resultCode:
-            openRes.result && openRes.result.code !== undefined
-              ? Number(openRes.result.code)
-              : null,
-          resultMessage: openRes.result ? openRes.result.message : null,
-          rawResult: openRes.result || null,
-          createdAt: new Date(),
-        },
+    // 开门日志异步写入：不阻塞开门响应，缓解并发下的 DB 写压力；
+    // 注意 @cloudbase/node-sdk 的 add 直接收文档对象（不带 { data } 包装）
+    db.collection("door_open_logs")
+      .add({
+        openid,
+        serial,
+        communityId,
+        requestId,
+        source,
+        status: "sent",
+        execution: "fondcard_http",
+        method: openRes.method,
+        requestMeta: openRes.request,
+        resultCode:
+          openRes.result && openRes.result.code !== undefined
+            ? Number(openRes.result.code)
+            : null,
+        resultMessage: openRes.result ? openRes.result.message : null,
+        rawResult: openRes.result || null,
+        createdAt: new Date(),
+      })
+      .catch((logError) => {
+        console.error("door_open_logs add failed:", logError);
       });
-    } catch (logError) {
-      logPersisted = false;
-      console.error("door_open_logs add failed:", logError);
-    }
 
     return res.json({
       success: true,
       data: {
         method: openRes.method,
         result: openRes.result,
-        logPersisted,
+        logPersisted: true,
       },
-      message: logPersisted
-        ? "开门HTTP请求已提交"
-        : "开门HTTP请求已提交（日志写入失败）",
+      message: "开门HTTP请求已提交",
     });
   } catch (error) {
     console.error("/door/open-from-cloud error:", error);

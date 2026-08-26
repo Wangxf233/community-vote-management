@@ -46,3 +46,7 @@ cloudfunctions/**/.DS_Store
 node_modules
 .env.production
 .vs/
+
+# 压测结果（生成物）
+scripts/stress/result-*.json
+scripts/stress/stress-data.json

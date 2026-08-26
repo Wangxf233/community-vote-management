@@ -138,13 +138,15 @@
 }
 
 .form-textarea {
+  width: 100%;
+  box-sizing: border-box;
   padding: 24rpx;
   background: #f8f9fa;
   border: 1rpx solid #e8e8e8;
   border-radius: 12rpx;
   font-size: 28rpx;
   color: #333;
-  min-height: 200rpx;
+  min-height: 120rpx;
   line-height: 1.6;
 }
 

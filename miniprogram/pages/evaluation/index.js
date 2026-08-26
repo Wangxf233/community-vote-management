@@ -75,7 +75,11 @@ Page({
       });
 
       if (res.result.success) {
-        const cycles = res.result.data;
+        // 截止时间格式化为标准显示格式（YYYY-MM-DD HH:mm）
+        const cycles = (res.result.data || []).map((cycle) => ({
+          ...cycle,
+          deadline: this.formatTime(cycle.deadline),
+        }));
 
         if (cycles.length === 0) {
           wx.showToast({
@@ -123,7 +127,11 @@ Page({
         this.setData({
           staffList: staff,
           dimensions: cycle.dimensions || [],
-          currentCycle: cycle,
+          currentCycle: {
+            ...cycle,
+            // 截止时间格式化为标准显示格式（YYYY-MM-DD HH:mm）
+            deadline: this.formatTime(cycle.deadline),
+          },
         });
 
         // 初始化评分对象

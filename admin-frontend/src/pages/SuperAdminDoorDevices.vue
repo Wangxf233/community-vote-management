@@ -73,6 +73,12 @@
               </el-tag>
             </template>
           </el-table-column>
+          <el-table-column label="续费时间" width="170">
+            <template #default="{ row }">{{ formatTime(row.renewalTime) }}</template>
+          </el-table-column>
+          <el-table-column label="备注" min-width="140" show-overflow-tooltip>
+            <template #default="{ row }">{{ row.remark || "-" }}</template>
+          </el-table-column>
           <el-table-column label="操作" :width="isSuperAdmin ? 380 : 300" fixed="right">
             <template #default="{ row }">
               <el-button v-if="isSuperAdmin" size="small" type="danger" :loading="row._deleting" @click="onDelete(row)">
@@ -165,6 +171,27 @@
             <el-option label="其他(3)" :value="3" />
           </el-select>
         </el-form-item>
+        <el-divider content-position="left">续费与备注</el-divider>
+        <el-form-item label="续费时间">
+          <el-date-picker
+            v-model="createForm.renewalTime"
+            type="datetime"
+            placeholder="选择续费时间（选填）"
+            format="YYYY-MM-DD HH:mm"
+            value-format="YYYY-MM-DD HH:mm"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="备注">
+          <el-input
+            v-model="createForm.remark"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入备注（选填）"
+            maxlength="500"
+            show-word-limit
+          />
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="createDialogVisible = false">取消</el-button>
@@ -203,6 +230,27 @@
         </template>
         <el-form-item label="门禁编号">
           <el-input v-model="editForm.vendorId" placeholder="请输入门禁编号" />
+        </el-form-item>
+        <el-divider content-position="left">续费与备注</el-divider>
+        <el-form-item label="续费时间">
+          <el-date-picker
+            v-model="editForm.renewalTime"
+            type="datetime"
+            placeholder="选择续费时间（选填）"
+            format="YYYY-MM-DD HH:mm"
+            value-format="YYYY-MM-DD HH:mm"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="备注">
+          <el-input
+            v-model="editForm.remark"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入备注（选填）"
+            maxlength="500"
+            show-word-limit
+          />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -318,6 +366,8 @@ const createForm = reactive({
   mac: "",
   deviceType: 1,
   algorithm: 1,
+  renewalTime: "",
+  remark: "",
 });
 const createRules = {
   deviceName: [{ required: true, message: "请输入门禁名称", trigger: "blur" }],
@@ -406,6 +456,9 @@ async function onCreateSave() {
       payload.unit = createForm.unit;
     }
 
+    payload.renewalTime = createForm.renewalTime || null;
+    payload.remark = createForm.remark || null;
+
     await request.post("/door/devices/register", payload);
     ElMessage.success("门禁设备注册成功");
     createDialogVisible.value = false;
@@ -439,6 +492,8 @@ const editForm = ref({
   building: "",
   unit: "",
   vendorId: "",
+  renewalTime: "",
+  remark: "",
 });
 const editAvailableUnits = computed(() => {
   if (!editForm.value.building) return [];
@@ -618,6 +673,8 @@ function onEdit(row: DoorDevice) {
     building: row.building || "",
     unit: row.unit || "",
     vendorId: row.vendorId || "",
+    renewalTime: (row as any).renewalTime || "",
+    remark: (row as any).remark || "",
   };
   editDialogVisible.value = true;
 }
@@ -638,6 +695,8 @@ async function onEditSave() {
       building: editForm.value.building,
       unit: editForm.value.unit,
       vendorId: editForm.value.vendorId.trim(),
+      renewalTime: editForm.value.renewalTime || null,
+      remark: editForm.value.remark || null,
     });
     ElMessage.success("门禁信息已更新");
     editDialogVisible.value = false;

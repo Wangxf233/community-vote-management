@@ -49,7 +49,11 @@ Page({
       });
 
       if (res.result.success) {
-        const cycles = res.result.data;
+        // 截止时间格式化为标准显示格式（YYYY-MM-DD HH:mm）
+        const cycles = (res.result.data || []).map((cycle) => ({
+          ...cycle,
+          deadline: this.formatTime(cycle.deadline),
+        }));
 
         if (cycles.length === 0) {
           wx.showToast({
@@ -149,6 +153,18 @@ Page({
     } finally {
       wx.hideLoading();
     }
+  },
+
+  // 格式化时间
+  formatTime(isoString) {
+    if (!isoString) return "";
+    const date = new Date(isoString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
   },
 
   // 返回周期列表

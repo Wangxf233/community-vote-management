@@ -110,6 +110,70 @@ exports.main = async (event, context) => {
 
     const communityInfo = infoResult.data[0];
 
+    // 图片链接刷新：用 fileID（或 cloud:// 旧链接）换取新的临时链接，避免上传时保存的 7 天链接过期
+    const imagePairs = [
+      { urlKey: "planImage", idKey: "planImageFileID", array: false },
+      { urlKey: "effectImage", idKey: "effectImageFileID", array: false },
+      { urlKey: "adImages", idKey: "adImageFileIDs", array: true },
+      { urlKey: "communityImages", idKey: "communityImageFileIDs", array: true },
+    ];
+    const keys = [];
+    const slots = [];
+    imagePairs.forEach(({ urlKey, idKey, array }) => {
+      if (!array) {
+        const id = communityInfo[idKey];
+        const url = communityInfo[urlKey];
+        let key = "";
+        if (id && typeof id === "string" && id.startsWith("cloud://")) key = id;
+        else if (typeof url === "string" && url.startsWith("cloud://")) key = url;
+        if (key) {
+          keys.push(key);
+          slots.push({ urlKey, index: null });
+        }
+      } else {
+        const urls = Array.isArray(communityInfo[urlKey])
+          ? communityInfo[urlKey]
+          : [];
+        const ids = Array.isArray(communityInfo[idKey])
+          ? communityInfo[idKey]
+          : [];
+        urls.forEach((u, i) => {
+          const id = ids[i];
+          let key = "";
+          if (id && typeof id === "string" && id.startsWith("cloud://")) key = id;
+          else if (typeof u === "string" && u.startsWith("cloud://")) key = u;
+          if (key) {
+            keys.push(key);
+            slots.push({ urlKey, index: i });
+          }
+        });
+      }
+    });
+    if (keys.length > 0) {
+      try {
+        const tmpRes = await cloud.getTempFileURL({
+          fileList: [...new Set(keys)],
+        });
+        const urlMap = {};
+        (tmpRes.fileList || []).forEach((f) => {
+          if (f.fileID && (f.tempFileURL || f.download_url)) {
+            urlMap[f.fileID] = f.download_url || f.tempFileURL;
+          }
+        });
+        slots.forEach(({ urlKey, index }, i) => {
+          const key = keys[i];
+          if (!urlMap[key]) return;
+          if (index === null) {
+            communityInfo[urlKey] = urlMap[key];
+          } else {
+            communityInfo[urlKey][index] = urlMap[key];
+          }
+        });
+      } catch (e) {
+        console.warn("图片链接刷新失败:", e.message);
+      }
+    }
+
     // 3. 返回小区基本情况（字段已经在文档顶层，不需要提取）
     return {
       success: true,

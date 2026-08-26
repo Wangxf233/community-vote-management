@@ -55,7 +55,7 @@ exports.main = async (event, context) => {
       });
     }
 
-    // 固定的投票选项
+    // 固定的投票选项（旧投票数据无 options 字段时作为默认值）
     const fixedOptions = [
       { id: "option1", text: "同意" },
       { id: "option2", text: "不同意" },
@@ -67,7 +67,12 @@ exports.main = async (event, context) => {
       .filter((record) => votesMap[record.voteId])
       .map((record) => {
         const vote = votesMap[record.voteId];
-        const option = fixedOptions.find((opt) => opt.id === record.optionId);
+        // 优先使用投票创建时保存的选项定义（支持自定义选项）
+        const optionDefs =
+          Array.isArray(vote.options) && vote.options.length > 0
+            ? vote.options
+            : fixedOptions;
+        const option = optionDefs.find((opt) => opt.id === record.optionId);
 
         return {
           ...record,

@@ -79,4 +79,42 @@
       <button class="call-btn" bindtap="onCallOwner" wx:if="{{queryResult.ownerPhone}}">联系车主挪车 ☎</button>
     </view>
   </view>
+
+  <!-- 违停拍照上报（可选，仅查询到车辆后出现） -->
+  <view class="violation-section" wx:if="{{queryResult && queryResult.plateNumber}}">
+    <view class="violation-tip">
+      如该车辆违停，可拍照上传作为违停记录（选填）。建议将车辆、车牌号和周围环境一并拍入照片。上传照片后，该车辆将被记 1 次违停。
+    </view>
+
+    <block wx:if="{{!violationUploaded}}">
+      <view class="violation-photo-box" wx:if="{{violationPhoto}}">
+        <image
+          class="violation-photo"
+          src="{{violationPhoto}}"
+          mode="aspectFill"
+          bindtap="previewViolationPhoto"
+        />
+        <view class="violation-remove" bindtap="onRemoveViolationPhoto">×</view>
+      </view>
+      <button
+        class="violation-btn"
+        bindtap="onTakeViolationPhoto"
+        wx:if="{{!violationPhoto}}"
+      >
+        拍照上传违停照片
+      </button>
+      <button
+        class="violation-btn primary"
+        bindtap="onUploadViolation"
+        loading="{{violationUploading}}"
+        wx:if="{{violationPhoto}}"
+      >
+        确认上传（记为 1 次违停）
+      </button>
+    </block>
+
+    <view class="violation-done" wx:else>
+      ✓ 已上传违停照片
+    </view>
+  </view>
 </view>

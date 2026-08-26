@@ -38,6 +38,18 @@ exports.main = async (event, context) => {
         .get();
       if (commResult.data && commResult.data.length > 0) {
         resolvedCommunityId = commResult.data[0]._id;
+      } else {
+        return { success: false, error: "小区不存在，请重新选择" };
+      }
+    } else {
+      // _id 格式：校验小区真实存在，防止写入无效小区ID
+      const exists = await db
+        .collection("communities")
+        .doc(resolvedCommunityId)
+        .get()
+        .catch(() => null);
+      if (!exists || !exists.data) {
+        return { success: false, error: "小区不存在，请重新选择" };
       }
     }
 

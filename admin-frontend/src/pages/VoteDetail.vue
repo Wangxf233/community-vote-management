@@ -134,6 +134,14 @@ import * as ExcelJS from "exceljs";
 const route = useRoute();
 const router = useRouter();
 
+interface OptionStat {
+  text: string;
+  count?: number;
+  percent?: number | string;
+  area?: number | string;
+  areaPercent?: number | string;
+}
+
 const voteId = ref(route.params.id as string);
 const voteTitle = ref("");
 const voteRecords = ref<any[]>([]);
@@ -290,33 +298,53 @@ async function exportToExcel() {
     row4.font = { bold: true };
     row4.alignment = { vertical: "middle", horizontal: "center" };
 
-    // 第五行：同意/不同意/弃权人数
-    const row5 = worksheet.addRow([
-      "同意人数",
-      `${statistics.agreeCount || 0} (${statistics.agreePercent || 0}%)`,
-      "",
-      "不同意人数",
-      `${statistics.disagreeCount || 0} (${statistics.disagreePercent || 0}%)`,
-      "",
-      "弃权人数",
-      `${statistics.abstainCount || 0} (${statistics.abstainPercent || 0}%)`,
-    ]);
+    // 各选项统计（优先使用后端返回的选项列表，支持自定义选项）
+    const exportOptions: OptionStat[] =
+      Array.isArray(statistics.options) && statistics.options.length
+        ? statistics.options
+        : [
+            {
+              text: "同意",
+              count: statistics.agreeCount,
+              percent: statistics.agreePercent,
+              area: statistics.agreeArea,
+              areaPercent: statistics.agreeAreaPercent,
+            },
+            {
+              text: "不同意",
+              count: statistics.disagreeCount,
+              percent: statistics.disagreePercent,
+              area: statistics.disagreeArea,
+              areaPercent: statistics.disagreeAreaPercent,
+            },
+            {
+              text: "弃权",
+              count: statistics.abstainCount,
+              percent: statistics.abstainPercent,
+              area: statistics.abstainArea,
+              areaPercent: statistics.abstainAreaPercent,
+            },
+          ];
+
+    // 第五行：各选项人数
+    const row5Cells: string[] = [];
+    exportOptions.forEach((opt, i) => {
+      if (i > 0) row5Cells.push("");
+      row5Cells.push(`${opt.text}人数`);
+      row5Cells.push(`${opt.count || 0} (${opt.percent || 0}%)`);
+    });
+    const row5 = worksheet.addRow(row5Cells);
     row5.font = { bold: true };
     row5.alignment = { vertical: "middle", horizontal: "center" };
 
-    // 第六行：专有面积统计
-    const row6 = worksheet.addRow([
-      "同意专有面积(㎡)",
-      `${statistics.agreeArea || 0} (${statistics.agreeAreaPercent || 0}%)`,
-      "",
-      "不同意专有面积(㎡)",
-      `${statistics.disagreeArea || 0} (${
-        statistics.disagreeAreaPercent || 0
-      }%)`,
-      "",
-      "弃权专有面积(㎡)",
-      `${statistics.abstainArea || 0} (${statistics.abstainAreaPercent || 0}%)`,
-    ]);
+    // 第六行：各选项专有面积统计
+    const row6Cells: string[] = [];
+    exportOptions.forEach((opt, i) => {
+      if (i > 0) row6Cells.push("");
+      row6Cells.push(`${opt.text}专有面积(㎡)`);
+      row6Cells.push(`${opt.area || 0} (${opt.areaPercent || 0}%)`);
+    });
+    const row6 = worksheet.addRow(row6Cells);
     row6.font = { bold: true };
     row6.alignment = { vertical: "middle", horizontal: "center" };
 

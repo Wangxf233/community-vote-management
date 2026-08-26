@@ -14,8 +14,12 @@ const { AppError } = require("../shared/error-codes");
  * - 其他 Error: 返回 500 + 通用错误信息（不暴露内部细节）
  */
 function errorHandler(err, req, res, _next) {
-  // 已知的应用错误
-  if (err instanceof AppError) {
+  // 已知的应用错误 — 兼容 AppError 双副本（admin/shared 内联副本与根 shared/ 共享副本）
+  // instanceof 跨副本会失效，因此同时用结构判断兜底
+  if (
+    err instanceof AppError ||
+    (err && typeof err.code === "string" && typeof err.httpStatus === "number")
+  ) {
     return res.status(err.httpStatus).json({
       success: false,
       error: err.code,

@@ -4,28 +4,13 @@
     <el-card style="margin-bottom: 12px; flex-shrink: 0">
       <el-form :inline="true" :model="filterForm" class="filter-form">
         <el-form-item label="车牌号" style="margin-bottom: 0">
-          <el-input
-            v-model="filterForm.plateNumber"
-            placeholder="请输入车牌号"
-            clearable
-            style="width: 180px"
-          />
+          <el-input v-model="filterForm.plateNumber" placeholder="请输入车牌号" clearable style="width: 180px" />
         </el-form-item>
         <el-form-item label="车主姓名" style="margin-bottom: 0">
-          <el-input
-            v-model="filterForm.ownerName"
-            placeholder="请输入车主姓名"
-            clearable
-            style="width: 180px"
-          />
+          <el-input v-model="filterForm.ownerName" placeholder="请输入车主姓名" clearable style="width: 180px" />
         </el-form-item>
         <el-form-item label="车主电话" style="margin-bottom: 0">
-          <el-input
-            v-model="filterForm.ownerPhone"
-            placeholder="请输入车主电话"
-            clearable
-            style="width: 180px"
-          />
+          <el-input v-model="filterForm.ownerPhone" placeholder="请输入车主电话" clearable style="width: 180px" />
         </el-form-item>
         <el-form-item style="margin-bottom: 0">
           <el-button type="primary" @click="handleSearch">查询</el-button>
@@ -39,11 +24,7 @@
       <div style="display: flex; justify-content: space-between; align-items: center">
         <div style="display: flex; gap: 8px">
           <el-button type="primary" @click="handleAdd">添加车辆</el-button>
-          <el-button
-            type="danger"
-            :disabled="selectedRows.length === 0"
-            @click="handleBatchDelete"
-          >
+          <el-button type="danger" :disabled="selectedRows.length === 0" @click="handleBatchDelete">
             批量删除
           </el-button>
         </div>
@@ -79,34 +60,39 @@
           <el-table-column type="selection" width="55" />
           <el-table-column prop="vehicleType" label="车辆类型" width="100" />
           <el-table-column prop="plateNumber" label="车牌号" min-width="120" />
+
           <el-table-column prop="ownerName" label="车主姓名" min-width="100" />
           <el-table-column label="车主电话" min-width="130">
             <template #default="{ row }">
               {{ maskPhone(row.ownerPhone) }}
             </template>
           </el-table-column>
-          <el-table-column prop="parkingFee" label="车位费" width="100" align="right" />
+          <el-table-column prop="parkingFee" label="车位费" width="100" />
           <el-table-column prop="parkingSpot" label="车位编号" min-width="120" />
           <el-table-column prop="startDate" label="有效开始日期" width="120">
             <template #default="{ row }">
-              {{ row.startDate || '-' }}
+              {{ row.startDate || "-" }}
             </template>
           </el-table-column>
           <el-table-column prop="endDate" label="有效结束日期" width="120">
             <template #default="{ row }">
-              {{ row.endDate || '-' }}
+              {{ row.endDate || "-" }}
             </template>
           </el-table-column>
           <el-table-column prop="building" label="栋单元房号" min-width="140" show-overflow-tooltip />
+          <el-table-column label="违停次数" width="100" align="center">
+            <template #default="{ row }">
+              <el-link v-if="row.violationCount > 0" type="primary" @click="openViolations(row)">
+                {{ row.violationCount }}
+              </el-link>
+              <span v-else style="color: #999">0</span>
+            </template>
+          </el-table-column>
           <el-table-column prop="remark" label="备注" min-width="180" show-overflow-tooltip />
           <el-table-column label="操作" width="180" fixed="right">
             <template #default="{ row }">
-              <el-button type="primary" size="small" @click="handleEdit(row)">
-                修改
-              </el-button>
-              <el-button type="danger" size="small" @click="handleDelete(row)">
-                删除
-              </el-button>
+              <el-button type="primary" size="small" @click="handleEdit(row)"> 修改 </el-button>
+              <el-button type="danger" size="small" @click="handleDelete(row)"> 删除 </el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -126,12 +112,7 @@
     </el-card>
 
     <!-- 添加/编辑弹窗 -->
-    <el-dialog
-      v-model="dialogVisible"
-      :title="isEdit ? '编辑车辆' : '添加车辆'"
-      width="650px"
-      destroy-on-close
-    >
+    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑车辆' : '添加车辆'" width="650px" destroy-on-close>
       <el-form ref="formRef" :model="form" :rules="formRules" label-width="110px">
         <el-row :gutter="16">
           <el-col :span="12">
@@ -203,21 +184,45 @@
         <el-row :gutter="16">
           <el-col :span="24">
             <el-form-item label="备注" prop="remark">
-              <el-input
-                v-model="form.remark"
-                type="textarea"
-                :rows="3"
-                placeholder="请输入备注"
-              />
+              <el-input v-model="form.remark" type="textarea" :rows="3" placeholder="请输入备注" />
             </el-form-item>
           </el-col>
         </el-row>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleSubmit">
-          确定
-        </el-button>
+        <el-button type="primary" :loading="submitting" @click="handleSubmit"> 确定 </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 违停详情弹窗 -->
+    <el-dialog v-model="violationDialogVisible" title="违停详情" width="640px">
+      <div style="margin-bottom: 12px; color: #606266">
+        车牌号：{{ violationPlate }}（共 {{ violations.length }} 次违停）
+      </div>
+      <el-table :data="violations" stripe max-height="420" v-loading="violationLoading">
+        <el-table-column label="次数" width="80" align="center">
+          <template #default="{ row }">{{ row.seq }}</template>
+        </el-table-column>
+        <el-table-column label="时间" width="170">
+          <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
+        </el-table-column>
+        <el-table-column label="照片" min-width="140">
+          <template #default="{ row }">
+            <el-image
+              v-if="row.photoUrl"
+              :src="row.photoUrl"
+              :preview-src-list="[row.photoUrl]"
+              preview-teleported
+              fit="cover"
+              style="width: 80px; height: 60px; border-radius: 4px"
+            />
+            <span v-else style="color: #999">无</span>
+          </template>
+        </el-table-column>
+      </el-table>
+      <template #footer>
+        <el-button @click="violationDialogVisible = false">关闭</el-button>
       </template>
     </el-dialog>
 
@@ -410,11 +415,7 @@ async function handleDelete(row: any) {
 async function handleBatchDelete() {
   if (selectedRows.value.length === 0) return;
   try {
-    await ElMessageBox.confirm(
-      `确认删除选中的 ${selectedRows.value.length} 条车辆记录？`,
-      "提示",
-      { type: "warning" }
-    );
+    await ElMessageBox.confirm(`确认删除选中的 ${selectedRows.value.length} 条车辆记录？`, "提示", { type: "warning" });
     const ids = selectedRows.value.map((r) => r._id);
     await request.post("/vehicles/batch-delete", { ids, communityId });
     ElMessage.success("批量删除成功");
@@ -429,7 +430,9 @@ async function handleBatchDelete() {
 
 // --- 导出模板 ---
 function handleExportTemplate() {
-  window.open(`${import.meta.env.VITE_API_BASE_URL || "/api"}/vehicles/template?communityId=${encodeURIComponent(communityId)}&token=${encodeURIComponent(token)}`);
+  window.open(
+    `${import.meta.env.VITE_API_BASE_URL || "/api"}/vehicles/template?communityId=${encodeURIComponent(communityId)}&token=${encodeURIComponent(token)}`,
+  );
 }
 
 // --- 导出 Excel ---
@@ -457,6 +460,41 @@ async function handleExportExcel() {
   } catch (error: any) {
     ElMessage.error(error.response?.data?.error || "导出失败");
   }
+}
+
+// --- 违停详情 ---
+const violationDialogVisible = ref(false);
+const violationPlate = ref("");
+const violations = ref<any[]>([]);
+const violationLoading = ref(false);
+
+async function openViolations(row: any) {
+  violationPlate.value = row.plateNumber || "";
+  violations.value = [];
+  violationDialogVisible.value = true;
+  violationLoading.value = true;
+  try {
+    const res = await request.get("/vehicles/violations", {
+      params: { communityId, plateNumber: row.plateNumber },
+    });
+    violations.value = res.data || [];
+  } catch (error: any) {
+    ElMessage.error(error.response?.data?.error || "加载违停详情失败");
+  } finally {
+    violationLoading.value = false;
+  }
+}
+
+function formatDateTime(val: string): string {
+  if (!val) return "-";
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return val;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  const h = String(d.getHours()).padStart(2, "0");
+  const min = String(d.getMinutes()).padStart(2, "0");
+  return `${y}-${m}-${day} ${h}:${min}`;
 }
 
 // --- 导入 ---

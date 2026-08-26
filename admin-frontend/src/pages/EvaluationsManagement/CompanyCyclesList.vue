@@ -188,6 +188,9 @@
               <el-option label="每半年" value="semi_annual" />
               <el-option label="每年" value="annual" />
             </el-select>
+            <div style="color: #909399; font-size: 12px; margin-top: 4px">
+              每期按自然周期计算（每月=自然月天数，每季度=自然季度天数，以此类推）
+            </div>
           </el-form-item>
 
           <el-form-item label="首次日期" prop="recurringFirstDate">
@@ -201,19 +204,6 @@
             />
             <div style="color: #909399; font-size: 12px; margin-top: 4px">
               每期第一天自动发布，建议选未来的日期
-            </div>
-          </el-form-item>
-
-          <el-form-item label="每期持续">
-            <el-input-number
-              v-model="formData.recurringDurationDays"
-              :min="7"
-              :max="365"
-              :step="1"
-            />
-            <span style="margin-left: 8px; color: #606266">天</span>
-            <div style="color: #909399; font-size: 12px; margin-top: 4px">
-              从发布日起持续的天数（建议：每月→30天，每季度→90天）
             </div>
           </el-form-item>
 
@@ -317,7 +307,6 @@ const formData = reactive<any>({
   recurringEnabled: false,
   recurringFrequency: "quarterly",
   recurringFirstDate: "",
-  recurringDurationDays: 90,
   recurringTotalEndDate: "",
 });
 
@@ -345,17 +334,47 @@ const formatDateStr = (d: Date) => {
   return `${y}-${m}-${day}`;
 };
 
+// 计算自然周期天数：每月=自然月天数（28-31），每季度=自然季度天数（90-92），
+// 每半年=自然半年天数（181-184），每年=自然年天数（365-366）
+function calcNaturalDurationDays(frequency: string, dateStr: string): number {
+  const base = dateStr ? new Date(dateStr) : new Date();
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const y = base.getFullYear();
+  const m = base.getMonth();
+  let start: Date;
+  let next: Date;
+  if (frequency === "monthly") {
+    start = new Date(y, m, 1);
+    next = new Date(y, m + 1, 1);
+  } else if (frequency === "quarterly") {
+    start = new Date(y, Math.floor(m / 3) * 3, 1);
+    next = new Date(start.getFullYear(), start.getMonth() + 3, 1);
+  } else if (frequency === "semi_annual") {
+    start = new Date(y, Math.floor(m / 6) * 6, 1);
+    next = new Date(start.getFullYear(), start.getMonth() + 6, 1);
+  } else {
+    // annual
+    start = new Date(y, 0, 1);
+    next = new Date(y + 1, 0, 1);
+  }
+  return Math.round((next.getTime() - start.getTime()) / msPerDay);
+}
+
 const recurringPreview = computed(() => {
   if (!formData.recurringEnabled || !formData.recurringFirstDate) return [];
   const previews: { start: string; end: string }[] = [];
   const current = new Date(formData.recurringFirstDate);
-  const duration = formData.recurringDurationDays || 90;
   const frequency = formData.recurringFrequency || "quarterly";
 
   for (let i = 0; i < 3; i++) {
     const start = new Date(current);
+    // 每期按该期所在自然周期的实际天数计算结束日期
+    const periodDays = calcNaturalDurationDays(
+      frequency,
+      formatDateStr(start),
+    );
     const end = new Date(current);
-    end.setDate(end.getDate() + duration - 1);
+    end.setDate(end.getDate() + periodDays - 1);
     previews.push({
       start: formatDateStr(start),
       end: formatDateStr(end),
@@ -497,7 +516,6 @@ const handleEdit = async (row: Cycle) => {
     recurringEnabled: rec.enabled || false,
     recurringFrequency: rec.frequency || "quarterly",
     recurringFirstDate: rec.firstDate || "",
-    recurringDurationDays: rec.durationDays || 90,
     recurringTotalEndDate: rec.totalEndDate || "",
   });
   dialogVisible.value = true;
@@ -575,7 +593,6 @@ const handleSubmit = async () => {
             enabled: true,
             frequency: formData.recurringFrequency,
             firstDate: formData.recurringFirstDate,
-            durationDays: formData.recurringDurationDays,
             totalEndDate: formData.recurringTotalEndDate || undefined,
           }
         : undefined,

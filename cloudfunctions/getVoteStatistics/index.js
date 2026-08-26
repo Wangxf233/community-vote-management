@@ -4,6 +4,20 @@ const db = cloud.database();
 const _ = db.command;
 const $ = db.command.aggregate;
 
+// 默认固定选项（旧投票数据无 options 字段时使用）
+const FIXED_OPTIONS = [
+  { id: "option1", text: "同意" },
+  { id: "option2", text: "不同意" },
+  { id: "option3", text: "弃权" },
+];
+
+function getVoteOptions(vote) {
+  if (Array.isArray(vote.options) && vote.options.length > 0) {
+    return vote.options;
+  }
+  return FIXED_OPTIONS;
+}
+
 exports.main = async (event, context) => {
   const { voteId } = event;
 
@@ -73,216 +87,67 @@ exports.main = async (event, context) => {
       }
     });
 
-    const agreeCount = (optionMap.option1 || {}).count || 0;
-    const disagreeCount = (optionMap.option2 || {}).count || 0;
-    const abstainCount = (optionMap.option3 || {}).count || 0;
-    const participantCount = agreeCount + disagreeCount + abstainCount;
-
-    const agreeArea = (optionMap.option1 || {}).area || 0;
-    const disagreeArea = (optionMap.option2 || {}).area || 0;
-    const abstainArea = (optionMap.option3 || {}).area || 0;
-    const participantArea = parseFloat(
-      (agreeArea + disagreeArea + abstainArea).toFixed(2)
-    );
-
     const pct = (n, d) => (d > 0 ? ((n / d) * 100).toFixed(1) : "0.0");
 
-    return {
-      success: true,
-      data: {
-        totalCount,
-        participantCount,
-        participantRatio: pct(participantCount, totalCount),
-        agreeCount,
-        disagreeCount,
-        abstainCount,
-        agreePercent: pct(agreeCount, participantCount),
-        disagreePercent: pct(disagreeCount, participantCount),
-        abstainPercent: pct(abstainCount, participantCount),
-        totalArea,
-        participantArea,
-        participantAreaRatio: pct(participantArea, totalArea),
-        agreeArea: agreeArea.toFixed(2),
-        disagreeArea: disagreeArea.toFixed(2),
-        abstainArea: abstainArea.toFixed(2),
-        agreeAreaPercent: pct(agreeArea, participantArea),
-        disagreeAreaPercent: pct(disagreeArea, participantArea),
-        abstainAreaPercent: pct(abstainArea, participantArea),
-      },
-    };
-  } catch (err) {
-    console.error("getVoteStatistics error:", err);
-    return {
-      success: false,
-      error: err.message || "Failed to get statistics",
-    };
-  }
-};
-    const ownerListRes = await db
-      .collection("owner_list")
-      .where({
-        communityId: vote.communityId,
-        deleted: _.neq(true),
-      })
-      .get();
+    // 按投票自身配置的选项生成统计（兼容固定选项与自定义选项）
+    const options = getVoteOptions(vote);
+    let participantCount = 0;
+    let participantArea = 0;
 
-    console.log("Owner list count:", ownerListRes.data.length);
-
-    // 计算总户主数（按openid去重）
-    const uniqueOwners = new Set();
-    let totalAreaSum = 0;
-
-    ownerListRes.data.forEach((owner) => {
-      const openid = owner.openid;
-      if (openid && openid.trim() !== "") {
-        uniqueOwners.add(openid);
-      }
-      // 累加所有房产的专有面积
-      const area = parseFloat(owner.area) || 0;
-      totalAreaSum += area;
+    // 先累加原始值，最后统一四舍五入，避免各选项先行舍入导致合计误差
+    const optionStats = options.map((opt) => {
+      const stat = optionMap[opt.id] || { count: 0, area: 0 };
+      participantCount += stat.count;
+      participantArea += stat.area;
+      return {
+        id: opt.id,
+        text: opt.text,
+        count: stat.count,
+        area: stat.area,
+      };
     });
 
-    const totalCount = uniqueOwners.size;
-    const totalArea = parseFloat(totalAreaSum.toFixed(2));
+    participantArea = parseFloat(participantArea.toFixed(2));
 
-    console.log("总户主数（去重后）:", totalCount);
-    console.log("总专有面积:", totalArea);
-
-    // 获取投票记录
-    const recordsRes = await db
-      .collection("vote_records")
-      .where({
-        voteId: voteId,
-        deleted: _.neq(true),
-      })
-      .get();
-
-    const records = recordsRes.data;
-    const participantCount = records.length;
-
-    console.log("Vote records:", participantCount);
-
-    // 统计各选项人数
-    let agreeCount = 0;
-    let disagreeCount = 0;
-    let abstainCount = 0;
-
-    // 收集参与投票的openid用于计算面积
-    const voterOpenids = new Set();
-
-    records.forEach((record) => {
-      const optionId = record.optionId || record.choice;
-      const openid = record.openid;
-
-      if (openid && openid.trim() !== "") {
-        voterOpenids.add(openid);
-      }
-
-      // 统计人数（option1=同意, option2=不同意, option3=弃权）
-      if (optionId === "option1") {
-        agreeCount++;
-      } else if (optionId === "option2") {
-        disagreeCount++;
-      } else if (optionId === "option3") {
-        abstainCount++;
-      }
+    // 计算各选项占比（展示用面积保留两位小数）
+    optionStats.forEach((opt) => {
+      opt.percent = pct(opt.count, participantCount);
+      opt.areaPercent = pct(opt.area, participantArea);
+      opt.area = parseFloat(opt.area.toFixed(2));
     });
 
-    // 计算人数百分比（基于参与人数）
-    const agreePercent =
-      participantCount > 0
-        ? ((agreeCount / participantCount) * 100).toFixed(1)
-        : "0.0";
-    const disagreePercent =
-      participantCount > 0
-        ? ((disagreeCount / participantCount) * 100).toFixed(1)
-        : "0.0";
-    const abstainPercent =
-      participantCount > 0
-        ? ((abstainCount / participantCount) * 100).toFixed(1)
-        : "0.0";
+    // 兼容旧字段（固定选项时对应 同意/不同意/弃权；自定义投票不映射，置零避免错误标签）
+    const isFixedMode = vote.optionMode !== "custom";
+    const legacy = ["agree", "disagree", "abstain"].map((name, i) => {
+      const stat =
+        isFixedMode && optionStats[i]
+          ? optionStats[i]
+          : { count: 0, percent: "0.0", area: 0, areaPercent: "0.0" };
+      return { name, stat };
+    });
 
-    // 计算参与人数比例
-    const participantRatio =
-      totalCount > 0
-        ? ((participantCount / totalCount) * 100).toFixed(1)
-        : "0.0";
+    const data = {
+      totalCount,
+      participantCount,
+      participantRatio: pct(participantCount, totalCount),
+      totalArea,
+      participantArea,
+      participantAreaRatio: pct(participantArea, totalArea),
+      optionMode: vote.optionMode === "custom" ? "custom" : "fixed",
+      // 各选项统计（固定选项与自定义选项通用）
+      options: optionStats,
+    };
 
-    // 计算参与专有面积和各选项专有面积
-    let participantAreaSum = 0;
-    let agreeArea = 0;
-    let disagreeArea = 0;
-    let abstainArea = 0;
-
-    if (vote.type === "vote") {
-      // 建立openid到选项的映射
-      const openidToOption = {};
-      records.forEach((record) => {
-        openidToOption[record.openid] = record.optionId || record.choice;
-      });
-
-      // 遍历owner_list计算面积
-      ownerListRes.data.forEach((owner) => {
-        const openid = owner.openid;
-        if (openid && openid.trim() !== "" && voterOpenids.has(openid)) {
-          const area = parseFloat(owner.area) || 0;
-          participantAreaSum += area;
-
-          // 根据选项累加面积
-          const optionId = openidToOption[openid];
-          if (optionId === "option1") {
-            agreeArea += area;
-          } else if (optionId === "option2") {
-            disagreeArea += area;
-          } else if (optionId === "option3") {
-            abstainArea += area;
-          }
-        }
-      });
-    }
-
-    const participantArea = parseFloat(participantAreaSum.toFixed(2));
-
-    // 计算参与面积比例
-    const participantAreaRatio =
-      totalArea > 0 ? ((participantArea / totalArea) * 100).toFixed(1) : "0.0";
-
-    // 计算专有面积百分比（基于参与面积）
-    const agreeAreaPercent =
-      participantArea > 0
-        ? ((agreeArea / participantArea) * 100).toFixed(1)
-        : "0.0";
-    const disagreeAreaPercent =
-      participantArea > 0
-        ? ((disagreeArea / participantArea) * 100).toFixed(1)
-        : "0.0";
-    const abstainAreaPercent =
-      participantArea > 0
-        ? ((abstainArea / participantArea) * 100).toFixed(1)
-        : "0.0";
+    legacy.forEach(({ name, stat }) => {
+      data[`${name}Count`] = stat.count;
+      data[`${name}Percent`] = stat.percent;
+      data[`${name}Area`] = stat.area.toFixed(2);
+      data[`${name}AreaPercent`] = stat.areaPercent;
+    });
 
     return {
       success: true,
-      data: {
-        totalCount,
-        participantCount,
-        participantRatio,
-        agreeCount,
-        disagreeCount,
-        abstainCount,
-        agreePercent,
-        disagreePercent,
-        abstainPercent,
-        totalArea,
-        participantArea,
-        participantAreaRatio,
-        agreeArea: agreeArea.toFixed(2),
-        disagreeArea: disagreeArea.toFixed(2),
-        abstainArea: abstainArea.toFixed(2),
-        agreeAreaPercent,
-        disagreeAreaPercent,
-        abstainAreaPercent,
-      },
+      data,
     };
   } catch (err) {
     console.error("getVoteStatistics error:", err);

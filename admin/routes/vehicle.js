@@ -1,24 +1,64 @@
 const express = require("express");
 const router = express.Router();
-const { db } = require("../config/db");
+const { db, tcb } = require("../config/db");
 const { authMiddleware } = require("../middleware/auth");
 const multer = require("multer");
 const XLSX = require("xlsx");
 const ExcelJS = require("exceljs");
 const _ = db.command;
 
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 导入文件最大 5MB，防止内存耗尽
+});
 
 // 所有端点都需要认证
 router.use(authMiddleware);
+
+// 确保违停集合存在（首次调用时创建，后续调用直接跳过）
+let parkingViolationsReady = false;
+async function ensureParkingViolationsCollection() {
+  if (parkingViolationsReady) return;
+  try {
+    await db.createCollection("parking_violations");
+  } catch (e) {
+    // 已存在或创建失败均忽略，后续查询自行兜底
+  }
+  parkingViolationsReady = true;
+}
+
+/**
+ * 解析小区隔离范围
+ * - 小区管理员：强制使用自己的 communityId，无则返回 null（调用方回 403）
+ * - 超管：使用请求中显式传入的 communityId（query 或 body），未传则 null（查询=全部小区）
+ * @returns {string|null|undefined} communityId / null=无权 / undefined=不限制（仅超管查询）
+ */
+function resolveCommunityScope(req) {
+  const userRole = req.user.role;
+  const userCommunityId = req.user.communityId;
+
+  if (userRole === "community" || userRole === "community_admin") {
+    return userCommunityId || null;
+  }
+  // 超管
+  const explicit =
+    (req.query && req.query.communityId) ||
+    (req.body && req.body.communityId) ||
+    undefined;
+  return explicit || undefined;
+}
 
 /**
  * 构建车辆查询条件
  */
 function buildVehicleWhere(req) {
-  const communityId = req.user.communityId;
+  const cid = resolveCommunityScope(req);
+  if (cid === null) {
+    return null; // 无小区权限
+  }
   const { plateNumber, ownerName, ownerPhone } = req.query;
-  const where = { communityId };
+  const where = {};
+  if (cid) where.communityId = cid;
 
   if (plateNumber) {
     where.plateNumber = db.RegExp({ regexp: plateNumber, options: "i" });
@@ -43,6 +83,10 @@ router.get("/", async (req, res) => {
     const limit = parseInt(pageSize);
     const where = buildVehicleWhere(req);
 
+    if (where === null) {
+      return res.status(403).json({ success: false, error: "no_community_access" });
+    }
+
     const [countResult, result] = await Promise.all([
       db.collection("vehicles").where(where).count(),
       db
@@ -53,6 +97,31 @@ router.get("/", async (req, res) => {
         .limit(limit)
         .get(),
     ]);
+
+    // 统计当前页车辆各自的违停次数（默认 0；集合不存在时全部按 0 处理）
+    await ensureParkingViolationsCollection();
+    const plates = (result.data || [])
+      .map((v) => v.plateNumber)
+      .filter(Boolean);
+    const violationMap = {};
+    if (plates.length > 0) {
+      try {
+        const violRes = await db
+          .collection("parking_violations")
+          .where({ communityId, plateNumber: _.in(plates) })
+          .limit(1000)
+          .get();
+        (violRes.data || []).forEach((v) => {
+          violationMap[v.plateNumber] = (violationMap[v.plateNumber] || 0) + 1;
+        });
+      } catch (countErr) {
+        // 集合不存在等情况：违停次数按 0 处理，不影响车辆列表返回
+        console.error("查询违停记录失败:", countErr.message);
+      }
+    }
+    (result.data || []).forEach((v) => {
+      v.violationCount = violationMap[v.plateNumber] || 0;
+    });
 
     res.json({
       success: true,
@@ -71,6 +140,9 @@ router.get("/", async (req, res) => {
 router.get("/export", async (req, res) => {
   try {
     const where = buildVehicleWhere(req);
+    if (where === null) {
+      return res.status(403).json({ success: false, error: "no_community_access" });
+    }
     const result = await db
       .collection("vehicles")
       .where(where)
@@ -177,11 +249,81 @@ router.get("/template", async (req, res) => {
 });
 
 /**
+ * GET /api/vehicles/violations?plateNumber=xxx — 违停详情列表
+ */
+router.get("/violations", async (req, res) => {
+  try {
+    const cid = resolveCommunityScope(req);
+    if (cid === null) {
+      return res.status(403).json({ success: false, error: "no_community_access" });
+    }
+    if (!cid) {
+      return res.status(400).json({ success: false, error: "超管查询违停需指定小区ID" });
+    }
+    const communityId = cid;
+    const { plateNumber } = req.query;
+
+    if (!plateNumber) {
+      return res.status(400).json({ success: false, error: "缺少车牌号" });
+    }
+
+    await ensureParkingViolationsCollection();
+
+    const violRes = await db
+      .collection("parking_violations")
+      .where({ communityId, plateNumber })
+      .orderBy("createdAt", "asc")
+      .limit(500)
+      .get();
+
+    const list = violRes.data || [];
+
+    // 照片 fileID 换取新的临时链接（避免过期）
+    const keys = list
+      .map((v) => v.photoFileID)
+      .filter(
+        (id) => typeof id === "string" && id.startsWith("cloud://"),
+      );
+    if (keys.length > 0) {
+      try {
+        const urlRes = await tcb.getTempFileURL({
+          fileList: keys,
+          maxAge: 604800, // 7天
+        });
+        const urlMap = {};
+        (urlRes.fileList || []).forEach((f) => {
+          if (f.fileID && (f.tempFileURL || f.download_url)) {
+            urlMap[f.fileID] = f.download_url || f.tempFileURL;
+          }
+        });
+        list.forEach((v) => {
+          if (urlMap[v.photoFileID]) v.photoUrl = urlMap[v.photoFileID];
+        });
+      } catch (e) {
+        console.error("刷新违停照片链接失败:", e.message);
+      }
+    }
+
+    res.json({ success: true, data: list });
+  } catch (err) {
+    console.error("获取违停详情失败:", err);
+    res.status(500).json({ success: false, error: "获取违停详情失败" });
+  }
+});
+
+/**
  * POST /api/vehicles — 添加车辆
  */
 router.post("/", async (req, res) => {
   try {
-    const communityId = req.user.communityId;
+    const cid = resolveCommunityScope(req);
+    if (cid === null) {
+      return res.status(403).json({ success: false, error: "no_community_access" });
+    }
+    if (!cid) {
+      return res.status(400).json({ success: false, error: "超管添加车辆需指定小区ID" });
+    }
+    const communityId = cid;
     const { plateNumber, ownerPhone } = req.body;
 
     if (!plateNumber || !ownerPhone) {
@@ -233,7 +375,14 @@ router.post("/", async (req, res) => {
  */
 router.post("/import", upload.single("file"), async (req, res) => {
   try {
-    const communityId = req.user.communityId;
+    const cid = resolveCommunityScope(req);
+    if (cid === null) {
+      return res.status(403).json({ success: false, error: "no_community_access" });
+    }
+    if (!cid) {
+      return res.status(400).json({ success: false, error: "超管导入车辆需指定小区ID" });
+    }
+    const communityId = cid;
     if (!req.file) {
       return res
         .status(400)
@@ -337,7 +486,13 @@ router.post("/import", upload.single("file"), async (req, res) => {
  */
 router.post("/batch-delete", async (req, res) => {
   try {
-    const communityId = req.user.communityId;
+    const cid = resolveCommunityScope(req);
+    if (cid === null) {
+      return res.status(403).json({ success: false, error: "no_community_access" });
+    }
+    if (!cid) {
+      return res.status(400).json({ success: false, error: "超管批量删除需指定小区ID" });
+    }
     const { ids } = req.body;
 
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
@@ -348,7 +503,7 @@ router.post("/batch-delete", async (req, res) => {
 
     await db
       .collection("vehicles")
-      .where({ _id: _.in(ids), communityId })
+      .where({ _id: _.in(ids), communityId: cid })
       .remove();
 
     res.json({ success: true });
@@ -363,7 +518,14 @@ router.post("/batch-delete", async (req, res) => {
  */
 router.put("/:id", async (req, res) => {
   try {
-    const communityId = req.user.communityId;
+    const cid = resolveCommunityScope(req);
+    if (cid === null) {
+      return res.status(403).json({ success: false, error: "no_community_access" });
+    }
+    if (!cid) {
+      return res.status(400).json({ success: false, error: "超管修改车辆需指定小区ID" });
+    }
+    const communityId = cid;
     const { id } = req.params;
     const { vehicleType, plateNumber, ownerPhone } = req.body;
 
@@ -423,7 +585,14 @@ router.put("/:id", async (req, res) => {
  */
 router.delete("/:id", async (req, res) => {
   try {
-    const communityId = req.user.communityId;
+    const cid = resolveCommunityScope(req);
+    if (cid === null) {
+      return res.status(403).json({ success: false, error: "no_community_access" });
+    }
+    if (!cid) {
+      return res.status(400).json({ success: false, error: "超管删除车辆需指定小区ID" });
+    }
+    const communityId = cid;
     const { id } = req.params;
 
     const existing = await db

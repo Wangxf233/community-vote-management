@@ -9,10 +9,7 @@
           @select="onSelect"
           :default-openeds="['certification', 'backend-admin', 'announcements']"
         >
-          <el-menu-item
-            v-if="isPrimaryAdmin"
-            index="/community-admin/community-info"
-          >
+          <el-menu-item v-if="isPrimaryAdmin" index="/community-admin/community-info">
             <el-icon><Files /></el-icon>
             <span>小区基本情况</span>
           </el-menu-item>
@@ -70,41 +67,60 @@
           </el-menu-item>
           <el-menu-item v-if="isPrimaryAdmin || hasPermission('staff')" index="/community-admin/staff">
             <el-icon><Avatar /></el-icon>
-            <span>工作人员管理</span>
+            <span>车管人员</span>
           </el-menu-item>
-          <el-menu-item v-if="doorManagementEnabled && (isPrimaryAdmin || hasPermission('door'))" index="/community-admin/door-management">
+          <el-menu-item
+            v-if="doorManagementEnabled && (isPrimaryAdmin || hasPermission('door'))"
+            index="/community-admin/door-management"
+          >
             <el-icon><Setting /></el-icon>
             <span>门禁管理</span>
           </el-menu-item>
           <el-sub-menu
-            v-if="isPrimaryAdmin || hasPermission('announcement')"
+            v-if="
+              isPrimaryAdmin ||
+              hasPermission('announcement') ||
+              hasPermission('announcement_committee') ||
+              hasPermission('announcement_property') ||
+              hasPermission('announcement_law') ||
+              hasPermission('announcement_industry')
+            "
             index="announcements"
           >
             <template #title>
               <el-icon><Bell /></el-icon>
               <span>信息公示</span>
             </template>
-            <el-menu-item index="/community-admin/announcements?tab=committee">
+            <el-menu-item
+              v-if="isPrimaryAdmin || hasPermission('announcement') || hasPermission('announcement_committee')"
+              index="/community-admin/announcements?tab=committee"
+            >
               <el-icon><Avatar /></el-icon>
               <span>业委会信息公示</span>
             </el-menu-item>
-            <el-menu-item index="/community-admin/announcements?tab=property">
+            <el-menu-item
+              v-if="isPrimaryAdmin || hasPermission('announcement') || hasPermission('announcement_property')"
+              index="/community-admin/announcements?tab=property"
+            >
               <el-icon><OfficeBuilding /></el-icon>
               <span>物业信息公示</span>
             </el-menu-item>
-            <el-menu-item index="/community-admin/announcements?tab=law">
+            <el-menu-item
+              v-if="isPrimaryAdmin || hasPermission('announcement') || hasPermission('announcement_law')"
+              index="/community-admin/announcements?tab=law"
+            >
               <el-icon><Memo /></el-icon>
               <span>法律法规</span>
             </el-menu-item>
-            <el-menu-item index="/community-admin/announcements?tab=industry">
+            <el-menu-item
+              v-if="isPrimaryAdmin || hasPermission('announcement') || hasPermission('announcement_industry')"
+              index="/community-admin/announcements?tab=industry"
+            >
               <el-icon><DataLine /></el-icon>
-              <span>行业动态</span>
+              <span>便民信息</span>
             </el-menu-item>
           </el-sub-menu>
-          <el-menu-item
-            v-if="isPrimaryAdmin || hasPermission('notification')"
-            index="/community-admin/notifications"
-          >
+          <el-menu-item v-if="isPrimaryAdmin || hasPermission('notification')" index="/community-admin/notifications">
             <el-icon><Notification /></el-icon>
             <span>通知公告</span>
           </el-menu-item>
@@ -120,19 +136,9 @@
               </el-button>
             </el-tooltip>
 
-            <el-tooltip
-              :content="isLargeFont ? '切换到标准字号' : '切换到大字号'"
-              placement="bottom"
-            >
-              <el-button
-                text
-                circle
-                @click="toggleFontSize"
-                class="topbar-item"
-              >
-                <span style="font-size: 16px; font-weight: bold">{{
-                  isLargeFont ? "A-" : "A+"
-                }}</span>
+            <el-tooltip :content="isLargeFont ? '切换到标准字号' : '切换到大字号'" placement="bottom">
+              <el-button text circle @click="toggleFontSize" class="topbar-item">
+                <span style="font-size: 16px; font-weight: bold">{{ isLargeFont ? "A-" : "A+" }}</span>
               </el-button>
             </el-tooltip>
 
@@ -153,20 +159,11 @@
                 </div>
                 <div class="row">
                   <span class="label">角色</span>
-                  <span class="val">{{
-                    isPrimaryAdmin ? "总管理员" : "普通管理员"
-                  }}</span>
+                  <span class="val">{{ isPrimaryAdmin ? "总管理员" : "普通管理员" }}</span>
                 </div>
                 <div class="footer">
-                  <el-button
-                    size="small"
-                    type="primary"
-                    @click="openChangePwdDialog"
-                    >修改密码</el-button
-                  >
-                  <el-button size="small" type="danger" @click="logout"
-                    >退出登录</el-button
-                  >
+                  <el-button size="small" type="primary" @click="openChangePwdDialog">修改密码</el-button>
+                  <el-button size="small" type="danger" @click="logout">退出登录</el-button>
                 </div>
               </div>
             </el-popover>
@@ -213,25 +210,13 @@
     <el-dialog v-model="changePwdDialog" title="修改密码" width="420px">
       <el-form :model="changePwdForm" label-width="120px">
         <el-form-item label="原始密码">
-          <el-input
-            v-model="changePwdForm.oldPassword"
-            type="password"
-            show-password
-          />
+          <el-input v-model="changePwdForm.oldPassword" type="password" show-password />
         </el-form-item>
         <el-form-item label="新密码">
-          <el-input
-            v-model="changePwdForm.newPassword"
-            type="password"
-            show-password
-          />
+          <el-input v-model="changePwdForm.newPassword" type="password" show-password />
         </el-form-item>
         <el-form-item label="确认新密码">
-          <el-input
-            v-model="changePwdForm.confirm"
-            type="password"
-            show-password
-          />
+          <el-input v-model="changePwdForm.confirm" type="password" show-password />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -379,11 +364,7 @@ async function loadCommunityInfo() {
       doorManagementEnabled.value = myCommunity.doorManagementEnabled === true;
 
       // 计算到期时间和剩余天数（字段优先级与 CommunityList 保持一致）
-      const endDate =
-        myCommunity.productEnd ||
-        myCommunity.endDate ||
-        myCommunity.product_end ||
-        myCommunity.end;
+      const endDate = myCommunity.productEnd || myCommunity.endDate || myCommunity.product_end || myCommunity.end;
       if (endDate) {
         const endTs = toTimestamp(endDate);
         if (endTs) {

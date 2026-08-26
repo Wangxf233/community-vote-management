@@ -78,7 +78,7 @@
       <view class="icon-wrapper industry-icon">
         <image src="cloud://cloud1-6ghienoi526fff51.636c-cloud1-6ghienoi526fff51-1325504194/images/icon-industry.png" class="service-icon"></image>
       </view>
-      <text class="service-text">行业动态</text>
+      <text class="service-text">便民信息</text>
     </view>
 
     <view class="service-item" bindtap="navigateToBasicInfo">

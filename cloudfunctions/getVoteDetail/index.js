@@ -1,6 +1,7 @@
 const cloud = require("wx-server-sdk");
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
+const _ = db.command;
 
 exports.main = async (event, context) => {
   const { voteId, communityId } = event;
@@ -63,14 +64,20 @@ exports.main = async (event, context) => {
     const optionCounts = vote.optionCounts || {};
     const totalVotes = vote.totalVotes || 0;
 
-    // 固定的三个投票选项
+    // 固定的三个投票选项（旧投票数据无 options 字段时作为默认值）
     const fixedOptions = [
       { id: "option1", text: "同意" },
       { id: "option2", text: "不同意" },
       { id: "option3", text: "弃权" },
     ];
 
-    const options = fixedOptions.map((option) => {
+    // 优先使用投票创建时保存的选项定义（支持自定义选项）
+    const optionDefs =
+      Array.isArray(vote.options) && vote.options.length > 0
+        ? vote.options
+        : fixedOptions;
+
+    const options = optionDefs.map((option) => {
       const count = optionCounts[option.id] || 0;
       const percent =
         totalVotes > 0 ? ((count / totalVotes) * 100).toFixed(1) : 0;
@@ -83,6 +90,7 @@ exports.main = async (event, context) => {
     });
 
     // 计算参与人数占比和参与面积占比
+    // 优化：全部在数据库侧聚合，不再全量拉取 owner_list / vote_records（读放大修复）
     let participantStats = {
       totalOwners: 0,
       participantCount: totalVotes,
@@ -93,119 +101,83 @@ exports.main = async (event, context) => {
     };
 
     try {
-      // 获取该投票所属社区
       const communityId = vote.communityId;
-      console.log("开始计算参与统计, communityId:", communityId);
-
       if (communityId) {
-        // 查询户主名单获取总户主数和总面积
-        const ownerListRes = await db
-          .collection("owner_list")
-          .where({
-            communityId: communityId,
-          })
-          .get();
+        const $ = db.command.aggregate;
 
-        console.log("查询到户主名单记录数:", ownerListRes.data.length);
-        if (ownerListRes.data.length > 0) {
-          console.log(
-            "第一条owner_list数据:",
-            JSON.stringify(ownerListRes.data[0])
-          );
+        const [ownerCountRes, ownerAreaRes, voterCountRes, voterAreaRes] =
+          await Promise.all([
+            // 1. 总户主数：按 openid 去重（排除空 openid）
+            db
+              .collection("owner_list")
+              .aggregate()
+              .match({
+                communityId,
+                deleted: _.neq(true),
+                openid: _.neq(""),
+              })
+              .group({ _id: "$openid" })
+              .group({ _id: null, totalCount: $.sum(1) })
+              .end(),
+
+            // 2. 小区总专有面积
+            db
+              .collection("owner_list")
+              .aggregate()
+              .match({ communityId, deleted: _.neq(true) })
+              .group({ _id: null, totalArea: $.sum("$area") })
+              .end(),
+
+            // 3. 参与人数：投票记录按 openid 去重（排除空 openid）
+            db
+              .collection("vote_records")
+              .aggregate()
+              .match({ voteId, deleted: _.neq(true), openid: _.neq("") })
+              .group({ _id: "$openid" })
+              .group({ _id: null, totalCount: $.sum(1) })
+              .end(),
+
+            // 4. 参与面积：投票时已将户主专有面积快照写入 vote_records.area，直接求和
+            db
+              .collection("vote_records")
+              .aggregate()
+              .match({ voteId, deleted: _.neq(true) })
+              .group({ _id: null, totalArea: $.sum("$area") })
+              .end(),
+          ]);
+
+        const totalOwners =
+          ownerCountRes.list && ownerCountRes.list[0]
+            ? ownerCountRes.list[0].totalCount
+            : 0;
+        const totalArea = ownerAreaRes.list && ownerAreaRes.list[0]
+          ? parseFloat((ownerAreaRes.list[0].totalArea || 0).toFixed(2))
+          : 0;
+        const participantCount =
+          voterCountRes.list && voterCountRes.list[0]
+            ? voterCountRes.list[0].totalCount
+            : 0;
+        const participantArea =
+          voterAreaRes.list && voterAreaRes.list[0]
+            ? parseFloat((voterAreaRes.list[0].totalArea || 0).toFixed(2))
+            : 0;
+
+        participantStats.totalOwners = totalOwners;
+        participantStats.totalArea = totalArea;
+        participantStats.participantCount = participantCount;
+        participantStats.participantArea = participantArea;
+
+        if (totalOwners > 0) {
+          participantStats.participantRatio = (
+            (participantCount / totalOwners) *
+            100
+          ).toFixed(1);
         }
-
-        if (ownerListRes.data && ownerListRes.data.length > 0) {
-          // 计算不重复的户主数（按openid去重，因为一个户主可能有多套房产）和总面积
-          const uniqueOwners = new Set();
-          let totalAreaSum = 0;
-          let emptyOpenidCount = 0;
-
-          ownerListRes.data.forEach((owner) => {
-            const openid = owner.openid;
-            // openid必须存在且不为空字符串
-            if (openid && openid.trim() !== "") {
-              uniqueOwners.add(openid);
-            } else {
-              emptyOpenidCount++;
-            }
-            // 累加所有房产的专有面积
-            const area = parseFloat(owner.area) || 0;
-            totalAreaSum += area;
-          });
-
-          console.log("空openid记录数:", emptyOpenidCount);
-          console.log("唯一openid集合:", Array.from(uniqueOwners));
-
-          participantStats.totalOwners = uniqueOwners.size;
-          participantStats.totalArea = parseFloat(totalAreaSum.toFixed(2));
-
-          console.log("总户主数:", uniqueOwners.size);
-          console.log("总面积:", totalAreaSum);
-
-          // 查询参与投票的记录，直接从 vote_records 获取参与的户主信息
-          const voteRecordsRes = await db
-            .collection("vote_records")
-            .where({
-              voteId: voteId,
-            })
-            .get();
-
-          console.log("投票记录数:", voteRecordsRes.data.length);
-          if (voteRecordsRes.data.length > 0) {
-            console.log(
-              "第一条vote_record数据:",
-              JSON.stringify(voteRecordsRes.data[0])
-            );
-          }
-
-          if (voteRecordsRes.data && voteRecordsRes.data.length > 0) {
-            // 收集参与投票的openid（去重）
-            const voterOpenids = new Set();
-            voteRecordsRes.data.forEach((record) => {
-              const openid = record.openid;
-              // openid必须存在且不为空字符串
-              if (openid && openid.trim() !== "") {
-                voterOpenids.add(openid);
-              }
-            });
-
-            console.log("参与投票的openid集合:", Array.from(voterOpenids));
-
-            // 更新参与人数
-            participantStats.participantCount = voterOpenids.size;
-
-            // 计算人数占比
-            if (uniqueOwners.size > 0) {
-              participantStats.participantRatio = (
-                (voterOpenids.size / uniqueOwners.size) *
-                100
-              ).toFixed(1);
-            }
-
-            // 计算参与投票户主的总面积（匹配openid，一个户主可能有多套房）
-            let participantAreaSum = 0;
-            ownerListRes.data.forEach((owner) => {
-              const openid = owner.openid;
-              if (openid && openid.trim() !== "" && voterOpenids.has(openid)) {
-                const area = parseFloat(owner.area) || 0;
-                participantAreaSum += area;
-              }
-            });
-
-            participantStats.participantArea = parseFloat(
-              participantAreaSum.toFixed(2)
-            );
-
-            console.log("参与投票户主总面积:", participantAreaSum);
-
-            // 计算面积占比
-            if (totalAreaSum > 0) {
-              participantStats.areaRatio = (
-                (participantAreaSum / totalAreaSum) *
-                100
-              ).toFixed(1);
-            }
-          }
+        if (totalArea > 0) {
+          participantStats.areaRatio = (
+            (participantArea / totalArea) *
+            100
+          ).toFixed(1);
         }
       }
     } catch (statsErr) {
@@ -225,13 +197,38 @@ exports.main = async (event, context) => {
       return `${year}-${month}-${day} ${hour}:${minute}`;
     };
 
+    // 附件链接刷新：用 fileID 换取新的临时链接（避免上传时保存的 7 天链接过期）
+    let attachmentUrl = vote.attachment || "";
+    const convertKey =
+      vote.attachmentFileID &&
+      typeof vote.attachmentFileID === "string" &&
+      vote.attachmentFileID.startsWith("cloud://")
+        ? vote.attachmentFileID
+        : typeof attachmentUrl === "string" &&
+            attachmentUrl.startsWith("cloud://")
+          ? attachmentUrl
+          : "";
+    if (convertKey) {
+      try {
+        const tmpRes = await cloud.getTempFileURL({
+          fileList: [convertKey],
+        });
+        const f = tmpRes.fileList && tmpRes.fileList[0];
+        if (f && (f.tempFileURL || f.download_url)) {
+          attachmentUrl = f.download_url || f.tempFileURL;
+        }
+      } catch (e) {
+        console.warn("附件链接刷新失败:", e.message);
+      }
+    }
+
     // 兼容 admin 前端使用的单附件字段（attachment/attachmentName）并优先使用 description 作为投票说明
     const attachments = [];
     if (Array.isArray(vote.attachments) && vote.attachments.length > 0) {
       attachments.push(...vote.attachments);
-    } else if (vote.attachment) {
+    } else if (attachmentUrl) {
       attachments.push({
-        url: vote.attachment,
+        url: attachmentUrl,
         name: vote.attachmentName || "附件",
         size: vote.attachmentSize || "",
       });

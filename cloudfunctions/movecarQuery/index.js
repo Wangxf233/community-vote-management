@@ -21,8 +21,31 @@ exports.main = async (event, context) => {
       return { success: false, error: "请输入车牌号" };
     }
 
-    // 如果没传 communityId，从用户认证信息推断
-    if (!communityId) {
+    // 小区归属校验（防越权）：
+    // - 客户端传了 communityId：必须校验调用者确实是该小区的业主/家属或审核通过的工作人员
+    // - 没传：从调用者本人的已审核绑定推断
+    if (communityId) {
+      const [bindingCheck, staffCheck] = await Promise.all([
+        db
+          .collection("bindings")
+          .where({ openid, communityId, status: "approved" })
+          .limit(1)
+          .get(),
+        db
+          .collection("staff")
+          .where({ openid, communityId, status: "approved" })
+          .limit(1)
+          .get(),
+      ]);
+
+      const isMember =
+        (bindingCheck.data && bindingCheck.data.length > 0) ||
+        (staffCheck.data && staffCheck.data.length > 0);
+
+      if (!isMember) {
+        return { success: false, error: "无权查询该小区车辆" };
+      }
+    } else {
       const bindingResult = await db
         .collection("bindings")
         .where({ openid, status: "approved" })

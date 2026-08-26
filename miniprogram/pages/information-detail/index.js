@@ -179,8 +179,8 @@ Page({
     return `${year}-${month}-${day} ${hour}:${minute}`;
   },
 
-  // 下载附件
-  downloadAttachment(e) {
+  // 点击附件：优先直接预览（图片走图片预览，文档走文档查看器）
+  previewAttachment(e) {
     const { url, name } = e.currentTarget.dataset;
 
     if (!url) {
@@ -191,65 +191,65 @@ Page({
       return;
     }
 
-    wx.showLoading({ title: "下载中..." });
+    // 获取文件扩展名
+    const fileExtension = String(name || "")
+      .split("?")[0]
+      .split(".")
+      .pop()
+      .toLowerCase();
+    const imageExts = ["png", "jpg", "jpeg", "gif", "bmp", "webp"];
 
-    // 下载文件
+    // 图片附件：直接打开图片预览
+    if (imageExts.includes(fileExtension)) {
+      const urls = (this.data.detailData.attachments || [])
+        .filter((item) => item.type === "image")
+        .map((item) => item.url);
+      wx.previewImage({
+        current: url,
+        urls: urls.length > 0 ? urls : [url],
+      });
+      return;
+    }
+
+    wx.showLoading({ title: "预览中..." });
+
+    // 支持的文档类型
+    const supportedDocs = ["doc", "docx", "xls", "xlsx", "ppt", "pptx", "pdf"];
+
+    // 下载到本地后直接打开文档预览
     wx.downloadFile({
       url: url,
       success: (res) => {
         wx.hideLoading();
-        if (res.statusCode === 200) {
-          const filePath = res.tempFilePath;
-
-          // 获取文件扩展名
-          const fileExtension = name.split(".").pop().toLowerCase();
-
-          // 支持的文档类型
-          const supportedDocs = [
-            "doc",
-            "docx",
-            "xls",
-            "xlsx",
-            "ppt",
-            "pptx",
-            "pdf",
-          ];
-
-          if (supportedDocs.includes(fileExtension)) {
-            // 文档类型，尝试打开
-            wx.openDocument({
-              filePath: filePath,
-              fileType: fileExtension,
-              success: () => {},
-              fail: (err) => {
-                console.error("打开文档失败:", err);
-                wx.showModal({
-                  title: "提示",
-                  content: "无法打开该文件类型，文件已下载到临时目录",
-                  showCancel: false,
-                });
-              },
-            });
-          } else {
-            // 其他类型文件，只提示下载成功
-            wx.showModal({
-              title: "下载成功",
-              content: "文件已保存到临时目录",
-              showCancel: false,
-            });
-          }
-        } else {
+        if (res.statusCode !== 200) {
           wx.showToast({
-            title: "下载失败",
+            title: "预览失败",
             icon: "none",
           });
+          return;
         }
+
+        wx.openDocument({
+          filePath: res.tempFilePath,
+          fileType: supportedDocs.includes(fileExtension)
+            ? fileExtension
+            : undefined,
+          success: () => {},
+          fail: (err) => {
+            console.error("打开文档失败:", err);
+            wx.showModal({
+              title: "提示",
+              content: "该文件类型暂不支持预览",
+              showCancel: false,
+            });
+          },
+        });
       },
       fail: (err) => {
         wx.hideLoading();
-        console.error("下载失败:", err);
+        console.error("预览失败:", err);
         wx.showToast({
-          title: "下载失败",
+          title: "预览失败",
           icon: "none",
         });
       },
@@ -268,7 +268,7 @@ Page({
 
     wx.previewImage({
       current: url,
-      urls: imageUrls,
+      urls: imageUrls.length > 0 ? imageUrls : [url],
     });
   },
 

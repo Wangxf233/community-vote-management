@@ -16,8 +16,8 @@
             v-if="row.photo"
             :src="row.photo"
             fit="cover"
-            style="width: 60px; height: 60px; border-radius: 4px"
-            :preview-src-list="[row.photo]"
+            style="width: 60px; height: 60px; border-radius: 4px; cursor: pointer"
+            @click="openPhotoPreview(row.photo)"
           />
           <div v-else class="no-photo">无照片</div>
         </template>
@@ -61,6 +61,23 @@
       @size-change="handleSizeChange"
       @current-change="handleCurrentChange"
     />
+
+    <!-- 照片预览弹窗 -->
+    <el-dialog
+      v-model="photoPreviewVisible"
+      title="照片预览"
+      width="480px"
+      align-center
+      @close="handlePhotoPreviewClose"
+    >
+      <div style="display: flex; justify-content: center">
+        <img
+          v-if="photoPreviewUrl"
+          :src="photoPreviewUrl"
+          style="max-width: 100%; max-height: 60vh; border-radius: 8px"
+        />
+      </div>
+    </el-dialog>
 
     <!-- 添加/编辑对话框 -->
     <el-dialog
@@ -130,6 +147,7 @@ interface Staff {
   position: string;
   workScope: string;
   photo?: string;
+  photoFileID?: string;
   status: "active" | "inactive";
   communityId: string;
   createdAt?: Date;
@@ -144,12 +162,25 @@ const dialogVisible = ref(false);
 const dialogTitle = ref("添加服务人员");
 const formRef = ref();
 const editingId = ref<string | null>(null);
+// 照片预览弹窗
+const photoPreviewVisible = ref(false);
+const photoPreviewUrl = ref("");
+
+function openPhotoPreview(url: string) {
+  photoPreviewUrl.value = url;
+  photoPreviewVisible.value = true;
+}
+
+function handlePhotoPreviewClose() {
+  photoPreviewUrl.value = "";
+}
 
 const formData = reactive<Staff>({
   name: "",
   position: "",
   workScope: "",
   photo: "",
+  photoFileID: "",
   status: "active",
   communityId: "",
 });
@@ -195,6 +226,7 @@ const handleAdd = () => {
     position: "",
     workScope: "",
     photo: "",
+    photoFileID: "",
     status: "active",
     communityId: JSON.parse(localStorage.getItem("admin-user") || "{}")
       .communityId,
@@ -211,6 +243,7 @@ const handleEdit = (row: Staff) => {
     position: row.position,
     workScope: row.workScope,
     photo: row.photo,
+    photoFileID: row.photoFileID || "",
     status: row.status,
     communityId: row.communityId,
   });
@@ -307,6 +340,7 @@ const beforeUpload = (file: File) => {
 const handleUploadSuccess = (response: any) => {
   if (response.success) {
     formData.photo = response.url;
+    formData.photoFileID = response.fileID || ""; // 保存 fileID，后端读取时换取新的临时链接，避免 7 天过期
     ElMessage.success("上传成功");
   } else {
     ElMessage.error(response.error || "上传失败");

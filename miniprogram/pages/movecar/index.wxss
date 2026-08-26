@@ -470,3 +470,73 @@
   text-align: center;
   margin-top: 16rpx;
 }
+
+/* 违停拍照上报 */
+.violation-section {
+  margin-top: 24rpx;
+  padding: 24rpx;
+  background: #fffaf3;
+  border: 1rpx dashed #f0b46a;
+  border-radius: 16rpx;
+}
+
+.violation-tip {
+  font-size: 24rpx;
+  color: #8a5a1e;
+  line-height: 1.6;
+  margin-bottom: 20rpx;
+}
+
+.violation-photo-box {
+  position: relative;
+  width: 360rpx;
+  height: 270rpx;
+  margin: 0 auto 20rpx;
+}
+
+.violation-photo {
+  width: 100%;
+  height: 100%;
+  border-radius: 12rpx;
+  background: #f0f0f0;
+}
+
+.violation-remove {
+  position: absolute;
+  top: -16rpx;
+  right: -16rpx;
+  width: 44rpx;
+  height: 44rpx;
+  line-height: 44rpx;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 30rpx;
+  border-radius: 50%;
+}
+
+.violation-btn {
+  width: 100%;
+  height: 80rpx;
+  line-height: 80rpx;
+  background: #ffffff;
+  color: #b06a2a;
+  border: 1rpx solid #f0b46a;
+  border-radius: 40rpx;
+  font-size: 28rpx;
+  padding: 0;
+}
+
+.violation-btn.primary {
+  background: linear-gradient(135deg, #ff9a3d, #ff7a45);
+  color: #fff;
+  border: none;
+  box-shadow: 0 6rpx 20rpx rgba(255, 122, 69, 0.3);
+}
+
+.violation-done {
+  font-size: 26rpx;
+  color: #1aad19;
+  text-align: center;
+  line-height: 1.6;
+}

@@ -1,5 +1,6 @@
 const express = require("express");
 const crypto = require("crypto");
+const { hashPassword, verifyPassword } = require("../utils/password");
 const { tcb, db } = require("../config/db");
 const { authMiddleware } = require("../middleware/auth");
 const { getTokenFromReq } = require("../utils/helpers");
@@ -73,22 +74,16 @@ router.post("/users/:id/change-password", authMiddleware, async (req, res) => {
       }
 
       const targetUser = userRes.data[0];
-      const oldHash = crypto
-        .createHash("sha256")
-        .update(oldPassword)
-        .digest("hex");
+      const { valid: oldValid } = verifyPassword(oldPassword, targetUser);
 
-      if (targetUser.passwordHash !== oldHash) {
+      if (!oldValid) {
         return res
           .status(400)
           .json({ success: false, error: "invalid_old_password" });
       }
     }
 
-    const passwordHash = crypto
-      .createHash("sha256")
-      .update(newPassword)
-      .digest("hex");
+    const passwordHash = hashPassword(newPassword);
 
     await db.collection("users").doc(userId).update({
       passwordHash,
@@ -161,10 +156,7 @@ router.post("/register", async (req, res) => {
     }
 
     // 创建用户
-    const passwordHash = crypto
-      .createHash("sha256")
-      .update(password)
-      .digest("hex");
+    const passwordHash = hashPassword(password);
 
     const now = new Date();
     const addRes = await db.collection("users").add({

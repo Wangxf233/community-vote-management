@@ -19,30 +19,23 @@
       </div>
       <div style="flex: 1; overflow: hidden">
         <el-table :data="list" stripe v-loading="loading" height="100%">
-          <el-table-column prop="name" label="小区名称" min-width="140" show-overflow-tooltip />
-          <el-table-column label="省" width="240" align="center">
+          <el-table-column prop="name" label="小区名称" min-width="120" show-overflow-tooltip />
+          <el-table-column label="省" width="160" align="center">
             <template #default="{ row }">{{ row.region && row.region[0] ? row.region[0] : "-" }}</template>
           </el-table-column>
-          <el-table-column label="市" width="240" align="center">
+          <el-table-column label="市" width="160" align="center">
             <template #default="{ row }">{{ row.region && row.region[1] ? row.region[1] : "-" }}</template>
           </el-table-column>
-          <el-table-column label="区" width="240" align="center">
+          <el-table-column label="区" width="160" align="center">
             <template #default="{ row }">{{ row.region && row.region[2] ? row.region[2] : "-" }}</template>
           </el-table-column>
           <el-table-column prop="address" label="详细地址" min-width="140" show-overflow-tooltip />
-          <el-table-column label="开通时间" width="170">
+          <el-table-column label="开通时间" width="150">
             <template #default="{ row }">{{ formatTime(row.createdAt) }}</template>
           </el-table-column>
-          <el-table-column label="续费时间" width="170">
-            <template #default="{ row }">{{ formatTime(row.renewalTime) }}</template>
-          </el-table-column>
-          <el-table-column label="备注" min-width="140" show-overflow-tooltip>
-            <template #default="{ row }">{{ row.remark || "-" }}</template>
-          </el-table-column>
-          <el-table-column label="操作" width="200" fixed="right">
+          <el-table-column label="操作" width="120" fixed="right">
             <template #default="{ row }">
               <el-button size="small" type="primary" @click="onManageDevices(row)">管理门禁</el-button>
-              <el-button size="small" type="success" @click="onEditCommunity(row)">编辑</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -58,39 +51,6 @@
         @current-change="fetchList"
       />
     </el-card>
-
-    <!-- 编辑续费时间和备注 -->
-    <el-dialog v-model="editDialog" title="编辑小区信息" width="500px" destroy-on-close>
-      <el-form :model="editForm" label-width="100px">
-        <el-form-item label="小区名称">
-          <el-input :value="editForm.name" disabled />
-        </el-form-item>
-        <el-form-item label="续费时间">
-          <el-date-picker
-            v-model="editForm.renewalTime"
-            type="datetime"
-            placeholder="选择续费时间"
-            format="YYYY-MM-DD HH:mm"
-            value-format="YYYY-MM-DD HH:mm"
-            style="width: 100%"
-          />
-        </el-form-item>
-        <el-form-item label="备注">
-          <el-input
-            v-model="editForm.remark"
-            type="textarea"
-            :rows="3"
-            placeholder="请输入备注"
-            maxlength="500"
-            show-word-limit
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="editDialog = false">取消</el-button>
-        <el-button type="primary" @click="onSaveEdit">保存</el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
@@ -131,30 +91,6 @@ const loading = ref(false);
 const currentPage = ref(1);
 const pageSize = ref(10);
 const total = ref(0);
-const editDialog = ref(false);
-const editForm = reactive({ _id: "", name: "", renewalTime: "", remark: "" });
-
-function onEditCommunity(row: any) {
-  editForm._id = row._id;
-  editForm.name = row.name;
-  editForm.renewalTime = row.renewalTime || "";
-  editForm.remark = row.remark || "";
-  editDialog.value = true;
-}
-
-async function onSaveEdit() {
-  try {
-    await request.put(`/door/communities/${editForm._id}`, {
-      renewalTime: editForm.renewalTime || null,
-      remark: editForm.remark || null,
-    });
-    ElMessage.success("保存成功");
-    editDialog.value = false;
-    fetchList();
-  } catch (e: any) {
-    ElMessage.error(e?.response?.data?.error || "保存失败");
-  }
-}
 
 async function fetchList() {
   loading.value = true;

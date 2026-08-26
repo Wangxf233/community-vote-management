@@ -104,13 +104,57 @@
           />
         </el-form-item>
 
-        <el-form-item label="投票选项">
-          <el-alert
-            title="投票选项固定为：同意、不同意、弃权"
-            type="info"
-            :closable="false"
-            show-icon
-          />
+        <el-form-item label="投票选项" required>
+          <div style="width: 100%">
+            <el-radio-group v-model="optionMode">
+              <el-radio label="fixed">固定选项（同意、不同意、弃权）</el-radio>
+              <el-radio label="custom">自定义选项</el-radio>
+            </el-radio-group>
+
+            <div
+              v-if="optionMode === 'custom'"
+              style="margin-top: 12px; width: 100%"
+            >
+              <div
+                v-for="(opt, index) in customOptions"
+                :key="index"
+                style="
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                  margin-bottom: 8px;
+                "
+              >
+                <span style="color: #999; width: 44px; flex-shrink: 0"
+                  >选项{{ index + 1 }}</span
+                >
+                <el-input
+                  v-model="customOptions[index]"
+                  :placeholder="`请输入选项${index + 1}内容`"
+                  style="width: 280px"
+                  maxlength="30"
+                  show-word-limit
+                />
+                <el-button
+                  v-if="customOptions.length > 2"
+                  type="danger"
+                  plain
+                  @click="removeCustomOption(index)"
+                  >删除</el-button
+                >
+              </div>
+              <el-button
+                v-if="customOptions.length < 10"
+                type="primary"
+                plain
+                @click="addCustomOption"
+                >+ 添加选项</el-button
+              >
+              <div style="color: #999; font-size: 12px; margin-top: 4px">
+                至少填写2个选项，最多10个选项
+              </div>
+            </div>
+          </div>
         </el-form-item>
 
         <el-form-item label="小程序结果展示">
@@ -153,6 +197,7 @@ const form = reactive({
   detail: "",
   attachment: "",
   attachmentName: "",
+  attachmentFileID: "", // 保存 fileID，后端读取时换取新的临时链接，避免 7 天过期
   initiator: "",
   publishTime: null as Date | null,
   deadlineTime: null as Date | null,
@@ -162,9 +207,23 @@ const form = reactive({
 
 const publishMode = ref<"now" | "custom">("now");
 const deadlineMode = ref<"1d" | "3d" | "7d" | "1m" | "custom">("7d");
+const optionMode = ref<"fixed" | "custom">("fixed");
+const customOptions = ref<string[]>(["", ""]);
 const fileList = ref<any[]>([]);
 const submitting = ref(false);
 const uploading = ref(false);
+
+function addCustomOption() {
+  if (customOptions.value.length >= 10) {
+    ElMessage.warning("最多支持10个选项");
+    return;
+  }
+  customOptions.value.push("");
+}
+
+function removeCustomOption(index: number) {
+  customOptions.value.splice(index, 1);
+}
 
 const uploadUrl = `${import.meta.env.VITE_API_BASE_URL || "/api"}/upload`;
 const uploadHeaders = computed(() => {
@@ -268,6 +327,7 @@ function onExceed() {
 function onRemoveFile() {
   form.attachment = "";
   form.attachmentName = "";
+  form.attachmentFileID = "";
   fileList.value = [];
   uploading.value = false;
   ElMessage.info("已删除附件");
@@ -280,6 +340,7 @@ function onUploadSuccess(response: any, file: any) {
   if (response.success) {
     form.attachment = response.url;
     form.attachmentName = response.name || file.name || "";
+    form.attachmentFileID = response.fileID || "";
 
     // 更新文件列表显示
     fileList.value = [
@@ -303,6 +364,7 @@ function saveDraft() {
       detail: form.detail,
       attachment: form.attachment,
       attachmentName: form.attachmentName,
+      attachmentFileID: form.attachmentFileID,
       initiator: form.initiator,
       publishTime: form.publishTime ? form.publishTime.toISOString() : null,
       deadlineTime: form.deadlineTime ? form.deadlineTime.toISOString() : null,
@@ -310,6 +372,8 @@ function saveDraft() {
       showResult: form.showResult,
       publishMode: publishMode.value,
       deadlineMode: deadlineMode.value,
+      optionMode: optionMode.value,
+      customOptions: customOptions.value,
     };
     localStorage.setItem(draftKey.value, JSON.stringify(draft));
     ElMessage.success("保存成功");
@@ -328,6 +392,7 @@ function loadDraft() {
       form.detail = draft.detail || "";
       form.attachment = draft.attachment || "";
       form.attachmentName = draft.attachmentName || "";
+      form.attachmentFileID = draft.attachmentFileID || "";
       form.initiator = draft.initiator || "";
       form.publishTime = draft.publishTime ? new Date(draft.publishTime) : null;
       form.deadlineTime = draft.deadlineTime
@@ -337,6 +402,11 @@ function loadDraft() {
       form.showResult = draft.showResult || false;
       publishMode.value = draft.publishMode || "now";
       deadlineMode.value = draft.deadlineMode || "7d";
+      optionMode.value = draft.optionMode || "fixed";
+      customOptions.value =
+        Array.isArray(draft.customOptions) && draft.customOptions.length >= 2
+          ? draft.customOptions
+          : ["", ""];
 
       // 恢复附件列表显示
       if (form.attachment && form.attachmentName) {
@@ -387,6 +457,19 @@ async function onSubmit() {
     return;
   }
 
+  // 自定义选项校验
+  let options: string[] | undefined;
+  if (optionMode.value === "custom") {
+    const valid = customOptions.value
+      .map((t) => t.trim())
+      .filter((t) => t !== "");
+    if (valid.length < 2) {
+      ElMessage.warning("自定义选项至少需要填写2个选项");
+      return;
+    }
+    options = valid;
+  }
+
   if (submitting.value) return;
   submitting.value = true;
 
@@ -407,11 +490,14 @@ async function onSubmit() {
       detail: form.detail,
       attachment: form.attachment,
       attachmentName: form.attachmentName,
+      attachmentFileID: form.attachmentFileID,
       initiator: form.initiator,
       publishTime: publishTime.toISOString(),
       deadlineTime: form.deadlineTime.toISOString(),
       description: form.description,
       showResult: form.showResult,
+      optionMode: optionMode.value,
+      options,
     });
 
     ElMessage.success("创建成功");

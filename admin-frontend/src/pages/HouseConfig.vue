@@ -210,6 +210,13 @@
                           :max="100"
                           size="small"
                           style="width: 150px"
+                          @change="
+                            clearRoomPreview(
+                              configForm.buildings[expandedBuilding].units[
+                                expandedUnit
+                              ],
+                            )
+                          "
                         />
                       </el-form-item>
 
@@ -224,6 +231,13 @@
                           :max="20"
                           size="small"
                           style="width: 150px"
+                          @change="
+                            clearRoomPreview(
+                              configForm.buildings[expandedBuilding].units[
+                                expandedUnit
+                              ],
+                            )
+                          "
                         />
                       </el-form-item>
 
@@ -244,11 +258,16 @@
                           style="width: 150px"
                           maxlength="4"
                           @input="
-                            configForm.buildings[expandedBuilding].units[
+                            (configForm.buildings[expandedBuilding].units[
                               expandedUnit
                             ].startRoom = configForm.buildings[
                               expandedBuilding
-                            ].units[expandedUnit].startRoom.replace(/\D/g, '')
+                            ].units[expandedUnit].startRoom.replace(/\D/g, '')),
+                            clearRoomPreview(
+                              configForm.buildings[expandedBuilding].units[
+                                expandedUnit
+                              ],
+                            )
                           "
                         />
                         <span class="tip" style="margin-left: 8px"
@@ -273,11 +292,16 @@
                           style="width: 150px"
                           maxlength="4"
                           @input="
-                            configForm.buildings[expandedBuilding].units[
+                            (configForm.buildings[expandedBuilding].units[
                               expandedUnit
                             ].endRoom = configForm.buildings[
                               expandedBuilding
-                            ].units[expandedUnit].endRoom.replace(/\D/g, '')
+                            ].units[expandedUnit].endRoom.replace(/\D/g, '')),
+                            clearRoomPreview(
+                              configForm.buildings[expandedBuilding].units[
+                                expandedUnit
+                              ],
+                            )
                           "
                         />
                         <span class="tip" style="margin-left: 8px"
@@ -293,6 +317,8 @@
                             configForm.buildings[expandedBuilding].units[
                               expandedUnit
                             ],
+                            expandedBuilding,
+                            expandedUnit,
                           )
                         "
                         style="margin-bottom: 10px"
@@ -337,12 +363,9 @@
                                   <span class="diagonal-text-top">户号</span>
                                 </th>
                                 <th
-                                  v-for="houseNum in getHouseNumList(
-                                    configForm.buildings[expandedBuilding]
-                                      .units[expandedUnit],
-                                    expandedBuilding,
-                                    expandedUnit,
-                                  )"
+                                  v-for="houseNum in configForm.buildings[
+                                    expandedBuilding
+                                  ].units[expandedUnit].generatedHouses"
                                   :key="houseNum"
                                   class="house-header"
                                 >
@@ -352,77 +375,73 @@
                             </thead>
                             <tbody>
                               <tr
-                                v-for="floor in Array.from(
-                                  {
-                                    length:
-                                      configForm.buildings[expandedBuilding!]
-                                        .units[expandedUnit!].floors,
-                                  },
-                                  (_, i) =>
-                                    configForm.buildings[expandedBuilding!]
-                                      .units[expandedUnit!].floors - i,
-                                )"
-                                :key="floor"
+                                v-for="(row, rowIdx) in configForm.buildings[
+                                  expandedBuilding
+                                ].units[expandedUnit].generatedRows"
+                                :key="
+                                  configForm.buildings[expandedBuilding]
+                                    .units[expandedUnit].generatedFloors![
+                                    rowIdx
+                                  ]
+                                "
                               >
-                                <td class="floor-cell">{{ floor }}</td>
-                                <td
-                                  v-for="houseNum in getHouseNumList(
+                                <td class="floor-cell">
+                                  {{
                                     configForm.buildings[expandedBuilding]
-                                      .units[expandedUnit],
-                                    expandedBuilding,
-                                    expandedUnit,
-                                  )"
-                                  :key="`${floor}-${houseNum}`"
+                                      .units[expandedUnit].generatedFloors![
+                                      rowIdx
+                                    ]
+                                  }}
+                                </td>
+                                <td
+                                  v-for="(room, cellIdx) in row"
+                                  :key="
+                                    configForm.buildings[expandedBuilding]
+                                      .units[expandedUnit].generatedHouses![
+                                      cellIdx
+                                    ]
+                                  "
                                   class="room-cell"
                                 >
                                   <el-input
                                     v-if="
                                       editingRoom ===
-                                      `${expandedBuilding}-${expandedUnit}-${getRoomIndex(
-                                        configForm.buildings[expandedBuilding!]
-                                          .units[expandedUnit!],
-                                        floor,
-                                        houseNum,
-                                      )}`
+                                      `${expandedBuilding}-${expandedUnit}-${rowIdx}-${cellIdx}`
                                     "
                                     v-model="
                                       configForm.buildings[expandedBuilding!]
-                                        .units[expandedUnit!].rooms![
-                                        getRoomIndex(
-                                          configForm.buildings[
-                                            expandedBuilding!
-                                          ].units[expandedUnit!],
-                                          floor,
-                                          houseNum,
-                                        )
-                                      ]
+                                        .units[expandedUnit!].generatedRows![
+                                        rowIdx
+                                      ][cellIdx]
                                     "
                                     size="small"
                                     maxlength="10"
                                     style="width: 100%"
-                                    @blur="editingRoom = null"
-                                    @keyup.enter="editingRoom = null"
+                                    @blur="
+                                      (editingRoom = null),
+                                        syncRoomsFromSnapshot(
+                                          configForm.buildings[
+                                            expandedBuilding
+                                          ].units[expandedUnit],
+                                        )
+                                    "
+                                    @keyup.enter="
+                                      (editingRoom = null),
+                                        syncRoomsFromSnapshot(
+                                          configForm.buildings[
+                                            expandedBuilding
+                                          ].units[expandedUnit],
+                                        )
+                                    "
                                   />
                                   <span
                                     v-else
                                     class="room-number"
                                     @dblclick="
-                                      editingRoom = `${expandedBuilding}-${expandedUnit}-${getRoomIndex(
-                                        configForm.buildings[expandedBuilding!]
-                                          .units[expandedUnit!],
-                                        floor,
-                                        houseNum,
-                                      )}`
+                                      editingRoom = `${expandedBuilding}-${expandedUnit}-${rowIdx}-${cellIdx}`
                                     "
                                   >
-                                    {{
-                                      getRoomByPosition(
-                                        configForm.buildings[expandedBuilding!]
-                                          .units[expandedUnit!],
-                                        floor,
-                                        houseNum,
-                                      )
-                                    }}
+                                    {{ room }}
                                   </span>
                                 </td>
                               </tr>
@@ -568,6 +587,9 @@ interface Unit {
   startRoom: string; // 起始房号（4位数字符串）
   endRoom: string; // 结束房号（4位数字符串）
   rooms?: string[]; // 生成的房号列表
+  generatedFloors?: number[]; // 生成预览时的楼层快照（从高到低）
+  generatedHouses?: number[]; // 生成预览时的户号快照
+  generatedRows?: string[][]; // 生成预览时的房号二维快照
 }
 
 interface Building {
@@ -680,8 +702,8 @@ function generateRoomsFromRule(unit: Unit): string[] {
     return [];
   }
 
-  // 遍历每层，每层从起始户号到结束户号
-  for (let floor = 1; floor <= floors; floor++) {
+  // 遍历每层，从起始楼层开始，共 floors 层
+  for (let floor = startFloor; floor < startFloor + floors; floor++) {
     for (let house = startHouse; house <= endHouse; house++) {
       // 格式：楼层(2位) + 户号(2位)
       const floorStr = floor.toString().padStart(2, "0");
@@ -747,44 +769,78 @@ function updateBuildingUnits(buildingIndex: number) {
   ElMessage.success(`已更新第 ${building.name} 栋的单元配置`);
 }
 
-// 预览生成的房号
-function previewRooms(unit: Unit) {
+// 预览生成的房号 — 生成一次性快照，表格只读快照，避免输入规则时实时重算卡顿
+function previewRooms(unit: Unit, bIndex?: number, uIndex?: number) {
   unit.rooms = generateRoomsFromRule(unit);
+
+  // 楼层快照（展示编号始终从1开始，从高到低）
+  const floors: number[] = [];
+  for (let i = 0; i < unit.floors; i++) {
+    floors.push(unit.floors - i);
+  }
+  unit.generatedFloors = floors;
+
+  // 户号快照（考虑逆序）
+  const houses: number[] = [];
+  const startHouse = parseInt(unit.startRoom.substring(2, 4), 10);
+  const endHouse = parseInt(unit.endRoom.substring(2, 4), 10);
+  for (let i = startHouse; i <= endHouse; i++) {
+    houses.push(i);
+  }
+  if (bIndex !== undefined && uIndex !== undefined) {
+    const key = `${bIndex}-${uIndex}`;
+    if (reverseHouseNum.value[key]) houses.reverse();
+  }
+  unit.generatedHouses = houses;
+
+  // 房号二维快照（每层一行）
+  // rooms 按楼层从低到高存储，表格高层在上，需反转行序；户号按显示顺序（可能逆序）取对应房号
+  const totalHouses = endHouse - startHouse + 1;
+  const rows: string[][] = [];
+  for (let f = 0; f < unit.floors; f++) {
+    const roomFloor = unit.floors - 1 - f; // 显示行 f 对应 rooms 中的楼层索引
+    const row: string[] = [];
+    for (const h of houses) {
+      const roomIdx = roomFloor * totalHouses + (h - startHouse);
+      row.push(unit.rooms[roomIdx] || "");
+    }
+    rows.push(row);
+  }
+  unit.generatedRows = rows;
 }
 
-// 切换户号逆序
+// 规则变化时清空预览，强制重新点击「生成预览」
+function clearRoomPreview(unit: Unit) {
+  unit.rooms = [];
+  unit.generatedFloors = [];
+  unit.generatedHouses = [];
+  unit.generatedRows = [];
+}
+
+// 把快照中的修改同步回 rooms（按楼层从低到高、户号升序存储）
+function syncRoomsFromSnapshot(unit: Unit) {
+  if (!unit.generatedRows || !unit.generatedHouses) return;
+  const startHouse = parseInt(unit.startRoom.substring(2, 4), 10);
+  const totalHouses = unit.generatedHouses.length;
+  const newRooms: string[] = [];
+  // 快照行0是最高层，rooms 要求低层在前
+  for (let f = unit.generatedRows.length - 1; f >= 0; f--) {
+    for (let h = startHouse; h < startHouse + totalHouses; h++) {
+      const displayIdx = unit.generatedHouses.indexOf(h);
+      newRooms.push(unit.generatedRows[f][displayIdx] || "");
+    }
+  }
+  unit.rooms = newRooms;
+}
+
+// 切换户号逆序 — 切换后重新生成快照
 function toggleHouseNumOrder(bIndex: number, uIndex: number) {
   const key = `${bIndex}-${uIndex}`;
   reverseHouseNum.value[key] = !reverseHouseNum.value[key];
-}
-
-// 获取户号列表（根据逆序状态）
-function getHouseNumList(unit: Unit, bIndex: number, uIndex: number): number[] {
-  const startHouse = parseInt(unit.startRoom.substring(2, 4), 10);
-  const endHouse = parseInt(unit.endRoom.substring(2, 4), 10);
-  const list: number[] = [];
-  for (let i = startHouse; i <= endHouse; i++) {
-    list.push(i);
+  const unit = configForm.buildings[bIndex]?.units[uIndex];
+  if (unit && unit.rooms && unit.rooms.length > 0) {
+    previewRooms(unit, bIndex, uIndex);
   }
-  const key = `${bIndex}-${uIndex}`;
-  return reverseHouseNum.value[key] ? list.reverse() : list;
-}
-
-// 根据楼层和户号获取房号在数组中的索引
-function getRoomIndex(unit: Unit, floor: number, houseNum: number): number {
-  const startHouse = parseInt(unit.startRoom.substring(2, 4), 10);
-  return (floor - 1) * unit.roomsPerFloor + (houseNum - startHouse);
-}
-
-// 根据楼层和户号获取房号
-function getRoomByPosition(
-  unit: Unit,
-  floor: number,
-  houseNum: number,
-): string {
-  if (!unit.rooms) return "";
-  const index = getRoomIndex(unit, floor, houseNum);
-  return unit.rooms[index] || "";
 }
 
 // 删除房号
@@ -1053,6 +1109,15 @@ async function loadConfig() {
               rooms: u.rooms || [],
             })) || [],
         })) || [];
+
+      // 为已有房号的单元构建展示快照
+      configForm.buildings.forEach((building, bIndex) => {
+        building.units.forEach((unit, uIndex) => {
+          if (unit.rooms && unit.rooms.length > 0) {
+            previewRooms(unit, bIndex, uIndex);
+          }
+        });
+      });
     }
   } catch (err) {
     console.error("加载配置失败:", err);

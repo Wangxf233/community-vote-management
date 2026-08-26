@@ -221,6 +221,7 @@ const handleUploadSuccess = (response: any, file: any) => {
     form.attachments.push({
       name: file.name,
       url: response.url,
+      fileID: response.fileID || "", // 保存 fileID，后端读取时换取新的临时链接，避免 7 天过期
     });
     ElMessage.success("上传成功");
   } else {

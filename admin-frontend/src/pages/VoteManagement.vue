@@ -205,14 +205,12 @@
               statistics.participantRatio
             }}%)
           </el-descriptions-item>
-          <el-descriptions-item label="同意人数">
-            {{ statistics.agreeCount }} ({{ statistics.agreePercent }}%)
-          </el-descriptions-item>
-          <el-descriptions-item label="不同意人数">
-            {{ statistics.disagreeCount }} ({{ statistics.disagreePercent }}%)
-          </el-descriptions-item>
-          <el-descriptions-item label="弃权人数">
-            {{ statistics.abstainCount }} ({{ statistics.abstainPercent }}%)
+          <el-descriptions-item
+            v-for="opt in statOptions"
+            :key="opt.id"
+            :label="`${opt.text}人数`"
+          >
+            {{ opt.count }} ({{ opt.percent }}%)
           </el-descriptions-item>
         </el-descriptions>
 
@@ -227,18 +225,12 @@
               statistics.participantAreaRatio
             }}%)
           </el-descriptions-item>
-          <el-descriptions-item label="同意专有面积">
-            {{ statistics.agreeArea }}㎡ ({{ statistics.agreeAreaPercent }}%)
-          </el-descriptions-item>
-          <el-descriptions-item label="不同意专有面积">
-            {{ statistics.disagreeArea }}㎡ ({{
-              statistics.disagreeAreaPercent
-            }}%)
-          </el-descriptions-item>
-          <el-descriptions-item label="弃权专有面积">
-            {{ statistics.abstainArea }}㎡ ({{
-              statistics.abstainAreaPercent
-            }}%)
+          <el-descriptions-item
+            v-for="opt in statOptions"
+            :key="opt.id"
+            :label="`${opt.text}专有面积`"
+          >
+            {{ opt.area }}㎡ ({{ opt.areaPercent }}%)
           </el-descriptions-item>
         </el-descriptions>
       </div>
@@ -265,7 +257,7 @@
         <el-form-item label="小程序结果展示">
           <el-switch v-model="showResultSwitch" />
           <div style="color: #999; font-size: 12px; margin-top: 8px">
-            开启后，在小程序页投票完将显示同意、不同意、弃权人数及比例
+            开启后，在小程序页投票完将显示各选项人数及比例
           </div>
         </el-form-item>
       </el-form>
@@ -331,6 +323,40 @@ const statistics = reactive({
   agreeAreaPercent: 0,
   disagreeAreaPercent: 0,
   abstainAreaPercent: 0,
+  options: [] as any[],
+});
+
+// 各选项统计：优先使用后端返回的选项列表（支持自定义选项），否则回退到固定三选项
+const statOptions = computed<any[]>(() => {
+  if (statistics.options && statistics.options.length) {
+    return statistics.options;
+  }
+  return [
+    {
+      id: "option1",
+      text: "同意",
+      count: statistics.agreeCount,
+      percent: statistics.agreePercent,
+      area: statistics.agreeArea,
+      areaPercent: statistics.agreeAreaPercent,
+    },
+    {
+      id: "option2",
+      text: "不同意",
+      count: statistics.disagreeCount,
+      percent: statistics.disagreePercent,
+      area: statistics.disagreeArea,
+      areaPercent: statistics.disagreeAreaPercent,
+    },
+    {
+      id: "option3",
+      text: "弃权",
+      count: statistics.abstainCount,
+      percent: statistics.abstainPercent,
+      area: statistics.abstainArea,
+      areaPercent: statistics.abstainAreaPercent,
+    },
+  ];
 });
 
 // 权限检查

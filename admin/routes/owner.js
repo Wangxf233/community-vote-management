@@ -636,6 +636,56 @@ router.put("/owner-list/:id", async (req, res) => {
       await Promise.all(addPromises);
     }
 
+    // 5. 同步该户主的投票记录（专有面积等随户主名单变更）
+    try {
+      const newProperties = properties || [];
+      const primary = newProperties[0] || {};
+      // 专有面积取该户主所有房产之和
+      const totalArea = parseFloat(
+        newProperties
+          .reduce((sum, p) => sum + (parseFloat(p.area) || 0), 0)
+          .toFixed(2)
+      );
+      const voteWhere = { communityId: user.communityId };
+      if (record.openid && String(record.openid).trim()) {
+        voteWhere.openid = String(record.openid).trim();
+      } else {
+        // 无 openid 时按编辑前的姓名+手机号匹配（投票记录中保存的是投票时的快照）
+        voteWhere.ownerName = oldName;
+        voteWhere.ownerPhone = oldPhone;
+      }
+
+      const voteRecordsRes = await db
+        .collection("vote_records")
+        .where(voteWhere)
+        .get();
+
+      const updatePromises = (voteRecordsRes.data || []).map((vr) =>
+        db.collection("vote_records").doc(vr._id).update({
+          data: {
+            area: totalArea,
+            ownerName: name,
+            ownerPhone: phone,
+            building: primary.building || "",
+            unit: primary.unit || "",
+            room: primary.room || "",
+            properties: newProperties.map((p) => ({
+              district: p.district || "",
+              building: p.building || "",
+              unit: p.unit || "",
+              room: p.room || "",
+              area: p.area || 0,
+            })),
+            updatedAt: new Date().toISOString(),
+          },
+        })
+      );
+      await Promise.all(updatePromises);
+    } catch (syncErr) {
+      // 投票记录同步失败不影响户主信息修改本身
+      console.error("同步投票记录失败:", syncErr);
+    }
+
     return res.json({ success: true });
   } catch (e) {
     console.error("修改户主信息失败:", e);

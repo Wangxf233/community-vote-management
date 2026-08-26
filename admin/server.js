@@ -47,18 +47,42 @@ app.use(helmet({
   crossOriginOpenerPolicy: false,     // 同上
 }));
 
-// 全局限流：仅对 /api/ 路由生效
+// 云托管网关会注入 X-Forwarded-For；不配置 trust proxy 时 express-rate-limit 会把
+// 所有请求按网关 IP 合并计数（每个小区共享一个额度）。默认开启 trust proxy=1，
+// 本地无代理时自动回退为 socket 地址；可用 TRUST_PROXY=0 关闭。
+app.set("trust proxy", process.env.TRUST_PROXY === "0" ? false : 1);
+
+// 全局限流：仅对 /api/ 路由生效（压测时可用 RATE_LIMIT_MAX/RATE_LIMIT_WINDOW_MS 临时调大）
+// 门禁 open-from-cloud 由单独的 doorOpenLimiter 控制（见下），不占全局额度
 const globalLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 100,
+  windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS || 60 * 1000),
+  max: Number(process.env.RATE_LIMIT_MAX || 100),
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    const path = req.path || "";
+    return path.endsWith("/door/open-from-cloud");
+  },
   message: {
     success: false,
     error: "rate_limit_exceeded",
   },
 });
 app.use("/api", globalLimiter);
+
+// 门禁开门接口单独限流：每次开门是一次真实开锁+厂商请求，默认 600 次/分钟/IP，
+// 可用 DOOR_RATE_LIMIT_MAX / DOOR_RATE_LIMIT_WINDOW_MS 调整
+const doorOpenLimiter = rateLimit({
+  windowMs: Number(process.env.DOOR_RATE_LIMIT_WINDOW_MS || 60 * 1000),
+  max: Number(process.env.DOOR_RATE_LIMIT_MAX || 600),
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: "door_rate_limit_exceeded",
+  },
+});
+app.use("/api/door/open-from-cloud", doorOpenLimiter);
 
 // 登录接口严格限流：每个 IP 每分钟最多 10 次
 const loginLimiter = rateLimit({
@@ -152,6 +176,31 @@ function fmtDate(d) {
   return `${y}-${m}-${day}`;
 }
 
+// 计算该日期所在自然周期的天数（自然月/自然季度/自然半年/自然年）
+function naturalPeriodDays(date, frequency) {
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const y = date.getFullYear();
+  const m = date.getMonth();
+  let start;
+  let next;
+  if (frequency === "monthly") {
+    start = new Date(y, m, 1);
+    next = new Date(y, m + 1, 1);
+  } else if (frequency === "quarterly") {
+    start = new Date(y, Math.floor(m / 3) * 3, 1);
+    next = new Date(start.getFullYear(), start.getMonth() + 3, 1);
+  } else if (frequency === "semi_annual") {
+    start = new Date(y, Math.floor(m / 6) * 6, 1);
+    next = new Date(start.getFullYear(), start.getMonth() + 6, 1);
+  } else if (frequency === "annual") {
+    start = new Date(y, 0, 1);
+    next = new Date(y + 1, 0, 1);
+  } else {
+    return 90;
+  }
+  return Math.round((next.getTime() - start.getTime()) / msPerDay);
+}
+
 // 自动发布检查
 async function checkRecurringEvaluations() {
   try {
@@ -179,8 +228,10 @@ async function checkRecurringEvaluations() {
 
       if (nextStart > now) continue;
 
+      // 按该期所在自然周期的实际天数计算（每月=自然月，每季度=自然季度，每半年=自然半年，每年=自然年）
+      const cycleDurationDays = naturalPeriodDays(nextStart, rec.frequency);
       const nextEnd = new Date(nextStart);
-      nextEnd.setDate(nextEnd.getDate() + (rec.durationDays || 90) - 1);
+      nextEnd.setDate(nextEnd.getDate() + cycleDurationDays - 1);
 
       const newCycle = {
         title: cycle.title,
@@ -197,7 +248,6 @@ async function checkRecurringEvaluations() {
           enabled: true,
           frequency: rec.frequency,
           firstDate: rec.firstDate,
-          durationDays: rec.durationDays,
           totalEndDate: rec.totalEndDate || null,
           lastGeneratedDate: null,
         },

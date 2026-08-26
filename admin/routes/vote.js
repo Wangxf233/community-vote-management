@@ -71,11 +71,14 @@ router.post("/votes", authMiddleware, async (req, res) => {
       detail,
       attachment,
       attachmentName,
+      attachmentFileID,
       initiator,
       publishTime,
       deadlineTime,
       description,
       showResult,
+      options,
+      optionMode,
     } = req.body;
 
     const callRes = await tcb.callFunction({
@@ -87,11 +90,14 @@ router.post("/votes", authMiddleware, async (req, res) => {
         detail,
         attachment,
         attachmentName,
+        attachmentFileID,
         initiator,
         publishTime,
         deadlineTime,
         description,
         showResult,
+        options,
+        optionMode,
       },
     });
 

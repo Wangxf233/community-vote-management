@@ -1,8 +1,56 @@
 const express = require("express");
 const router = express.Router();
-const { db } = require("../config/db");
+const { db, tcb } = require("../config/db");
 const { verifyToken } = require("../middleware/auth");
 const _ = db.command;
+
+// 附件入库前净化：仅保留 name/url/fileID 字段
+function sanitizeAttachments(list) {
+  return (Array.isArray(list) ? list : []).map((att) => ({
+    name: (att && att.name) || "",
+    url: (att && att.url) || "",
+    ...(att && att.fileID ? { fileID: att.fileID } : {}),
+  }));
+}
+
+// 附件链接刷新：用 fileID（或 cloud:// 旧链接）换取新的临时链接，避免上传时存的 7 天临时链接过期
+async function refreshAttachmentUrls(items) {
+  const keys = [];
+  (items || []).forEach((item) => {
+    (item.attachments || []).forEach((att) => {
+      if (att.fileID && typeof att.fileID === "string" && att.fileID.startsWith("cloud://")) {
+        keys.push(att.fileID);
+      } else if (typeof att.url === "string" && att.url.startsWith("cloud://")) {
+        keys.push(att.url);
+      }
+    });
+  });
+
+  const uniqueKeys = [...new Set(keys)];
+  if (uniqueKeys.length === 0) return;
+
+  try {
+    const urlRes = await tcb.getTempFileURL({
+      fileList: uniqueKeys,
+      maxAge: 604800, // 7天
+    });
+    const urlMap = {};
+    (urlRes.fileList || []).forEach((f) => {
+      if (f.fileID && (f.tempFileURL || f.download_url)) {
+        urlMap[f.fileID] = f.download_url || f.tempFileURL;
+      }
+    });
+
+    items.forEach((item) => {
+      item.attachments = (item.attachments || []).map((att) => {
+        const key = att.fileID && urlMap[att.fileID] ? att.fileID : att.url;
+        return urlMap[key] ? { ...att, url: urlMap[key] } : att;
+      });
+    });
+  } catch (e) {
+    console.error("刷新附件链接失败:", e.message);
+  }
+}
 
 // 计算有效期截止时间
 function calculateExpiryTime(announcement) {
@@ -68,7 +116,6 @@ checkAndUpdateExpiredAnnouncements();
 router.get("/", verifyToken, async (req, res) => {
   try {
     const {
-      communityId,
       type,
       title,
       publisher,
@@ -78,6 +125,11 @@ router.get("/", verifyToken, async (req, res) => {
       pageSize = 10,
     } = req.query;
 
+    // 越权防护：非超级管理员只能访问本小区公告
+    let { communityId } = req.query;
+    if (req.user.role !== "super") {
+      communityId = req.user.communityId;
+    }
     if (!communityId) {
       return res.status(400).json({ success: false, error: "缺少小区ID" });
     }
@@ -130,6 +182,9 @@ router.get("/", verifyToken, async (req, res) => {
       };
     });
 
+    // 附件链接刷新（避免上传时保存的临时链接过期）
+    await refreshAttachmentUrls(dataWithStatus);
+
     res.json({
       success: true,
       data: dataWithStatus,
@@ -157,7 +212,13 @@ router.post("/", verifyToken, async (req, res) => {
       expiryTime,
     } = req.body;
 
-    if (!title || !publisher || !content || !type || !communityId) {
+    // 越权防护：非超级管理员只能发布到本小区
+    let effectiveCommunityId = communityId;
+    if (req.user.role !== "super") {
+      effectiveCommunityId = req.user.communityId;
+    }
+
+    if (!title || !publisher || !content || !type || !effectiveCommunityId) {
       return res.status(400).json({ success: false, error: "缺少必填字段" });
     }
 
@@ -169,9 +230,9 @@ router.post("/", verifyToken, async (req, res) => {
       publisher,
       publishTime: finalPublishTime,
       content,
-      attachments: attachments || [],
+      attachments: sanitizeAttachments(attachments),
       type,
-      communityId,
+      communityId: effectiveCommunityId,
       status: finalPublishTime <= now ? "published" : "scheduled",
       isPinned: false,
       viewCount: 0,
@@ -208,6 +269,18 @@ router.put("/:id", verifyToken, async (req, res) => {
       expiryTime,
     } = req.body;
 
+    // 越权防护：校验公告归属，非超级管理员只能操作本小区公告
+    const targetRes = await db.collection("announcements").doc(id).get();
+    if (!targetRes.data || targetRes.data.length === 0) {
+      return res.status(404).json({ success: false, error: "公告不存在" });
+    }
+    if (
+      req.user.role !== "super" &&
+      targetRes.data[0].communityId !== req.user.communityId
+    ) {
+      return res.status(403).json({ success: false, error: "无权操作该公告" });
+    }
+
     const updateData = {
       updatedAt: new Date(),
     };
@@ -215,7 +288,8 @@ router.put("/:id", verifyToken, async (req, res) => {
     if (title) updateData.title = title;
     if (publisher) updateData.publisher = publisher;
     if (content) updateData.content = content;
-    if (attachments !== undefined) updateData.attachments = attachments;
+    if (attachments !== undefined)
+      updateData.attachments = sanitizeAttachments(attachments);
     if (expiryDays !== undefined) updateData.expiryDays = expiryDays;
     if (expiryTime !== undefined)
       updateData.expiryTime = expiryTime ? new Date(expiryTime) : null;
@@ -242,6 +316,18 @@ router.put("/:id/pin", verifyToken, async (req, res) => {
     const { id } = req.params;
     const { isPinned } = req.body;
 
+    // 越权防护：校验公告归属
+    const targetRes = await db.collection("announcements").doc(id).get();
+    if (!targetRes.data || targetRes.data.length === 0) {
+      return res.status(404).json({ success: false, error: "公告不存在" });
+    }
+    if (
+      req.user.role !== "super" &&
+      targetRes.data[0].communityId !== req.user.communityId
+    ) {
+      return res.status(403).json({ success: false, error: "无权操作该公告" });
+    }
+
     await db.collection("announcements").doc(id).update({
       isPinned: isPinned,
       updatedAt: new Date(),
@@ -260,6 +346,18 @@ router.put("/:id/status", verifyToken, async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
+    // 越权防护：校验公告归属
+    const targetRes = await db.collection("announcements").doc(id).get();
+    if (!targetRes.data || targetRes.data.length === 0) {
+      return res.status(404).json({ success: false, error: "公告不存在" });
+    }
+    if (
+      req.user.role !== "super" &&
+      targetRes.data[0].communityId !== req.user.communityId
+    ) {
+      return res.status(403).json({ success: false, error: "无权操作该公告" });
+    }
+
     await db.collection("announcements").doc(id).update({
       status: status,
       updatedAt: new Date(),
@@ -276,6 +374,18 @@ router.put("/:id/status", verifyToken, async (req, res) => {
 router.delete("/:id", verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
+
+    // 越权防护：校验公告归属
+    const targetRes = await db.collection("announcements").doc(id).get();
+    if (!targetRes.data || targetRes.data.length === 0) {
+      return res.status(404).json({ success: false, error: "公告不存在" });
+    }
+    if (
+      req.user.role !== "super" &&
+      targetRes.data[0].communityId !== req.user.communityId
+    ) {
+      return res.status(403).json({ success: false, error: "无权操作该公告" });
+    }
 
     await db.collection("announcements").doc(id).remove();
 
@@ -300,6 +410,14 @@ router.get("/:id", verifyToken, async (req, res) => {
     const item = result.data[0];
     let actualStatus = item.status;
 
+    // 越权防护：校验公告归属，非超级管理员只能查看本小区公告
+    if (
+      req.user.role !== "super" &&
+      item.communityId !== req.user.communityId
+    ) {
+      return res.status(403).json({ success: false, error: "无权访问该公告" });
+    }
+
     // 检查是否过期
     if (item.status === "published") {
       const now = new Date();
@@ -308,6 +426,9 @@ router.get("/:id", verifyToken, async (req, res) => {
         actualStatus = "expired";
       }
     }
+
+    // 附件链接刷新（避免上传时保存的临时链接过期）
+    await refreshAttachmentUrls([item]);
 
     res.json({
       success: true,

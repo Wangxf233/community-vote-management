@@ -244,11 +244,29 @@ exports.main = async (event) => {
       Number(process.env.DOOR_API_TIMEOUT_MS || 12000),
     );
 
+    // 提取厂商返回的错误码和错误信息
+    let fondcardCode = null;
+    let fondcardMessage = "";
+    try {
+      if (adminRes && adminRes.data) {
+        const inner =
+          adminRes.data.result && typeof adminRes.data.result === "object"
+            ? adminRes.data.result
+            : null;
+        if (inner) {
+          fondcardCode = inner.code !== undefined ? Number(inner.code) : null;
+          fondcardMessage = inner.message || "";
+        }
+      }
+    } catch (_) {}
+
     return {
       success: true,
       data: {
         requestId,
         ack: adminRes && adminRes.data ? adminRes.data.ack : null,
+        fondcardCode,
+        fondcardMessage,
       },
       message: (adminRes && adminRes.message) || "开门指令已发送",
     };

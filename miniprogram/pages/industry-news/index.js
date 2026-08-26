@@ -9,7 +9,7 @@ Page({
   },
 
   onLoad() {
-    wx.setNavigationBarTitle({ title: "行业动态" });
+    wx.setNavigationBarTitle({ title: "便民信息" });
     this.loadCommunityId();
   },
 

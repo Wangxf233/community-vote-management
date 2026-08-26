@@ -43,12 +43,12 @@
           </view>
           
           <!-- 文档附件 -->
-          <view class="attachment-item doc-item" wx:else bindtap="downloadAttachment" data-url="{{item.url}}" data-name="{{item.name}}">
+          <view class="attachment-item doc-item" wx:else bindtap="previewAttachment" data-url="{{item.url}}" data-name="{{item.name}}">
             <view class="doc-icon">📄</view>
             <view class="doc-info">
               <text class="doc-name" user-select>{{item.name}}</text>
             </view>
-            <view class="download-icon">下载</view>
+            <view class="preview-icon">预览</view>
           </view>
         </block>
       </view>

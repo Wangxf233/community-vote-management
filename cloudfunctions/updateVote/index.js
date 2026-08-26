@@ -22,10 +22,29 @@ exports.main = async (event, context) => {
         };
       }
 
-      // 获取户主信息
+      // 获取投票信息以获取 communityId
+      const voteRes = await db.collection("votes").doc(voteId).get();
+      if (!voteRes.data) {
+        return { success: false, error: "投票不存在" };
+      }
+      const vote = voteRes.data;
+
+      // 校验选项合法性：投票保存了选项定义时，optionId 必须在其中（防止伪造）
+      if (Array.isArray(vote.options) && vote.options.length > 0) {
+        const valid = vote.options.some((opt) => opt.id === optionId);
+        if (!valid) {
+          return { success: false, error: "无效的投票选项" };
+        }
+      }
+
+      // 获取户主信息（限定投票所属小区；一个户主可能有多套房产）
+      const ownerWhere = { openid };
+      if (vote.communityId) {
+        ownerWhere.communityId = vote.communityId;
+      }
       const ownerRes = await db
         .collection("owner_list")
-        .where({ openid })
+        .where(ownerWhere)
         .get();
 
       if (!ownerRes.data || ownerRes.data.length === 0) {
@@ -34,12 +53,19 @@ exports.main = async (event, context) => {
 
       const owner = ownerRes.data[0];
 
-      // 获取投票信息以获取 communityId
-      const voteRes = await db.collection("votes").doc(voteId).get();
-      if (!voteRes.data) {
-        return { success: false, error: "投票不存在" };
-      }
-      const vote = voteRes.data;
+      // 专有面积取该户主所有房产之和，房产明细同步写入快照
+      const totalArea = parseFloat(
+        ownerRes.data
+          .reduce((sum, o) => sum + (parseFloat(o.area) || 0), 0)
+          .toFixed(2)
+      );
+      const properties = ownerRes.data.map((o) => ({
+        district: o.district || "",
+        building: o.building || "",
+        unit: o.unit || "",
+        room: o.room || "",
+        area: o.area || 0,
+      }));
 
       // 使用固定 _id = `${voteId}_${openid}` 保证幂等性
       // _id 唯一约束由数据库层强制，彻底消除并发竞态窗口，省去预查询
@@ -59,8 +85,8 @@ exports.main = async (event, context) => {
             building: owner.building,
             unit: owner.unit,
             room: owner.room,
-            area: owner.area || 0,
-            properties: owner.properties || [],
+            area: totalArea,
+            properties,
             createdAt: new Date(),
           },
         });

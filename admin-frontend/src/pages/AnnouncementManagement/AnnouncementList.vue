@@ -214,7 +214,7 @@ const typeLabel = computed(() => {
     committee: "业委会信息公示",
     property: "物业信息公示",
     law: "法律法规",
-    industry: "行业动态",
+    industry: "便民信息",
   };
   return labels[props.type] || "信息";
 });

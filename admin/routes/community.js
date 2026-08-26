@@ -1,6 +1,7 @@
 const express = require("express");
 const crypto = require("crypto");
 const { tcb, db } = require("../config/db");
+const { hashPassword } = require("../utils/password");
 const {
   authMiddleware,
   ensureAdmin,
@@ -256,10 +257,7 @@ router.put(
           finalPlain = String(Math.floor(10000000 + Math.random() * 90000000));
         }
 
-        const passwordHash = crypto
-          .createHash("sha256")
-          .update(finalPlain)
-          .digest("hex");
+        const passwordHash = hashPassword(finalPlain);
 
         // 尝试采用同小区的现有用户
         const existSame = await db
@@ -325,10 +323,7 @@ router.put(
         const plainPwd =
           newPassword ||
           String(Math.floor(10000000 + Math.random() * 90000000));
-        const passwordHash = crypto
-          .createHash("sha256")
-          .update(plainPwd)
-          .digest("hex");
+        const passwordHash = hashPassword(plainPwd);
         updates.passwordHash = passwordHash;
         updates.mustChangePassword = false;
 
@@ -433,10 +428,7 @@ router.post("/community-admins", authMiddleware, async (req, res) => {
         ? String(password)
         : String(Math.floor(10000000 + Math.random() * 90000000));
 
-    const passwordHash = crypto
-      .createHash("sha256")
-      .update(initialPassword)
-      .digest("hex");
+    const passwordHash = hashPassword(initialPassword);
 
     // 默认所有权限
     const defaultPermissions = [
@@ -588,11 +580,7 @@ router.put(
 
       // 更新密码
       if (newPassword) {
-        const hash = crypto
-          .createHash("sha256")
-          .update(newPassword)
-          .digest("hex");
-        updateData.passwordHash = hash;
+        updateData.passwordHash = hashPassword(newPassword);
 
         // 如果是重置密码，清除强制修改密码标记
         if (reset) {

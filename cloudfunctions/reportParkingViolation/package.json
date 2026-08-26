@@ -1,0 +1,9 @@
+{
+  "name": "reportParkingViolation",
+  "version": "1.0.0",
+  "description": "上报违停照片，记录车辆违停次数",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

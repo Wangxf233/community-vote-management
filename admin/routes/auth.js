@@ -1,6 +1,7 @@
 const express = require("express");
 const crypto = require("crypto");
 const { db } = require("../config/db");
+const { hashPassword, verifyPassword } = require("../utils/password");
 
 const router = express.Router();
 
@@ -95,12 +96,22 @@ router.post("/login/password", async (req, res) => {
       return res.status(403).json({ success: false, error: "forbidden" });
     }
 
-    // 验证密码
-    const hash = crypto.createHash("sha256").update(password).digest("hex");
-    if (user.passwordHash !== hash) {
+    // 验证密码（兼容旧版裸 SHA-256，校验通过后自动升级为 bcrypt）
+    const { valid, needsUpgrade } = verifyPassword(password, user);
+    if (!valid) {
       return res
         .status(401)
         .json({ success: false, error: "invalid_credentials" });
+    }
+    if (needsUpgrade) {
+      try {
+        await db.collection("users").doc(user._id).update({
+          passwordHash: hashPassword(password),
+        });
+      } catch (upgradeErr) {
+        // 升级失败不影响登录
+        console.error("密码哈希升级失败:", upgradeErr.message);
+      }
     }
 
     // 检查小区有效期（如果用户属于某个小区）

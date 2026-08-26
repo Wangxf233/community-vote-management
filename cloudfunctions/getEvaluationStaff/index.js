@@ -62,6 +62,44 @@ exports.main = async (event, context) => {
       })
       .get();
 
+    // 照片链接刷新：用 fileID 换取新的临时链接（避免上传时保存的 7 天链接过期）
+    const pending = (staffResult.data || [])
+      .map((s) => {
+        let key = "";
+        if (
+          s.photoFileID &&
+          typeof s.photoFileID === "string" &&
+          s.photoFileID.startsWith("cloud://")
+        ) {
+          key = s.photoFileID;
+        } else if (
+          typeof s.photo === "string" &&
+          s.photo.startsWith("cloud://")
+        ) {
+          key = s.photo;
+        }
+        return { staff: s, key };
+      })
+      .filter((p) => p.key);
+    if (pending.length > 0) {
+      try {
+        const tmpRes = await cloud.getTempFileURL({
+          fileList: pending.map((p) => p.key),
+        });
+        const urlMap = {};
+        (tmpRes.fileList || []).forEach((f) => {
+          if (f.fileID && (f.tempFileURL || f.download_url)) {
+            urlMap[f.fileID] = f.download_url || f.tempFileURL;
+          }
+        });
+        pending.forEach(({ staff, key }) => {
+          if (urlMap[key]) staff.photo = urlMap[key];
+        });
+      } catch (e) {
+        console.warn("照片链接刷新失败:", e.message);
+      }
+    }
+
     // 检查用户对每个人员是否已评价
     const staffWithStatus = await Promise.all(
       staffResult.data.map(async (staff) => {

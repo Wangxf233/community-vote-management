@@ -31,7 +31,7 @@
 
   <!-- 空状态 -->
   <view class="empty-state" wx:if="{{!loading && informationList.length === 0}}">
-    <text class="empty-text">暂无行业动态</text>
+    <text class="empty-text">暂无便民信息</text>
   </view>
 </view>
 

@@ -6,11 +6,55 @@ const _ = db.command;
 
 // ==================== 服务人员管理 ====================
 
+// 人员照片链接刷新：用 fileID 换取新的临时链接（避免上传时保存的 7 天链接过期）
+async function refreshStaffPhotos(staffList) {
+  const pending = (staffList || [])
+    .map((s) => {
+      let key = "";
+      if (
+        s.photoFileID &&
+        typeof s.photoFileID === "string" &&
+        s.photoFileID.startsWith("cloud://")
+      ) {
+        key = s.photoFileID;
+      } else if (typeof s.photo === "string" && s.photo.startsWith("cloud://")) {
+        key = s.photo;
+      }
+      return { staff: s, key };
+    })
+    .filter((p) => p.key);
+
+  if (pending.length === 0) return;
+
+  try {
+    const urlRes = await tcb.getTempFileURL({
+      fileList: pending.map((p) => p.key),
+      maxAge: 604800, // 7天
+    });
+    const urlMap = {};
+    (urlRes.fileList || []).forEach((f) => {
+      if (f.fileID && (f.tempFileURL || f.download_url)) {
+        urlMap[f.fileID] = f.download_url || f.tempFileURL;
+      }
+    });
+    pending.forEach(({ staff, key }) => {
+      if (urlMap[key]) staff.photo = urlMap[key];
+    });
+  } catch (e) {
+    console.error("刷新人员照片链接失败:", e.message);
+  }
+}
+
 // 获取服务人员列表
 router.get("/staff", verifyToken, async (req, res) => {
   try {
-    const { communityId, status, page = 1, pageSize = 10 } = req.query;
+    const { status, page = 1, pageSize = 10 } = req.query;
 
+    // 越权防护：非超级管理员只能访问本小区人员
+    let { communityId } = req.query;
+    if (req.user.role !== "super") {
+      communityId = req.user.communityId;
+    }
     if (!communityId) {
       return res.status(400).json({ success: false, error: "缺少小区ID" });
     }
@@ -35,6 +79,9 @@ router.get("/staff", verifyToken, async (req, res) => {
       .limit(limit)
       .get();
 
+    // 照片链接刷新
+    await refreshStaffPhotos(result.data);
+
     res.json({
       success: true,
       data: result.data,
@@ -49,7 +96,13 @@ router.get("/staff", verifyToken, async (req, res) => {
 // 添加服务人员
 router.post("/staff", verifyToken, async (req, res) => {
   try {
-    const { name, position, workScope, photo, communityId } = req.body;
+    const { name, position, workScope, photo, photoFileID } = req.body;
+
+    // 越权防护：非超级管理员只能添加到本小区
+    let { communityId } = req.body;
+    if (req.user.role !== "super") {
+      communityId = req.user.communityId;
+    }
 
     if (!name || !position || !workScope || !communityId) {
       return res.status(400).json({ success: false, error: "缺少必填字段" });
@@ -60,6 +113,7 @@ router.post("/staff", verifyToken, async (req, res) => {
       position,
       workScope,
       photo: photo || "",
+      photoFileID: photoFileID || "",
       status: "active",
       communityId,
       createdAt: new Date(),
@@ -82,7 +136,19 @@ router.post("/staff", verifyToken, async (req, res) => {
 router.put("/staff/:id", verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, position, workScope, photo, status } = req.body;
+    const { name, position, workScope, photo, photoFileID, status } = req.body;
+
+    // 越权防护：校验人员归属
+    const targetRes = await db.collection("evaluation_staff").doc(id).get();
+    if (!targetRes.data || targetRes.data.length === 0) {
+      return res.status(404).json({ success: false, error: "人员不存在" });
+    }
+    if (
+      req.user.role !== "super" &&
+      targetRes.data[0].communityId !== req.user.communityId
+    ) {
+      return res.status(403).json({ success: false, error: "无权操作该人员" });
+    }
 
     const updateData = {
       updatedAt: new Date(),
@@ -92,6 +158,7 @@ router.put("/staff/:id", verifyToken, async (req, res) => {
     if (position) updateData.position = position;
     if (workScope) updateData.workScope = workScope;
     if (photo !== undefined) updateData.photo = photo;
+    if (photoFileID !== undefined) updateData.photoFileID = photoFileID;
     if (status) updateData.status = status;
 
     await db.collection("evaluation_staff").doc(id).update(updateData);
@@ -107,6 +174,18 @@ router.put("/staff/:id", verifyToken, async (req, res) => {
 router.delete("/staff/:id", verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
+
+    // 越权防护：校验人员归属
+    const targetRes = await db.collection("evaluation_staff").doc(id).get();
+    if (!targetRes.data || targetRes.data.length === 0) {
+      return res.status(404).json({ success: false, error: "人员不存在" });
+    }
+    if (
+      req.user.role !== "super" &&
+      targetRes.data[0].communityId !== req.user.communityId
+    ) {
+      return res.status(403).json({ success: false, error: "无权操作该人员" });
+    }
 
     // 检查该人员是否在任何评价周期中
     const cyclesResult = await db
@@ -298,7 +377,6 @@ router.post("/cycles", verifyToken, async (req, res) => {
         enabled: true,
         frequency: recurring.frequency || "quarterly",
         firstDate: recurring.firstDate,
-        durationDays: recurring.durationDays || 90,
         totalEndDate: recurring.totalEndDate || null,
         lastGeneratedDate: null,
       };
@@ -352,7 +430,6 @@ router.put("/cycles/:id", verifyToken, async (req, res) => {
           enabled: true,
           frequency: req.body.recurring.frequency || "quarterly",
           firstDate: req.body.recurring.firstDate,
-          durationDays: req.body.recurring.durationDays || 90,
           totalEndDate: req.body.recurring.totalEndDate || null,
           lastGeneratedDate: req.body.recurring.lastGeneratedDate || null,
         };
@@ -505,6 +582,8 @@ router.get("/results", verifyToken, async (req, res) => {
           for (const s of staffInfoRes.data || []) {
             staffInfoMap[s._id] = s;
           }
+          // 照片链接刷新（避免 7 天临时链接过期）
+          await refreshStaffPhotos(Object.values(staffInfoMap));
         }
 
         for (const staffId of cycle.staffIds) {
@@ -806,7 +885,6 @@ router.post("/company-cycles", verifyToken, async (req, res) => {
         enabled: true,
         frequency: recurring.frequency || "quarterly",
         firstDate: recurring.firstDate,
-        durationDays: recurring.durationDays || 90,
         totalEndDate: recurring.totalEndDate || null,
         lastGeneratedDate: null,
       };
@@ -852,7 +930,6 @@ router.put("/company-cycles/:id", verifyToken, async (req, res) => {
           enabled: true,
           frequency: req.body.recurring.frequency || "quarterly",
           firstDate: req.body.recurring.firstDate,
-          durationDays: req.body.recurring.durationDays || 90,
           totalEndDate: req.body.recurring.totalEndDate || null,
           lastGeneratedDate: req.body.recurring.lastGeneratedDate || null,
         };
@@ -1119,6 +1196,31 @@ router.get("/company-results/:cycleId", verifyToken, async (req, res) => {
 
 // ==================== 定期自动发布 ====================
 
+// 计算该日期所在自然周期的天数（自然月/自然季度/自然半年/自然年）
+function naturalPeriodDays(date, frequency) {
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const y = date.getFullYear();
+  const m = date.getMonth();
+  let start;
+  let next;
+  if (frequency === "monthly") {
+    start = new Date(y, m, 1);
+    next = new Date(y, m + 1, 1);
+  } else if (frequency === "quarterly") {
+    start = new Date(y, Math.floor(m / 3) * 3, 1);
+    next = new Date(start.getFullYear(), start.getMonth() + 3, 1);
+  } else if (frequency === "semi_annual") {
+    start = new Date(y, Math.floor(m / 6) * 6, 1);
+    next = new Date(start.getFullYear(), start.getMonth() + 6, 1);
+  } else if (frequency === "annual") {
+    start = new Date(y, 0, 1);
+    next = new Date(y + 1, 0, 1);
+  } else {
+    return 90;
+  }
+  return Math.round((next.getTime() - start.getTime()) / msPerDay);
+}
+
 // 计算下一期开始日期
 function addInterval(date, frequency) {
   const d = new Date(date);
@@ -1173,9 +1275,13 @@ router.get("/check-recurring", async (req, res) => {
       // 还没到下一期发布时间
       if (nextStart > now) continue;
 
+      // 按该期所在自然周期的实际天数计算（每月=自然月，每季度=自然季度，每半年=自然半年，每年=自然年），
+      // 避免固定天数导致周期与自然月/自然季度错位
+      const cycleDurationDays = naturalPeriodDays(nextStart, rec.frequency);
+
       // 计算下一期结束日期
       const nextEnd = new Date(nextStart);
-      nextEnd.setDate(nextEnd.getDate() + (rec.durationDays || 90) - 1);
+      nextEnd.setDate(nextEnd.getDate() + cycleDurationDays - 1);
 
       const fmtDate = (d) => {
         const y = d.getFullYear();
@@ -1199,7 +1305,6 @@ router.get("/check-recurring", async (req, res) => {
           enabled: true,
           frequency: rec.frequency,
           firstDate: rec.firstDate,
-          durationDays: rec.durationDays,
           totalEndDate: rec.totalEndDate || null,
           lastGeneratedDate: null,
         },

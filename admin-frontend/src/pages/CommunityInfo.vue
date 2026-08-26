@@ -504,10 +504,14 @@ interface CommunityInfo {
   undergroundParkingCount: number;
   vehicleCount: number;
   planImage: string;
+  planImageFileID: string;
   effectImage: string;
+  effectImageFileID: string;
   adImages: string[];
+  adImageFileIDs: string[];
   communityHistory: string;
   communityImages: string[];
+  communityImageFileIDs: string[];
 }
 
 const formData = ref<CommunityInfo>({
@@ -529,10 +533,14 @@ const formData = ref<CommunityInfo>({
   undergroundParkingCount: 0,
   vehicleCount: 0,
   planImage: "",
+  planImageFileID: "",
   effectImage: "",
+  effectImageFileID: "",
   adImages: [],
+  adImageFileIDs: [],
   communityHistory: "",
   communityImages: [],
+  communityImageFileIDs: [],
 });
 
 const uploadAction = ref(
@@ -563,6 +571,17 @@ async function loadData() {
         ...formData.value,
         ...res,
       };
+      // 归一化 fileID 数组，与图片数组保持一一对应（旧数据可能缺失）
+      const padIds = (urls: string[], ids: string[]) =>
+        urls.map((_, i) => ids[i] || "");
+      formData.value.adImageFileIDs = padIds(
+        formData.value.adImages || [],
+        formData.value.adImageFileIDs || [],
+      );
+      formData.value.communityImageFileIDs = padIds(
+        formData.value.communityImages || [],
+        formData.value.communityImageFileIDs || [],
+      );
       console.log("formData更新后:", formData.value);
       // 保存原始数据用于取消编辑时恢复
       originalData.value = JSON.parse(JSON.stringify(formData.value));
@@ -627,7 +646,13 @@ function handleImageSuccess(res: any, field: "planImage" | "effectImage") {
   uploadProgress.value[progressKey] = 0;
 
   if (res.url) {
-    formData.value[field] = res.url;
+    if (field === "planImage") {
+      formData.value.planImage = res.url;
+      formData.value.planImageFileID = res.fileID || "";
+    } else {
+      formData.value.effectImage = res.url;
+      formData.value.effectImageFileID = res.fileID || "";
+    }
     ElMessage.success("上传成功");
   } else {
     ElMessage.error("上传失败");
@@ -644,6 +669,10 @@ function handleAdImageSuccess(res: any) {
   uploadProgress.value.ad = 0;
   if (res.url) {
     formData.value.adImages = [...formData.value.adImages, res.url];
+    formData.value.adImageFileIDs = [
+      ...formData.value.adImageFileIDs,
+      res.fileID || "",
+    ];
     ElMessage.success("上传成功");
   } else {
     ElMessage.error("上传失败");
@@ -652,10 +681,17 @@ function handleAdImageSuccess(res: any) {
 
 function removeAdImage(idx: number) {
   formData.value.adImages = formData.value.adImages.filter((_, i) => i !== idx);
+  formData.value.adImageFileIDs = formData.value.adImageFileIDs.filter(
+    (_, i) => i !== idx,
+  );
 }
 
 function removeCommunityImage(idx: number) {
-  formData.value.communityImages = formData.value.communityImages.filter((_, i) => i !== idx);
+  formData.value.communityImages = formData.value.communityImages.filter(
+    (_, i) => i !== idx,
+  );
+  formData.value.communityImageFileIDs =
+    formData.value.communityImageFileIDs.filter((_, i) => i !== idx);
 }
 
 function handleCommunityImageProgress(evt: any) {
@@ -667,7 +703,14 @@ function handleCommunityImageProgress(evt: any) {
 function handleCommunityImageSuccess(res: any) {
   uploadProgress.value.communityImage = 0;
   if (res.url) {
-    formData.value.communityImages = [...formData.value.communityImages, res.url];
+    formData.value.communityImages = [
+      ...formData.value.communityImages,
+      res.url,
+    ];
+    formData.value.communityImageFileIDs = [
+      ...formData.value.communityImageFileIDs,
+      res.fileID || "",
+    ];
     ElMessage.success("上传成功");
   } else {
     ElMessage.error("上传失败");
