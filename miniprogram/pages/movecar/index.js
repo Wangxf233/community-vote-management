@@ -1,7 +1,7 @@
 Page({
   data: {
-    plateChars: [],       // 已选字符数组，如 ["鄂","A","1","2","3","4","5"]
-    currentIndex: 0,      // 当前输入位置（0~7）
+    plateChars: ["鄂", "H"], // 默认填充省份+字母，如 ["鄂","H","1","2","3","4","5"]
+    currentIndex: 2,      // 当前输入位置（0~7），默认已填前两位
     queryResult: null,    // 查询结果
     loading: false,
 

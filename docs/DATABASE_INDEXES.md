@@ -115,3 +115,32 @@ tcb db index set --envId cloud1-6ghienoi526fff51 \
 ## 关于 `_id` 设计（`vote_records`）
 
 `updateVote` 云函数在写入投票记录时使用确定性 `_id = \`${voteId}_${openid}\``，利用 `\_id`天然唯一约束，在数据库层面阻止并发重复投票（即使无`idx_voteId_openid` 也能防重）。但仍建议创建该复合索引，以支持高效的列表查询。
+
+### `shop_config`（商铺配置）
+
+| 索引名                     | 字段                  | 唯一 | 用途                           |
+| -------------------------- | --------------------- | ---- | ------------------------------ |
+| `idx_communityId`          | `communityId ASC`     | **是** | 每小区一条配置，upsert 定位    |
+
+### `shop_registry`（商铺名册）
+
+| 索引名                        | 字段                                                     | 唯一 | 用途                          |
+| ----------------------------- | -------------------------------------------------------- | ---- | ----------------------------- |
+| `idx_communityId`             | `communityId ASC`                                        | 否   | 按小区列表查询                |
+| `idx_communityId_owner_shop`  | `communityId ASC, ownerName1 ASC, houseNumber ASC, shopName ASC` | 否 | 手动添加/导入去重             |
+
+### `shop_certification_applications`（商铺认证申请）
+
+| 索引名                         | 字段                                                 | 唯一 | 用途                                 |
+| ------------------------------ | ---------------------------------------------------- | ---- | ------------------------------------ |
+| `idx_communityId_status`       | `communityId ASC, status ASC`                        | 否   | 认证审核列表                         |
+| `idx_openid_communityId_status` | `openid ASC, communityId ASC, status ASC`           | 否   | 小程序重复申请校验                   |
+| `idx_communityId_shop`         | `communityId ASC, houseNumber ASC, shopName ASC`     | 否   | 商铺占用校验 / 名册状态匹配          |
+
+### `shop_owner_list`（商铺户主名单）
+
+| 索引名                       | 字段                                                      | 唯一 | 用途                           |
+| ---------------------------- | --------------------------------------------------------- | ---- | ------------------------------ |
+| `idx_communityId`            | `communityId ASC`                                         | 否   | 按小区列表查询                 |
+| `idx_communityId_owner_shop` | `communityId ASC, name ASC, houseNumber ASC, shopName ASC` | 否 | 审核通过同步去重               |
+| `idx_openid`                 | `openid ASC`                                              | 否   | 按 openid 查商铺户主           |

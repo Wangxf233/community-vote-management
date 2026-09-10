@@ -66,61 +66,94 @@
       </radio-group>
     </view>
 
-    <view class="form-item">
-      <view class="label">
-        <text class="required">*</text>
-        <text>楼栋</text>
-      </view>
-      <picker mode="selector" range="{{buildings}}" range-key="name" bindchange="onBuildingChange" disabled="{{communityNotFound || buildings.length === 0}}">
-        <view class="picker {{communityNotFound || buildings.length === 0 ? 'disabled' : ''}}">
-          <text wx:if="{{formData.building}}">{{formData.building}}</text>
-          <text wx:else class="placeholder">请选择楼栋</text>
+    <!-- 房屋类型：楼栋/单元/房号 三级联动（原有逻辑保留） -->
+    <block wx:if="{{formData.propertyType === 'house'}}">
+      <view class="form-item">
+        <view class="label">
+          <text class="required">*</text>
+          <text>楼栋</text>
         </view>
-      </picker>
-    </view>
-
-    <view class="form-item" wx:if="{{units.length > 0}}">
-      <view class="label">
-        <text class="required">*</text>
-        <text>单元</text>
+        <picker mode="selector" range="{{buildings}}" range-key="name" bindchange="onBuildingChange" disabled="{{communityNotFound || buildings.length === 0}}">
+          <view class="picker {{communityNotFound || buildings.length === 0 ? 'disabled' : ''}}">
+            <text wx:if="{{formData.building}}">{{formData.building}}</text>
+            <text wx:else class="placeholder">请选择楼栋</text>
+          </view>
+        </picker>
       </view>
-      <picker mode="selector" range="{{units}}" range-key="name" bindchange="onUnitChange" disabled="{{communityNotFound}}">
-        <view class="picker {{communityNotFound ? 'disabled' : ''}}">
-          <text wx:if="{{formData.unit}}">{{formData.unit}}</text>
-          <text wx:else class="placeholder">请选择单元</text>
-        </view>
-      </picker>
-    </view>
 
-    <view class="form-item" wx:if="{{rooms.length > 0}}">
-      <view class="label">
-        <text class="required">*</text>
-        <text>{{formData.propertyType === 'shop' ? '门牌号' : '房号'}}</text>
+      <view class="form-item" wx:if="{{units.length > 0}}">
+        <view class="label">
+          <text class="required">*</text>
+          <text>单元</text>
+        </view>
+        <picker mode="selector" range="{{units}}" range-key="name" bindchange="onUnitChange" disabled="{{communityNotFound}}">
+          <view class="picker {{communityNotFound ? 'disabled' : ''}}">
+            <text wx:if="{{formData.unit}}">{{formData.unit}}</text>
+            <text wx:else class="placeholder">请选择单元</text>
+          </view>
+        </picker>
       </view>
-      <picker mode="selector" range="{{rooms}}" bindchange="onRoomChange" disabled="{{communityNotFound}}">
-        <view class="picker {{communityNotFound ? 'disabled' : ''}}">
-          <text wx:if="{{formData.room}}">{{formData.room}}</text>
-          <text wx:else class="placeholder">请选择{{formData.propertyType === 'shop' ? '门牌号' : '房号'}}</text>
-        </view>
-      </picker>
-    </view>
 
-    <!-- 添加房产按钮 -->
+      <view class="form-item" wx:if="{{rooms.length > 0}}">
+        <view class="label">
+          <text class="required">*</text>
+          <text>房号</text>
+        </view>
+        <picker mode="selector" range="{{rooms}}" bindchange="onRoomChange" disabled="{{communityNotFound}}">
+          <view class="picker {{communityNotFound ? 'disabled' : ''}}">
+            <text wx:if="{{formData.room}}">{{formData.room}}</text>
+            <text wx:else class="placeholder">请选择房号</text>
+          </view>
+        </picker>
+      </view>
+    </block>
+
+    <!-- 商铺类型：门牌号、商铺名两个下拉（后台无配置时对应下拉框置灰、禁止点击） -->
+    <block wx:else>
+      <view class="form-item">
+        <view class="label">
+          <text class="required">*</text>
+          <text>门牌号</text>
+        </view>
+        <picker mode="selector" range="{{houseNumbers}}" bindchange="onHouseNumberChange" disabled="{{communityNotFound || houseNumbers.length === 0}}">
+          <view class="picker {{communityNotFound || houseNumbers.length === 0 ? 'disabled' : ''}}">
+            <text wx:if="{{formData.houseNumber}}">{{formData.houseNumber}}</text>
+            <text wx:else class="placeholder">{{communityNotFound ? '请选择门牌号' : (houseNumbers.length === 0 ? '暂无门牌号配置' : '请选择门牌号')}}</text>
+          </view>
+        </picker>
+      </view>
+
+      <view class="form-item">
+        <view class="label">
+          <text class="required">*</text>
+          <text>商铺名</text>
+        </view>
+        <picker mode="selector" range="{{shopNames}}" bindchange="onShopNameChange" disabled="{{communityNotFound || shopNames.length === 0}}">
+          <view class="picker {{communityNotFound || shopNames.length === 0 ? 'disabled' : ''}}">
+            <text wx:if="{{formData.shopName}}">{{formData.shopName}}</text>
+            <text wx:else class="placeholder">{{communityNotFound ? '请选择商铺名' : (shopNames.length === 0 ? '暂无商铺名配置' : '请选择商铺名')}}</text>
+          </view>
+        </picker>
+      </view>
+    </block>
+
+    <!-- 添加房产/商铺按钮 -->
     <view class="form-item" wx:if="{{!communityNotFound && formData.communityName}}">
       <button class="add-property-btn" bindtap="addProperty">
-        <text class="add-icon">+</text> 添加房产
+        <text class="add-icon">+</text> {{formData.propertyType === 'shop' ? '添加商铺' : '添加房产'}}
       </button>
     </view>
 
-    <!-- 已添加的房产列表 -->
+    <!-- 已添加的房产/商铺列表 -->
     <view class="properties-list" wx:if="{{properties.length > 0}}">
       <view class="list-header">
-        <text class="list-title">已添加房产（{{properties.length}}套）</text>
+        <text class="list-title">已添加{{formData.propertyType === 'shop' ? '商铺' : '房产'}}（{{properties.length}}{{formData.propertyType === 'shop' ? '个' : '套'}}）</text>
       </view>
       <view class="property-item" wx:for="{{properties}}" wx:key="index">
         <view class="property-info">
           <text class="property-type-badge">{{item.propertyType === 'house' ? '房' : '铺'}}</text>
-          <text class="property-address">{{item.building}}栋 {{item.unit}}单元 {{item.room}}室</text>
+          <text wx:if="{{item.propertyType === 'shop'}}" class="property-address">{{item.houseNumber || '未选门牌号'}}{{item.shopName ? ' ' + item.shopName : ''}}</text>
+          <text wx:else class="property-address">{{item.building}}栋 {{item.unit}}单元 {{item.room}}室</text>
         </view>
         <view class="property-actions">
           <text class="delete-btn" bindtap="deleteProperty" data-index="{{index}}">删除</text>

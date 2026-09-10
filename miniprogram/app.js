@@ -99,6 +99,8 @@ App({
           this.globalData.communityId = binding.communityId;
           wx.setStorageSync("bindingStatus", binding.status);
           wx.setStorageSync("communityId", binding.communityId);
+          // 注意：不要在启动时向云端回写当前小区 —— 若 getBindingInfo 因版本/数据问题
+          // 返回了非当前小区，启动回写会覆盖掉切换小区时保存的正确值。
 
           // 绑定成功后检查未读公告
           if (binding.status === "approved" && binding.communityId) {

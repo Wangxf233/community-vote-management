@@ -1088,11 +1088,21 @@ router.post("/door/open-from-cloud", async (req, res) => {
     const existingGranted = device.grantedOwnerOpenids || [];
     if (!existingGranted.includes(openid)) {
       try {
-        const cert = await db
+        let cert = await db
           .collection("certification_applications")
           .where({ openid, communityId, status: "approved" })
           .limit(1)
           .get();
+
+        // 商铺认证兼容：房屋认证未找到时，查询商铺认证（独立集合）
+        if (!cert.data || cert.data.length === 0) {
+          cert = await db
+            .collection("shop_certification_applications")
+            .where({ openid, communityId, status: "approved" })
+            .limit(1)
+            .get();
+        }
+
         if (cert.data && cert.data.length > 0) {
           const user = cert.data[0];
           const keyId = Math.random().toString(16).slice(2, 10);

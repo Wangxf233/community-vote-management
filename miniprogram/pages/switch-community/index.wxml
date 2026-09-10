@@ -13,6 +13,13 @@
     <view class="no-community" wx:else>
       <text class="no-data-text">暂无绑定小区</text>
     </view>
+
+    <!-- 增加角色：同一用户可在当前小区同时拥有户主/商铺等多个角色 -->
+    <view class="add-role-wrap" wx:if="{{currentCommunity}}">
+      <button class="add-role-btn" bindtap="addRole">
+        <text class="add-role-icon">+</text> 增加角色
+      </button>
+    </view>
   </view>
 
   <!-- 其他已审核通过的小区 -->

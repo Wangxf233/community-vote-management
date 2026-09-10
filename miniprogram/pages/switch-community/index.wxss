@@ -104,6 +104,41 @@
   color: #999;
 }
 
+/* 增加角色按钮（当前小区卡片下方） */
+.add-role-wrap {
+  margin-top: 20rpx;
+  padding: 0 20rpx;
+}
+
+.add-role-btn {
+  background-color: #fff;
+  color: #07c160;
+  border: 2rpx solid #07c160;
+  border-radius: 16rpx;
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30rpx;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.add-role-btn::after {
+  border: none;
+}
+
+.add-role-btn:active {
+  opacity: 0.8;
+  transform: scale(0.98);
+}
+
+.add-role-icon {
+  font-size: 38rpx;
+  margin-right: 10rpx;
+  font-weight: normal;
+}
+
 /* 添加新小区按钮 */
 .add-section {
   margin-top: 40rpx;

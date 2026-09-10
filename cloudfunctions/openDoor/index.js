@@ -152,7 +152,26 @@ exports.main = async (event) => {
       .orderBy("updatedAt", "desc")
       .get();
 
+    // 商铺认证兼容：房屋认证未找到时，查询商铺认证（独立集合）
+    // 商铺用户无楼栋单元（unitKey 为空），可开 all_owners 模式的大门门禁/单独授权设备
+    let shopCertRes = null;
     if (!certRes.data || certRes.data.length === 0) {
+      shopCertRes = await db
+        .collection("shop_certification_applications")
+        .where({
+          openid,
+          communityId,
+          status: "approved",
+        })
+        .orderBy("updatedAt", "desc")
+        .limit(1)
+        .get();
+    }
+
+    if (
+      (!certRes.data || certRes.data.length === 0) &&
+      (!shopCertRes || !shopCertRes.data || shopCertRes.data.length === 0)
+    ) {
       return {
         success: false,
         error: "当前账号未完成认证，暂不可使用开门功能",

@@ -107,7 +107,22 @@ exports.main = async (event) => {
       .orderBy("updatedAt", "desc")
       .get();
 
+    // 商铺认证兼容：房屋认证未找到时，查询商铺认证（独立集合）
+    // 商铺用户无楼栋单元（unitKey 为空），仅大门门禁/单独授权设备可见可开
+    let shopCertRes = null;
     if (!certRes.data || certRes.data.length === 0) {
+      shopCertRes = await db
+        .collection("shop_certification_applications")
+        .where(certWhere)
+        .orderBy("updatedAt", "desc")
+        .get();
+    }
+
+    const shopCerts = (shopCertRes && shopCertRes.data) || [];
+    if (
+      (!certRes.data || certRes.data.length === 0) &&
+      shopCerts.length === 0
+    ) {
       return {
         success: false,
         error: "当前账号未完成认证，暂不可使用开门功能",
@@ -115,7 +130,10 @@ exports.main = async (event) => {
       };
     }
 
-    const communityId = inputCommunityId || certRes.data[0].communityId;
+    const communityId =
+      inputCommunityId ||
+      (certRes.data && certRes.data[0] && certRes.data[0].communityId) ||
+      (shopCerts[0] && shopCerts[0].communityId);
 
     if (!communityId) {
       return {

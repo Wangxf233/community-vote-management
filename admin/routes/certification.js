@@ -318,6 +318,8 @@ router.post(
                   room: prop.room,
                   carNumber: prop.carNumber || "",
                   area: parseFloat(prop.area) || 0,
+                  // BUG 修复：备注字段同步带到户主名单（此前丢失）
+                  remark: prop.remark || "",
                   openid: app.openid || "",
                   realNameStatus: "unverified",
                   createdAt: now,
@@ -357,6 +359,8 @@ router.post(
                 room: app.room,
                 carNumber: "",
                 area: 0,
+                // BUG 修复：备注字段同步带到户主名单（申请中如有备注则一并带入）
+                remark: app.remark || "",
                 openid: app.openid || "",
                 realNameStatus: "unverified",
                 createdAt: new Date().toISOString(),

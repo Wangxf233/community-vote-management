@@ -149,6 +149,22 @@ Page({
       wx.setStorageSync("communityId", communityId);
       wx.setStorageSync("bindingStatus", binding.status);
 
+      // 记录当前小区到云端（users.currentCommunityId），本地缓存清除后仍能恢复到该小区
+      // 等待保存完成，失败时打印具体原因（控制台可见，便于排查）
+      try {
+        const saveRes = await wx.cloud.callFunction({
+          name: "setUserCommunity",
+          data: {
+            communityId,
+          },
+        });
+        if (!saveRes.result || !saveRes.result.success) {
+          console.error("保存当前小区失败:", saveRes.result);
+        }
+      } catch (saveErr) {
+        console.error("保存当前小区失败:", saveErr);
+      }
+
       wx.hideLoading();
 
       // 显示成功提示
@@ -172,6 +188,26 @@ Page({
         icon: "none",
       });
     }
+  },
+
+  /**
+   * 增加角色：进入注册页（同一用户可在当前小区同时拥有户主/商铺等多个角色）
+   * 携带当前小区信息，注册页自动预填并校验小区
+   */
+  addRole() {
+    const current = this.data.currentCommunity;
+    if (!current) {
+      wx.showToast({
+        title: "请先绑定小区",
+        icon: "none",
+      });
+      return;
+    }
+
+    const region = (current.region || []).join(",");
+    wx.navigateTo({
+      url: `/pages/owner-register/index?isAdding=true&addRole=true&communityName=${encodeURIComponent(current.communityName || "")}&region=${encodeURIComponent(region)}`,
+    });
   },
 
   /**

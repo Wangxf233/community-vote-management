@@ -24,6 +24,13 @@ const db = cloud.database();
  * - phone: 手机号
  * - relation: 与户主关系
  *
+ * 商铺注册参数（与户主房屋认证完全隔离，写入 shop_certification_applications）:
+ * - type: 'shop'
+ * - name: 姓名
+ * - phone: 手机号
+ * - region: [省, 市, 区]
+ * - properties: [{ communityName, houseNumber, shopName }]  // 门牌号/商铺名选填（后台无配置时可为空）
+ *
  * 实名认证参数:
  * - type: 'realname'
  * - idCardFront: 身份证正面URL
@@ -44,6 +51,8 @@ exports.main = async (event, context) => {
 
     if (type === "owner") {
       return await handleOwnerCertification(openid, event);
+    } else if (type === "shop") {
+      return await handleShopCertification(openid, event);
     } else if (type === "family") {
       return await handleFamilyCertification(openid, event);
     } else if (type === "realname") {
@@ -167,6 +176,134 @@ async function handleOwnerCertification(openid, event) {
   return {
     code: 0,
     message: `已提交${applications.length}套房产的认证申请，请等待审核`,
+  };
+}
+
+/**
+ * 处理商铺认证（商铺角色注册）
+ * 与户主房屋认证（certification_applications）完全隔离，写入 shop_certification_applications
+ */
+async function handleShopCertification(openid, event) {
+  const { name, phone, region, properties } = event;
+
+  // 验证必填字段
+  if (!name || !phone || !properties || properties.length === 0) {
+    return { code: -1, message: "请填写完整信息" };
+  }
+
+  // 验证手机号格式
+  const phoneRegex = /^1[3-9]\d{9}$/;
+  if (!phoneRegex.test(phone)) {
+    return { code: -1, message: "手机号格式不正确" };
+  }
+
+  // 处理每个商铺
+  const now = new Date().toISOString();
+  const applications = [];
+
+  for (const property of properties) {
+    const { communityName, houseNumber, shopName } = property;
+
+    // 门牌号、商铺名选填（后台无配置时可为空），但二者不能同时为空
+    if (!communityName || (!houseNumber && !shopName)) {
+      return { code: -1, message: "请填写完整的商铺信息" };
+    }
+
+    // 查询小区信息获取communityId
+    const communityRes = await db
+      .collection("communities")
+      .where({ name: communityName })
+      .limit(1)
+      .get();
+
+    if (!communityRes.data || communityRes.data.length === 0) {
+      return { code: -1, message: `未找到小区：${communityName}` };
+    }
+
+    const community = communityRes.data[0];
+    const communityId = community._id;
+
+    // 检查该用户在当前小区是否已有待审核或已通过的商铺申请
+    const userApplicationRes = await db
+      .collection("shop_certification_applications")
+      .where({
+        openid,
+        communityId,
+        status: db.command.in(["pending", "approved"]),
+      })
+      .limit(1)
+      .get();
+
+    if (userApplicationRes.data && userApplicationRes.data.length > 0) {
+      const existing = userApplicationRes.data[0];
+      if (existing.status === "approved") {
+        return { code: -1, message: `您在${communityName}小区已完成商铺认证` };
+      } else {
+        return {
+          code: -1,
+          message: `您在${communityName}小区已有待审核的商铺申请，请等待审核结果`,
+        };
+      }
+    }
+
+    // 检查本次请求内是否已包含相同商铺（循环内去重，防止同一批提交重复商铺）
+    if (
+      applications.some(
+        (a) =>
+          a.houseNumber === (houseNumber || "") &&
+          a.shopName === (shopName || ""),
+      )
+    ) {
+      return { code: -1, message: "提交的商铺信息重复，请检查后重试" };
+    }
+
+    // 检查该商铺是否已有认证申请（待审核或已通过均占用；门牌号/商铺名均非空时校验，避免空值互相误撞）
+    if (houseNumber || shopName) {
+      const shopRes = await db
+        .collection("shop_certification_applications")
+        .where({
+          communityId,
+          houseNumber: houseNumber || "",
+          shopName: shopName || "",
+          status: db.command.in(["pending", "approved"]),
+        })
+        .limit(1)
+        .get();
+
+      if (shopRes.data && shopRes.data.length > 0) {
+        return {
+          code: -1,
+          message: `门牌号"${houseNumber || "-"}"商铺名"${shopName || "-"}"已有认证申请`,
+        };
+      }
+    }
+
+    applications.push({
+      openid,
+      type: "shop",
+      name,
+      phone,
+      region: region || [],
+      communityId,
+      communityName,
+      houseNumber: houseNumber || "",
+      shopName: shopName || "",
+      status: "pending",
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  // 批量创建商铺认证申请
+  for (const application of applications) {
+    await db.collection("shop_certification_applications").add({
+      data: application,
+    });
+  }
+
+  return {
+    code: 0,
+    message: `已提交${applications.length}个商铺的认证申请，请等待审核`,
   };
 }
 
@@ -410,6 +547,104 @@ async function handleRealNameCertification(openid, event) {
       .get();
 
     if (bindingRes.data.length === 0) {
+      // 商铺认证兼容：查询商铺认证申请（shop_certification_applications）
+      const shopCertRes = await db
+        .collection("shop_certification_applications")
+        .where({
+          openid: openid,
+          status: "approved",
+        })
+        .orderBy("createdAt", "desc")
+        .limit(1)
+        .get();
+
+      if (shopCertRes.data.length > 0) {
+        const shopCert = shopCertRes.data[0];
+
+        // 通过门牌号+商铺名查找商铺名册记录
+        let shopRegId = null;
+        const shopRegQueryRes = await db
+          .collection("shop_registry")
+          .where({
+            communityId: shopCert.communityId,
+            houseNumber: shopCert.houseNumber || "",
+            shopName: shopCert.shopName || "",
+          })
+          .limit(1)
+          .get();
+
+        if (shopRegQueryRes.data.length > 0) {
+          shopRegId = shopRegQueryRes.data[0]._id;
+        } else {
+          // 商铺名册无记录时创建一条（与户主实名提交行为一致）
+          const now = new Date().toISOString();
+          const shopData = {
+            communityId: shopCert.communityId,
+            ownerName1: shopCert.name,
+            ownerName2: "",
+            houseNumber: shopCert.houseNumber || "",
+            shopName: shopCert.shopName || "",
+            area: 0,
+            remark: "",
+            status: "valid",
+            openid: openid,
+            createdAt: now,
+            updatedAt: now,
+          };
+          const addShopRes = await db.collection("shop_registry").add({
+            data: shopData,
+          });
+          shopRegId = addShopRes._id;
+        }
+
+        const now = new Date().toISOString();
+        // 更新商铺名册实名认证状态
+        await db
+          .collection("shop_registry")
+          .doc(shopRegId)
+          .update({
+            data: {
+              realNameStatus: "pending",
+              realNameIdCardFront: idCardFront,
+              realNameIdCardBack: idCardBack,
+              realNameCertType: certType,
+              realNameCertImage: certImage,
+              realNameSubmitTime: now,
+              realNameRejectReason: "",
+              updatedAt: now,
+            },
+          });
+
+        // 同时更新商铺户主名单（该 openid 的所有记录）
+        const shopOwnerListRes = await db
+          .collection("shop_owner_list")
+          .where({
+            openid: openid,
+          })
+          .get();
+
+        if (shopOwnerListRes.data && shopOwnerListRes.data.length > 0) {
+          const updatePromises = shopOwnerListRes.data.map((owner) =>
+            db.collection("shop_owner_list").doc(owner._id).update({
+              realNameStatus: "pending",
+              realNameIdCardFront: idCardFront,
+              realNameIdCardBack: idCardBack,
+              realNameCertType: certType,
+              realNameCertImage: certImage,
+              realNameSubmitTime: now,
+              realNameRejectReason: "",
+              updatedAt: now,
+            }),
+          );
+          await Promise.all(updatePromises);
+        }
+
+        return {
+          success: true,
+          message: "提交成功，请等待审核",
+        };
+      }
+
       return {
         success: false,
         message: "未找到户主认证信息，请先完成户主认证",

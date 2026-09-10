@@ -27,6 +27,7 @@ const doorRoutes = require("./routes/door");
 const fondcardRoutes = require("./routes/fondcard");
 const vehicleRoutes = require("./routes/vehicle");
 const staffRoutes = require("./routes/staff");
+const shopRoutes = require("./routes/shop");
 
 process.on("uncaughtException", (err) => {
   console.error("Uncaught exception:", err);
@@ -141,6 +142,7 @@ app.use("/api", doorRoutes);
 app.use("/api", fondcardRoutes);
 app.use("/api/vehicles", vehicleRoutes);
 app.use("/api/staff", staffRoutes);
+app.use("/api", shopRoutes);
 
 // 全局错误处理（在所有路由之后注册）
 const { errorHandler, notFoundHandler } = require("./middleware/error-handler");

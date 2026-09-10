@@ -8,6 +8,7 @@ const {
 } = require("../utils/helpers");
 
 const router = express.Router();
+const _ = db.command;
 
 // 所有路由都需要认证
 router.use(authMiddleware);
@@ -232,6 +233,7 @@ router.post("/owner-registry/import", async (req, res) => {
           room,
           carNumber,
           area,
+          remark,
           rowNumber,
           properties, // 额外的房产列表
         } = item;
@@ -257,6 +259,7 @@ router.post("/owner-registry/import", async (req, res) => {
           room: room.toString(),
           carNumber: carNumber || "",
           area: parseFloat(area) || 0,
+          remark: remark || "",
           status: "valid",
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -328,6 +331,7 @@ router.post("/owner-registry/import", async (req, res) => {
                   room: prop.room.toString(),
                   carNumber: "", // 车牌号统一在主记录上
                   area: parseFloat(prop.area) || 0,
+                  remark: prop.remark || "",
                   status: "valid",
                   createdAt: new Date().toISOString(),
                   updatedAt: new Date().toISOString(),
@@ -406,23 +410,27 @@ router.put("/owner-registry/:id", async (req, res) => {
     }
 
     // 更新第一套房产（使用原记录ID）
+    // 注意：@cloudbase/node-sdk 的 update 直接收字段对象（不带 { data } 包装），
+    // 旧的 { data } 写法曾导致字段写到 data 子对象、顶层字段不变（修改不生效 bug）
     const firstProperty = properties[0];
     await db
       .collection("owner_registry")
       .doc(id)
       .update({
-        data: {
-          ownerName1,
-          ownerName2: ownerName2 || "",
-          district: firstProperty.district || "",
-          building: firstProperty.building,
-          unit: firstProperty.unit,
-          room: firstProperty.room,
-          carNumber: carNumber || "",
-          area: parseFloat(firstProperty.area) || 0,
-          status: status || "valid",
-          updatedAt: new Date().toISOString(),
-        },
+        ownerName1,
+        ownerName2:
+          ownerName2 !== undefined ? ownerName2 : originalData.ownerName2 || "",
+        district: firstProperty.district || "",
+        building: firstProperty.building,
+        unit: firstProperty.unit,
+        room: firstProperty.room,
+        carNumber: carNumber !== undefined ? carNumber : originalData.carNumber || "",
+        area: parseFloat(firstProperty.area) || 0,
+        remark: firstProperty.remark || "",
+        status: status || "valid",
+        updatedAt: new Date().toISOString(),
+        // 清除历史 bug 写入的 data 子对象
+        data: _.remove(),
       });
 
     // 添加其他房产
@@ -438,6 +446,7 @@ router.put("/owner-registry/:id", async (req, res) => {
         room: prop.room,
         carNumber: "",
         area: parseFloat(prop.area) || 0,
+        remark: prop.remark || "",
         status: status || "valid",
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -776,6 +785,46 @@ router.delete("/owner-list/:id", async (req, res) => {
       }
     } catch (certError) {
       console.error("删除认证申请记录失败:", certError);
+    }
+
+    // 失效该户主关联的家属认证记录（家属权限随户主一并收回）
+    try {
+      // 收集被删除户主记录涉及的全部 openid（同一户主多套房时可能不一致）
+      const ownerOpenids = new Set();
+      if (owner.openid) ownerOpenids.add(owner.openid);
+      if (allOwnersRes && allOwnersRes.data) {
+        for (const r of allOwnersRes.data) {
+          if (r.openid) ownerOpenids.add(r.openid);
+        }
+      }
+
+      for (const ownerOpenid of ownerOpenids) {
+        const familyRes = await db
+          .collection("certification_applications")
+          .where({
+            ownerOpenid: ownerOpenid,
+            communityId: communityId,
+            type: "family",
+          })
+          .get();
+
+        if (familyRes && familyRes.data && familyRes.data.length > 0) {
+          for (const familyCert of familyRes.data) {
+            if (familyCert.status === "removed") continue;
+            await db
+              .collection("certification_applications")
+              .doc(familyCert._id)
+              .update({
+                status: "removed",
+                removedBy: "admin",
+                removedAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              });
+          }
+        }
+      }
+    } catch (familyError) {
+      console.error("失效家属认证记录失败:", familyError);
     }
 
     // 将实名认证信息保存到 owner_registry（以便用户重新注册时恢复）

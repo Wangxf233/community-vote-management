@@ -341,3 +341,53 @@ GET /api/health
 
 返回: { success: true, message: "提交成功" }
 ```
+
+---
+
+## 五、商铺业务接口（2026-09 新增，与房屋业务完全隔离）
+
+### 5.1 REST API（Express 后端，均需认证、按 communityId 隔离）
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/shop-config` | 获取商铺配置（返回 `{ config: { shops: [{ houseNumber, shopName }] } }`，门牌号与商铺名一一对应） |
+| POST | `/api/shop-config` | 保存商铺配置（body: `{ shops: [{ houseNumber, shopName }] }`，两项均选填，全空行自动丢弃；兼容旧版两个独立数组入参） |
+| GET | `/api/shop-certification-applications` | 商铺认证申请列表（筛选：name/houseNumber/shopName/status） |
+| POST | `/api/shop-certification-applications/:id/review` | 审核商铺认证申请（body: `{ action: "approved"\|"rejected", reason }`；通过时把商铺名册的专有面积、备注同步到商铺户主名单） |
+| DELETE | `/api/shop-certification-applications/:id` | 删除商铺认证申请 |
+| GET | `/api/shop-registry` | 商铺名册列表（筛选：name/houseNumber/shopName/status/certStatus/realNameStatus） |
+| POST | `/api/shop-registry` | 手动添加商铺（必填：ownerName1、area；选填：houseNumber、shopName、remark） |
+| POST | `/api/shop-registry/import` | Excel 批量导入（模板：户主姓名*、门牌号、商铺名、专有面积*、备注；返回 addCount/skipCount/failCount/errors/skipped） |
+| PUT | `/api/shop-registry/:id` | 更新商铺记录 |
+| DELETE | `/api/shop-registry/:id` | 删除商铺记录 |
+| POST | `/api/shop-registry/:id/realname-review` | 审核商铺名册实名认证（同步商铺户主名单） |
+| GET | `/api/shop-owner-list` | 商铺户主名单列表（筛选：name/houseNumber/shopName/realNameStatus） |
+| PUT | `/api/shop-owner-list/:id` | 修改商铺户主信息 |
+| DELETE | `/api/shop-owner-list/:id` | 删除商铺户主（级联删除对应认证申请、实名信息回写名册） |
+| GET | `/api/shop-owner-list/:id/realname` | 获取商铺户主实名认证信息 |
+| POST | `/api/shop-owner-list/:id/realname-review` | 审核商铺户主实名认证（同步商铺名册） |
+
+### 5.2 云函数
+
+| 云函数 | 说明 |
+|--------|------|
+| `getShopConfig` | 按小区名读取商铺配置（shop_config 集合；未配置返回空数组，小程序端据此置灰下拉框） |
+| `submitCertification`（type: "shop"） | 商铺认证申请提交（写入 shop_certification_applications，入参 `{ name, phone, region, properties: [{ communityName, houseNumber, shopName }] }`） |
+| `submitCertification`（type: "realname"） | 实名提交现已兼容商铺用户（查 shop_certification_applications → 写 shop_registry/shop_owner_list） |
+| `getBindingInfo` | 绑定查询现已兼容商铺（优先级：已通过户主 → 已通过商铺 → 最近一条未删除申请） |
+| `setUserCommunity` | 记录用户当前使用的小区（存 `user_preferences` 集合，切换小区时调用；本地缓存清除后 getBindingInfo 优先恢复该小区） |
+| `getUserCommunities` | 已审核小区列表现已兼容商铺（合并查询 shop_certification_applications，商铺绑定 type:"shop"，含 houseNumber/shopName 字段） |
+| `listDoorDevices` / `openDoor` | 开门相关接口现已兼容商铺：房屋认证未命中时回退查询 shop_certification_applications；商铺用户无楼栋单元，可开 all_owners 模式的大门门禁及单独授权设备 |
+
+### 5.3 数据流转
+
+```
+商铺注册（小程序） → submitCertification type:"shop" → shop_certification_applications(pending)
+  → 管理后台"认证审核-商铺"通过
+    → shop_registry（按 ownerName1/ownerName2 = 申请人姓名匹配）
+      └─ 同步 → shop_owner_list（专有面积、备注、实名信息一并带入；无匹配时仅写入申请本身信息）
+
+房屋备注 BUG 修复：
+  → 管理后台"认证审核-户主"通过
+    → owner_registry 匹配后同步 → owner_list（新增 remark 字段带入，此前丢失）
+```

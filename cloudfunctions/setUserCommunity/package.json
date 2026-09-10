@@ -1,0 +1,9 @@
+{
+  "name": "setUserCommunity",
+  "version": "1.0.0",
+  "description": "Record the user's current community (survives local cache clearing)",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

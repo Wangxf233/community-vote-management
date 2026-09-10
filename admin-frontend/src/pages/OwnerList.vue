@@ -1,246 +1,175 @@
 <template>
   <div
     class="owner-list-page"
-    style="
-      height: calc(100vh - 96px);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    "
+    style="height: calc(100vh - 96px); display: flex; flex-direction: column; overflow: hidden"
   >
-    <el-card
-      style="flex: 1; display: flex; flex-direction: column; overflow: hidden"
-    >
+    <el-card style="flex: 1; display: flex; flex-direction: column; overflow: hidden">
       <template #header>
         <div class="card-header">
-          <span>户主名单</span>
-          <el-button @click="refresh">刷新</el-button>
+          <div style="display: flex; align-items: center; gap: 12px">
+            <span>户主名单</span>
+            <el-radio-group v-model="activeTab">
+              <el-radio-button label="house">户主</el-radio-button>
+              <el-radio-button label="shop">商铺</el-radio-button>
+            </el-radio-group>
+          </div>
         </div>
       </template>
 
-      <el-form :inline="true" :model="searchForm" class="search-form">
-        <el-form-item label="姓名">
-          <el-input
-            v-model="searchForm.name"
-            placeholder="请输入姓名"
-            clearable
-          />
-        </el-form-item>
-        <el-form-item label="楼栋">
-          <el-input
-            v-model="searchForm.building"
-            placeholder="请输入楼栋"
-            clearable
-          />
-        </el-form-item>
-        <el-form-item label="单元">
-          <el-input
-            v-model="searchForm.unit"
-            placeholder="请输入单元"
-            clearable
-          />
-        </el-form-item>
-        <el-form-item label="房号">
-          <el-input
-            v-model="searchForm.room"
-            placeholder="请输入房号"
-            clearable
-          />
-        </el-form-item>
-        <el-form-item label="实名状态">
-          <el-select
-            v-model="searchForm.realNameStatus"
-            placeholder="全部"
-            clearable
-            style="width: 120px"
-          >
-            <el-option label="已实名" value="verified" />
-            <el-option label="进行中" value="pending" />
-            <el-option label="未实名" value="unverified" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="search">搜索</el-button>
-          <el-button @click="resetSearch">重置</el-button>
-        </el-form-item>
-      </el-form>
+      <!-- 户主 Tab：原有逻辑、页面完全保留 -->
+      <div v-show="activeTab === 'house'">
+        <el-form :inline="true" :model="searchForm" class="search-form">
+          <el-form-item label="姓名">
+            <el-input v-model="searchForm.name" placeholder="请输入姓名" clearable />
+          </el-form-item>
+          <el-form-item label="楼栋">
+            <el-input v-model="searchForm.building" placeholder="请输入楼栋" clearable />
+          </el-form-item>
+          <el-form-item label="单元">
+            <el-input v-model="searchForm.unit" placeholder="请输入单元" clearable />
+          </el-form-item>
+          <el-form-item label="房号">
+            <el-input v-model="searchForm.room" placeholder="请输入房号" clearable />
+          </el-form-item>
+          <el-form-item label="实名状态">
+            <el-select v-model="searchForm.realNameStatus" placeholder="全部" clearable style="width: 120px">
+              <el-option label="已实名" value="verified" />
+              <el-option label="进行中" value="pending" />
+              <el-option label="未实名" value="unverified" />
+            </el-select>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" @click="search">搜索</el-button>
+            <el-button @click="resetSearch">重置</el-button>
+          </el-form-item>
+        </el-form>
 
-      <div
-        style="flex: 1; display: flex; flex-direction: column; overflow: hidden"
-      >
-        <div
-          class="batch-operations"
-          style="margin-bottom: 16px; flex-shrink: 0"
-        >
-          <el-button
-            type="danger"
-            @click="handleBatchDelete"
-            :disabled="selectedRows.length === 0"
-          >
-            删除
-          </el-button>
-          <span style="margin-left: 12px; color: #909399">
-            已选择 {{ selectedRows.length }} 条
-          </span>
-        </div>
+        <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden">
+          <div class="batch-operations" style="margin-bottom: 16px; flex-shrink: 0">
+            <el-button type="danger" :disabled="selectedRows.length === 0" @click="handleBatchDelete"> 删除 </el-button>
+            <span style="margin-left: 12px; color: #909399"> 已选择 {{ selectedRows.length }} 条 </span>
+          </div>
 
-        <div style="flex: 1; overflow: hidden">
-          <el-table
-            :data="ownerList"
-            stripe
-            style="width: 100%"
-            height="100%"
-            @selection-change="handleSelectionChange"
-            row-key="_id"
-            :row-class-name="getRowClassName"
-          >
-            <el-table-column type="selection" width="55" />
-            <el-table-column type="expand" v-if="hasMultipleProperties">
-              <template #default="{ row }">
-                <div
-                  v-if="row.properties && row.properties.length > 0"
-                  style="padding: 0 50px"
-                >
-                  <el-table
-                    :data="row.properties"
-                    :show-header="true"
-                    size="small"
-                  >
-                    <el-table-column
-                      prop="building"
-                      label="楼栋号"
-                      min-width="80"
-                    />
-                    <el-table-column
-                      prop="unit"
-                      label="单元号"
-                      min-width="80"
-                    />
-                    <el-table-column prop="room" label="房号" min-width="80">
-                      <template #default="{ row }">
-                        {{ formatRoom(row.room) }}
-                      </template>
-                    </el-table-column>
-                    <el-table-column
-                      prop="area"
-                      label="专有面积(㎡)"
-                      min-width="120"
-                    />
-                  </el-table>
-                </div>
-              </template>
-            </el-table-column>
-            <el-table-column prop="name" label="户主姓名" min-width="100" />
-            <el-table-column prop="phone" label="手机号" min-width="120" />
-            <el-table-column prop="building" label="楼栋号" min-width="80" />
-            <el-table-column prop="unit" label="单元号" min-width="80" />
-            <el-table-column prop="room" label="房号" min-width="80">
-              <template #default="{ row }">
-                {{ formatRoom(row.room) }}
-              </template>
-            </el-table-column>
-            <el-table-column prop="area" label="专有面积(㎡)" min-width="120" />
-            <el-table-column prop="remark" label="备注" min-width="150">
-              <template #default="{ row }">
-                <el-tooltip
-                  v-if="row.remark && row.remark.length > 10"
-                  :content="row.remark"
-                  placement="top"
-                >
-                  <span style="cursor: pointer">{{
-                    row.remark.substring(0, 10) + "..."
-                  }}</span>
-                </el-tooltip>
-                <span v-else>{{ row.remark || "-" }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column
-              prop="realNameStatus"
-              label="实名状态"
-              min-width="140"
+          <div style="flex: 1; overflow: hidden">
+            <el-table
+              :data="ownerList"
+              stripe
+              style="width: 100%"
+              height="100%"
+              row-key="_id"
+              :row-class-name="getRowClassName"
+              @selection-change="handleSelectionChange"
             >
-              <template #default="{ row }">
-                <el-tag
-                  :type="
-                    row.realNameStatus === 'verified'
-                      ? 'success'
-                      : row.realNameStatus === 'pending'
-                        ? 'warning'
-                        : 'info'
-                  "
-                >
-                  {{
-                    row.realNameStatus === "verified"
-                      ? "已实名"
-                      : row.realNameStatus === "pending"
-                        ? "进行中"
-                        : "未实名"
-                  }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="220" fixed="right">
-              <template #default="{ row }">
-                <el-button
-                  v-if="row.realNameStatus === 'pending'"
-                  type="warning"
-                  size="small"
-                  @click="handleReviewRealName(row)"
-                >
-                  审核认证
-                </el-button>
-                <el-button
-                  v-else
-                  :type="
-                    row.realNameStatus === 'verified'
-                      ? 'success'
-                      : row.realNameStatus === 'rejected'
-                        ? 'danger'
-                        : 'info'
-                  "
-                  size="small"
-                  @click="handleViewRealName(row)"
-                >
-                  查看认证
-                </el-button>
-                <el-button type="primary" size="small" @click="handleEdit(row)">
-                  编辑
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-        </div>
+              <el-table-column type="selection" width="55" />
+              <el-table-column v-if="hasMultipleProperties" type="expand">
+                <template #default="{ row }">
+                  <div v-if="row.properties && row.properties.length > 0" style="padding: 0 50px">
+                    <el-table :data="row.properties" :show-header="true" size="small">
+                      <el-table-column prop="building" label="楼栋号" min-width="80" />
+                      <el-table-column prop="unit" label="单元号" min-width="80" />
+                      <el-table-column prop="room" label="房号" min-width="80">
+                        <template #default="{ row }">
+                          {{ formatRoom(row.room) }}
+                        </template>
+                      </el-table-column>
+                      <el-table-column prop="area" label="专有面积(㎡)" min-width="120" />
+                    </el-table>
+                  </div>
+                </template>
+              </el-table-column>
+              <el-table-column prop="name" label="户主姓名" min-width="100" />
+              <el-table-column prop="phone" label="手机号" min-width="120" />
+              <el-table-column prop="building" label="楼栋号" min-width="80" />
+              <el-table-column prop="unit" label="单元号" min-width="80" />
+              <el-table-column prop="room" label="房号" min-width="80">
+                <template #default="{ row }">
+                  {{ formatRoom(row.room) }}
+                </template>
+              </el-table-column>
+              <el-table-column prop="area" label="专有面积(㎡)" min-width="120" />
+              <el-table-column prop="remark" label="备注" min-width="150">
+                <template #default="{ row }">
+                  <el-tooltip v-if="row.remark && row.remark.length > 10" :content="row.remark" placement="top">
+                    <span style="cursor: pointer">{{ row.remark.substring(0, 10) + "..." }}</span>
+                  </el-tooltip>
+                  <span v-else>{{ row.remark || "-" }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column prop="realNameStatus" label="实名状态" min-width="140">
+                <template #default="{ row }">
+                  <el-tag
+                    :type="
+                      row.realNameStatus === 'verified'
+                        ? 'success'
+                        : row.realNameStatus === 'pending'
+                          ? 'warning'
+                          : 'info'
+                    "
+                  >
+                    {{
+                      row.realNameStatus === "verified"
+                        ? "已实名"
+                        : row.realNameStatus === "pending"
+                          ? "进行中"
+                          : "未实名"
+                    }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="220" fixed="right">
+                <template #default="{ row }">
+                  <el-button
+                    v-if="row.realNameStatus === 'pending'"
+                    type="warning"
+                    size="small"
+                    @click="handleReviewRealName(row)"
+                  >
+                    审核认证
+                  </el-button>
+                  <el-button
+                    v-else
+                    :type="
+                      row.realNameStatus === 'verified'
+                        ? 'success'
+                        : row.realNameStatus === 'rejected'
+                          ? 'danger'
+                          : 'info'
+                    "
+                    size="small"
+                    @click="handleViewRealName(row)"
+                  >
+                    查看认证
+                  </el-button>
+                  <el-button type="primary" size="small" @click="handleEdit(row)"> 编辑 </el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
 
-        <div
-          style="
-            padding: 12px;
-            display: flex;
-            justify-content: center;
-            flex-shrink: 0;
-          "
-        >
-          <el-pagination
-            v-model:current-page="currentPage"
-            v-model:page-size="pageSize"
-            :total="total"
-            :page-sizes="[10, 20, 50, 100]"
-            layout="total, sizes, prev, pager, next, jumper"
-            @size-change="loadList"
-            @current-change="loadList"
-            :pager-count="7"
-          />
+          <div style="padding: 12px; display: flex; justify-content: center; flex-shrink: 0">
+            <el-pagination
+              v-model:current-page="currentPage"
+              v-model:page-size="pageSize"
+              :total="total"
+              :page-sizes="[10, 20, 50, 100]"
+              layout="total, sizes, prev, pager, next, jumper"
+              :pager-count="7"
+              @size-change="loadList"
+              @current-change="loadList"
+            />
+          </div>
         </div>
+      </div>
+
+      <!-- 商铺 Tab：全新业务页面 -->
+      <div v-if="activeTab === 'shop'" style="max-height: calc(100vh - 250px); overflow-y: auto">
+        <ShopOwnerListTab />
       </div>
     </el-card>
 
     <!-- 编辑对话框 -->
     <el-dialog v-model="editDialog" title="修改户主信息" width="700px">
-      <el-form
-        :model="editForm"
-        label-width="100px"
-        ref="formRef"
-        :rules="formRules"
-      >
+      <el-form ref="formRef" :model="editForm" label-width="100px" :rules="formRules">
         <el-form-item label="户主姓名" prop="name">
           <el-input v-model="editForm.name" placeholder="必填" />
         </el-form-item>
@@ -252,23 +181,9 @@
         <div
           v-for="(property, index) in editForm.properties"
           :key="index"
-          style="
-            border: 1px solid #eee;
-            padding: 16px;
-            margin-bottom: 12px;
-            border-radius: 4px;
-            position: relative;
-          "
+          style="border: 1px solid #eee; padding: 16px; margin-bottom: 12px; border-radius: 4px; position: relative"
         >
-          <div
-            style="
-              position: absolute;
-              top: 8px;
-              right: 8px;
-              display: flex;
-              gap: 8px;
-            "
-          >
+          <div style="position: absolute; top: 8px; right: 8px; display: flex; gap: 8px">
             <el-button
               v-if="editForm.properties.length > 1"
               type="danger"
@@ -279,23 +194,15 @@
               删除此房产
             </el-button>
           </div>
-          <div style="font-weight: bold; margin-bottom: 12px">
-            房产 {{ index + 1 }}
-          </div>
+          <div style="font-weight: bold; margin-bottom: 12px">房产 {{ index + 1 }}</div>
           <el-row :gutter="12">
             <el-col :span="8">
               <el-form-item
                 :label="'楼栋号'"
                 :prop="`properties.${index}.building`"
-                :rules="[
-                  { required: true, message: '请输入楼栋号', trigger: 'blur' },
-                ]"
+                :rules="[{ required: true, message: '请输入楼栋号', trigger: 'blur' }]"
               >
-                <el-input
-                  v-model="property.building"
-                  placeholder="例如：1"
-                  style="width: 100%"
-                />
+                <el-input v-model="property.building" placeholder="例如：1" style="width: 100%" />
               </el-form-item>
             </el-col>
           </el-row>
@@ -304,24 +211,16 @@
               <el-form-item
                 :label="'单元号'"
                 :prop="`properties.${index}.unit`"
-                :rules="[
-                  { required: true, message: '请输入单元号', trigger: 'blur' },
-                ]"
+                :rules="[{ required: true, message: '请输入单元号', trigger: 'blur' }]"
               >
-                <el-input
-                  v-model="property.unit"
-                  placeholder="例如：1"
-                  style="width: 100%"
-                />
+                <el-input v-model="property.unit" placeholder="例如：1" style="width: 100%" />
               </el-form-item>
             </el-col>
             <el-col :span="8">
               <el-form-item
                 :label="'房号'"
                 :prop="`properties.${index}.room`"
-                :rules="[
-                  { required: true, message: '请输入房号', trigger: 'blur' },
-                ]"
+                :rules="[{ required: true, message: '请输入房号', trigger: 'blur' }]"
               >
                 <el-input
                   v-model="property.room"
@@ -335,42 +234,23 @@
               <el-form-item
                 :label="'专有面积'"
                 :prop="`properties.${index}.area`"
-                :rules="[
-                  { required: true, message: '请输入面积', trigger: 'blur' },
-                ]"
+                :rules="[{ required: true, message: '请输入面积', trigger: 'blur' }]"
               >
-                <el-input
-                  v-model="property.area"
-                  placeholder="例如：100"
-                  style="width: 100%"
-                />
+                <el-input v-model="property.area" placeholder="例如：100" style="width: 100%" />
               </el-form-item>
             </el-col>
           </el-row>
           <el-row :gutter="12">
             <el-col :span="24">
-              <el-form-item
-                :label="'备注'"
-                :prop="`properties.${index}.remark`"
-              >
-                <el-input
-                  v-model="property.remark"
-                  placeholder="例如：商户（如无则留空）"
-                  style="width: 100%"
-                />
+              <el-form-item :label="'备注'" :prop="`properties.${index}.remark`">
+                <el-input v-model="property.remark" placeholder="例如：商户（如无则留空）" style="width: 100%" />
               </el-form-item>
             </el-col>
           </el-row>
         </div>
-        <el-button
-          type="primary"
-          plain
-          @click="addProperty"
-          style="width: 100%; margin-bottom: 16px"
-        >
+        <el-button type="primary" plain style="width: 100%; margin-bottom: 16px" @click="addProperty">
           + 添加房产
         </el-button>
-
       </el-form>
       <template #footer>
         <el-button @click="editDialog = false">取消</el-button>
@@ -379,11 +259,7 @@
     </el-dialog>
 
     <!-- 房屋实名认证审核对话框 -->
-    <el-dialog
-      v-model="verifyDialog"
-      :title="isViewMode ? '查看实名认证' : '审核实名认证'"
-      width="900px"
-    >
+    <el-dialog v-model="verifyDialog" :title="isViewMode ? '查看实名认证' : '审核实名认证'" width="900px">
       <div v-if="!verifyForm.hasData" style="text-align: center; padding: 40px">
         <el-empty description="该户主尚未提交实名认证资料" />
       </div>
@@ -397,9 +273,7 @@
             {{ verifyForm.submitTime }}
           </el-descriptions-item>
           <el-descriptions-item label="房屋信息">
-            {{ currentRow?.building }}栋{{ currentRow?.unit }}单元{{
-              currentRow?.room
-            }}室
+            {{ currentRow?.building }}栋{{ currentRow?.unit }}单元{{ currentRow?.room }}室
           </el-descriptions-item>
           <el-descriptions-item label="证明类型">
             {{ verifyForm.certTypeName }}
@@ -427,11 +301,7 @@
               }}
             </el-tag>
           </el-descriptions-item>
-          <el-descriptions-item
-            v-if="verifyForm.rejectReason"
-            label="拒绝原因"
-            :span="2"
-          >
+          <el-descriptions-item v-if="verifyForm.rejectReason" label="拒绝原因" :span="2">
             <span style="color: #f56c6c">{{ verifyForm.rejectReason }}</span>
           </el-descriptions-item>
         </el-descriptions>
@@ -487,10 +357,7 @@
               </el-radio-group>
             </el-form-item>
 
-            <el-form-item
-              label="不通过原因"
-              v-if="verifyForm.reviewStatus === 'rejected'"
-            >
+            <el-form-item v-if="verifyForm.reviewStatus === 'rejected'" label="不通过原因">
               <el-select
                 v-model="verifyForm.reviewRejectReason"
                 placeholder="请选择不通过原因"
@@ -517,15 +384,8 @@
       </div>
 
       <template #footer>
-        <el-button @click="verifyDialog = false">{{
-          isViewMode ? "关闭" : "取消"
-        }}</el-button>
-        <el-button
-          v-if="!isViewMode && verifyForm.hasData"
-          type="primary"
-          @click="submitReview"
-          :loading="reviewing"
-        >
+        <el-button @click="verifyDialog = false">{{ isViewMode ? "关闭" : "取消" }}</el-button>
+        <el-button v-if="!isViewMode && verifyForm.hasData" type="primary" :loading="reviewing" @click="submitReview">
           提交审核
         </el-button>
       </template>
@@ -539,6 +399,10 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import { Plus } from "@element-plus/icons-vue";
 import request from "@/utils/axios";
 import { formatRoom } from "@/utils/formatRoom";
+import ShopOwnerListTab from "./shop/ShopOwnerListTab.vue";
+
+// 页内子 Tab：户主（原有）/ 商铺（新业务）
+const activeTab = ref<"house" | "shop">("house");
 
 const ownerList = ref<any[]>([]);
 const currentPage = ref(1);
@@ -548,9 +412,7 @@ const selectedRows = ref<any[]>([]);
 
 // 检查是否有多套房产的数据
 const hasMultipleProperties = computed(() => {
-  return ownerList.value.some(
-    (item) => item.properties && item.properties.length > 0,
-  );
+  return ownerList.value.some((item) => item.properties && item.properties.length > 0);
 });
 
 const searchForm = reactive({
@@ -745,15 +607,11 @@ async function handleBatchDelete() {
   }
 
   try {
-    await ElMessageBox.confirm(
-      `确定要批量删除选中的 ${selectedRows.value.length} 位户主吗？`,
-      "提示",
-      {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-        type: "warning",
-      },
-    );
+    await ElMessageBox.confirm(`确定要批量删除选中的 ${selectedRows.value.length} 位户主吗？`, "提示", {
+      confirmButtonText: "确定",
+      cancelButtonText: "取消",
+      type: "warning",
+    });
 
     let successCount = 0;
     let failCount = 0;
@@ -821,8 +679,7 @@ async function handleViewRealName(row: any) {
   }
 
   // 如果状态是已通过或已拒绝，进入查看模式；否则进入审核模式
-  isViewMode.value =
-    verifyForm.status === "verified" || verifyForm.status === "rejected";
+  isViewMode.value = verifyForm.status === "verified" || verifyForm.status === "rejected";
 
   verifyDialog.value = true;
 }
@@ -831,11 +688,7 @@ async function loadRealNameData(ownerId: string) {
   try {
     const data = await request.get(`/owner-list/${ownerId}/realname`);
 
-    if (
-      data.data &&
-      data.data.realNameStatus &&
-      data.data.realNameStatus !== "unverified"
-    ) {
+    if (data.data && data.data.realNameStatus && data.data.realNameStatus !== "unverified") {
       const certTypeMap: any = {
         property: "房产证",
         contract: "购房合同",
@@ -848,8 +701,7 @@ async function loadRealNameData(ownerId: string) {
       verifyForm.idCardFront = data.data.realNameIdCardFront || "";
       verifyForm.idCardBack = data.data.realNameIdCardBack || "";
       verifyForm.certType = data.data.realNameCertType || "";
-      verifyForm.certTypeName =
-        certTypeMap[data.data.realNameCertType] || "房产证明";
+      verifyForm.certTypeName = certTypeMap[data.data.realNameCertType] || "房产证明";
       verifyForm.certImage = data.data.realNameCertImage || "";
       verifyForm.rejectReason = data.data.realNameRejectReason || "";
       verifyForm.reviewStatus = "approved";
@@ -872,10 +724,7 @@ async function submitReview() {
         ElMessage.warning("请选择不通过原因");
         return;
       }
-      if (
-        verifyForm.reviewRejectReason === "custom" &&
-        !verifyForm.customRejectReason
-      ) {
+      if (verifyForm.reviewRejectReason === "custom" && !verifyForm.customRejectReason) {
         ElMessage.warning("请输入自定义原因");
         return;
       }
@@ -885,9 +734,7 @@ async function submitReview() {
 
     // 如果选择了自定义原因,使用自定义内容;否则使用选择的原因
     const finalRejectReason =
-      verifyForm.reviewRejectReason === "custom"
-        ? verifyForm.customRejectReason
-        : verifyForm.reviewRejectReason;
+      verifyForm.reviewRejectReason === "custom" ? verifyForm.customRejectReason : verifyForm.reviewRejectReason;
 
     await request.post(`/owner-list/${currentRow.value._id}/realname-review`, {
       status: verifyForm.reviewStatus,

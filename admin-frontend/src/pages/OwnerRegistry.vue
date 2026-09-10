@@ -1,18 +1,17 @@
 <template>
-  <div
-    class="owner-registry-page"
-    style="height: calc(100vh - 96px); display: flex; flex-direction: column"
-  >
-    <el-card
-      style="flex: 1; display: flex; flex-direction: column; overflow: hidden"
-    >
+  <div class="owner-registry-page" style="height: calc(100vh - 96px); display: flex; flex-direction: column">
+    <el-card style="flex: 1; display: flex; flex-direction: column; overflow: hidden">
       <template #header>
         <div class="card-header">
-          <span>业主名册</span>
-          <div class="header-actions">
-            <el-button type="success" @click="downloadTemplate"
-              >下载导入模板</el-button
-            >
+          <div style="display: flex; align-items: center; gap: 12px">
+            <span>业主名册</span>
+            <el-radio-group v-model="activeTab">
+              <el-radio-button label="house">户主</el-radio-button>
+              <el-radio-button label="shop">商铺</el-radio-button>
+            </el-radio-group>
+          </div>
+          <div v-if="activeTab === 'house'" class="header-actions">
+            <el-button type="success" @click="downloadTemplate">下载导入模板</el-button>
             <el-upload
               action="#"
               :show-file-list="false"
@@ -24,276 +23,207 @@
                 {{ importing ? "导入中..." : "导入Excel" }}
               </el-button>
             </el-upload>
-            <el-button type="primary" @click="showAddDialog"
-              >手动添加</el-button
+            <el-button type="primary" @click="showAddDialog">手动添加</el-button>
+          </div>
+          <!-- 商铺 Tab：操作按钮与户主页同位置（卡片头部右侧），逻辑在 ShopRegistryTab 组件内 -->
+          <div v-else class="header-actions">
+            <el-button type="success" @click="shopTabRef?.downloadTemplate()">下载导入模板</el-button>
+            <el-upload
+              action="#"
+              :show-file-list="false"
+              :before-upload="(file: File) => (shopTabRef ? shopTabRef.handleImport(file) : false)"
+              :disabled="shopTabRef?.importing"
+              accept=".xlsx,.xls"
             >
+              <el-button type="primary" :loading="shopTabRef?.importing">
+                {{ shopTabRef?.importing ? "导入中..." : "导入Excel" }}
+              </el-button>
+            </el-upload>
+            <el-button type="primary" @click="shopTabRef?.showAddDialog()">手动添加</el-button>
           </div>
         </div>
       </template>
 
-      <el-form :inline="true" :model="searchForm" class="search-form">
-        <el-form-item label="姓名">
-          <el-input
-            v-model="searchForm.name"
-            placeholder="请输入姓名"
-            clearable
-          />
-        </el-form-item>
-        <el-form-item label="楼栋">
-          <el-input
-            v-model="searchForm.building"
-            placeholder="请输入楼栋"
-            clearable
-          />
-        </el-form-item>
-        <el-form-item label="单元">
-          <el-input
-            v-model="searchForm.unit"
-            placeholder="请输入单元"
-            clearable
-          />
-        </el-form-item>
-        <el-form-item label="房号">
-          <el-input
-            v-model="searchForm.room"
-            placeholder="请输入房号"
-            clearable
-          />
-        </el-form-item>
-        <el-form-item label="导入状态">
-          <el-select
-            v-model="searchForm.status"
-            placeholder="全部"
-            clearable
-            style="width: 120px"
-          >
-            <el-option label="有效" value="valid" />
-            <el-option label="无效" value="invalid" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="注册认证状态">
-          <el-select
-            v-model="searchForm.certStatus"
-            placeholder="全部"
-            clearable
-            style="width: 120px"
-          >
-            <el-option label="未申请" value="none" />
-            <el-option label="已通过" value="approved" />
-            <el-option label="进行中" value="pending" />
-            <el-option label="未通过" value="rejected" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="实名认证状态">
-          <el-select
-            v-model="searchForm.realNameStatus"
-            placeholder="全部"
-            clearable
-            style="width: 120px"
-          >
-            <el-option label="已实名" value="verified" />
-            <el-option label="进行中" value="pending" />
-            <el-option label="未实名" value="unverified" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="search">搜索</el-button>
-          <el-button @click="resetSearch">重置</el-button>
-        </el-form-item>
-      </el-form>
+      <!-- 户主 Tab：原有逻辑、页面完全保留 -->
+      <div v-show="activeTab === 'house'">
+        <el-form :inline="true" :model="searchForm" class="search-form">
+          <el-form-item label="姓名">
+            <el-input v-model="searchForm.name" placeholder="请输入姓名" clearable />
+          </el-form-item>
+          <el-form-item label="楼栋">
+            <el-input v-model="searchForm.building" placeholder="请输入楼栋" clearable />
+          </el-form-item>
+          <el-form-item label="单元">
+            <el-input v-model="searchForm.unit" placeholder="请输入单元" clearable />
+          </el-form-item>
+          <el-form-item label="房号">
+            <el-input v-model="searchForm.room" placeholder="请输入房号" clearable />
+          </el-form-item>
+          <el-form-item label="导入状态">
+            <el-select v-model="searchForm.status" placeholder="全部" clearable style="width: 120px">
+              <el-option label="有效" value="valid" />
+              <el-option label="无效" value="invalid" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="注册认证状态">
+            <el-select v-model="searchForm.certStatus" placeholder="全部" clearable style="width: 120px">
+              <el-option label="未申请" value="none" />
+              <el-option label="已通过" value="approved" />
+              <el-option label="进行中" value="pending" />
+              <el-option label="未通过" value="rejected" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="实名认证状态">
+            <el-select v-model="searchForm.realNameStatus" placeholder="全部" clearable style="width: 120px">
+              <el-option label="已实名" value="verified" />
+              <el-option label="进行中" value="pending" />
+              <el-option label="未实名" value="unverified" />
+            </el-select>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" @click="search">搜索</el-button>
+            <el-button @click="resetSearch">重置</el-button>
+          </el-form-item>
+        </el-form>
 
-      <div
-        style="flex: 1; display: flex; flex-direction: column; overflow: hidden"
-      >
-        <div class="batch-operations" style="margin-bottom: 16px">
-          <el-button
-            type="primary"
-            @click="handleSelect50Data"
-            :loading="selectingAll"
-          >
-            选择50条数据
-          </el-button>
-          <el-button
-            type="danger"
-            :disabled="selectedIds.length === 0"
-            @click="handleBatchDelete"
-          >
-            删除
-          </el-button>
-          <span style="margin-left: 12px; color: #909399">
-            已选择 {{ selectedRows.length }} 个业主
-          </span>
-        </div>
+        <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden">
+          <div class="batch-operations" style="margin-bottom: 16px">
+            <el-button type="primary" :loading="selectingAll" @click="handleSelect50Data"> 选择50条数据 </el-button>
+            <el-button type="danger" :disabled="selectedIds.length === 0" @click="handleBatchDelete"> 删除 </el-button>
+            <span style="margin-left: 12px; color: #909399"> 已选择 {{ selectedRows.length }} 个业主 </span>
+          </div>
 
-        <el-table
-          ref="tableRef"
-          :data="registryList"
-          stripe
-          style="width: 100%"
-          height="100%"
-          @selection-change="handleSelectionChange"
-          row-key="_id"
-          :row-class-name="getRowClassName"
-        >
-          <el-table-column type="selection" width="55" />
-          <el-table-column type="expand" v-if="hasMultipleProperties">
-            <template #default="{ row }">
-              <div
-                v-if="row.properties && row.properties.length > 0"
-                style="padding: 20px 50px"
-              >
-                <div
-                  style="margin-bottom: 10px; font-weight: bold; color: #409eff"
-                >
-                  其他房产信息:
+          <el-table
+            ref="tableRef"
+            :data="registryList"
+            stripe
+            style="width: 100%"
+            height="100%"
+            row-key="_id"
+            :row-class-name="getRowClassName"
+            @selection-change="handleSelectionChange"
+          >
+            <el-table-column type="selection" width="55" />
+            <el-table-column v-if="hasMultipleProperties" type="expand">
+              <template #default="{ row }">
+                <div v-if="row.properties && row.properties.length > 0" style="padding: 20px 50px">
+                  <div style="margin-bottom: 10px; font-weight: bold; color: #409eff">其他房产信息:</div>
+                  <el-table :data="row.properties" border size="small">
+                    <el-table-column prop="building" label="楼栋号" min-width="100" />
+                    <el-table-column prop="unit" label="单元号" min-width="100" />
+                    <el-table-column prop="room" label="房号" min-width="100">
+                      <template #default="{ row }">
+                        {{ formatRoom(row.room) }}
+                      </template>
+                    </el-table-column>
+                    <el-table-column prop="area" label="专有面积(㎡)" min-width="120" />
+                    <el-table-column prop="remark" label="备注" min-width="120">
+                      <template #default="{ row }">
+                        {{ row.remark || "-" }}
+                      </template>
+                    </el-table-column>
+                  </el-table>
                 </div>
-                <el-table :data="row.properties" border size="small">
-                  <el-table-column
-                    prop="building"
-                    label="楼栋号"
-                    min-width="100"
-                  />
-                  <el-table-column prop="unit" label="单元号" min-width="100" />
-                  <el-table-column prop="room" label="房号" min-width="100">
-                    <template #default="{ row }">
-                      {{ formatRoom(row.room) }}
-                    </template>
-                  </el-table-column>
-                  <el-table-column
-                    prop="area"
-                    label="专有面积(㎡)"
-                    min-width="120"
-                  />
-                  <el-table-column prop="remark" label="备注" min-width="120">
-                    <template #default="{ row }">
-                      {{ row.remark || "-" }}
-                    </template>
-                  </el-table-column>
-                </el-table>
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column
-            prop="ownerName1"
-            label="户主姓名"
-            min-width="120"
-          />
-          <el-table-column prop="building" label="楼栋号" min-width="80" />
-          <el-table-column prop="unit" label="单元号" min-width="80" />
-          <el-table-column prop="room" label="房号" min-width="80">
-            <template #default="{ row }">
-              {{ formatRoom(row.room) }}
-            </template>
-          </el-table-column>
-          <el-table-column prop="area" label="专有面积(㎡)" min-width="120" />
-          <el-table-column prop="remark" label="备注" min-width="120">
-            <template #default="{ row }">
-              {{ row.remark || "-" }}
-            </template>
-          </el-table-column>
-          <el-table-column prop="status" label="导入状态" min-width="100">
-            <template #default="{ row }">
-              <el-tag :type="row.status === 'valid' ? 'success' : 'danger'">
-                {{ row.status === "valid" ? "有效" : "无效" }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column
-            prop="registrationStatus"
-            label="注册认证状态"
-            min-width="120"
-          >
-            <template #default="{ row }">
-              <el-tag
-                :type="
-                  row.registrationStatus === 'approved'
-                    ? 'success'
-                    : row.registrationStatus === 'rejected'
-                      ? 'danger'
-                      : row.registrationStatus === 'pending'
+              </template>
+            </el-table-column>
+            <el-table-column prop="ownerName1" label="户主姓名" min-width="120" />
+            <el-table-column prop="building" label="楼栋号" min-width="80" />
+            <el-table-column prop="unit" label="单元号" min-width="80" />
+            <el-table-column prop="room" label="房号" min-width="80">
+              <template #default="{ row }">
+                {{ formatRoom(row.room) }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="area" label="专有面积(㎡)" min-width="120" />
+            <el-table-column prop="remark" label="备注" min-width="120">
+              <template #default="{ row }">
+                {{ row.remark || "-" }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="status" label="导入状态" min-width="100">
+              <template #default="{ row }">
+                <el-tag :type="row.status === 'valid' ? 'success' : 'danger'">
+                  {{ row.status === "valid" ? "有效" : "无效" }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="registrationStatus" label="注册认证状态" min-width="120">
+              <template #default="{ row }">
+                <el-tag
+                  :type="
+                    row.registrationStatus === 'approved'
+                      ? 'success'
+                      : row.registrationStatus === 'rejected'
+                        ? 'danger'
+                        : row.registrationStatus === 'pending'
+                          ? 'warning'
+                          : 'info'
+                  "
+                >
+                  {{
+                    row.registrationStatus === "approved"
+                      ? "已通过"
+                      : row.registrationStatus === "rejected"
+                        ? "未通过"
+                        : row.registrationStatus === "pending"
+                          ? "进行中"
+                          : "未申请"
+                  }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="realNameStatusValue" label="实名认证状态" min-width="120">
+              <template #default="{ row }">
+                <el-tag
+                  :type="
+                    row.realNameStatusValue === 'verified'
+                      ? 'success'
+                      : row.realNameStatusValue === 'pending'
                         ? 'warning'
                         : 'info'
-                "
-              >
-                {{
-                  row.registrationStatus === "approved"
-                    ? "已通过"
-                    : row.registrationStatus === "rejected"
-                      ? "未通过"
-                      : row.registrationStatus === "pending"
+                  "
+                >
+                  {{
+                    row.realNameStatusValue === "verified"
+                      ? "已实名"
+                      : row.realNameStatusValue === "pending"
                         ? "进行中"
-                        : "未申请"
-                }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column
-            prop="realNameStatusValue"
-            label="实名认证状态"
-            min-width="120"
-          >
-            <template #default="{ row }">
-              <el-tag
-                :type="
-                  row.realNameStatusValue === 'verified'
-                    ? 'success'
-                    : row.realNameStatusValue === 'pending'
-                      ? 'warning'
-                      : 'info'
-                "
-              >
-                {{
-                  row.realNameStatusValue === "verified"
-                    ? "已实名"
-                    : row.realNameStatusValue === "pending"
-                      ? "进行中"
-                      : "未实名"
-                }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="180" fixed="right">
-            <template #default="{ row }">
-              <el-button type="primary" size="small" @click="handleEdit(row)">
-                编辑
-              </el-button>
-              <el-button
-                type="warning"
-                size="small"
-                @click="handleRealNameReview(row)"
-              >
-                审核认证
-              </el-button>
-            </template>
-          </el-table-column>
-        </el-table>
+                        : "未实名"
+                  }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="180" fixed="right">
+              <template #default="{ row }">
+                <el-button type="primary" size="small" @click="handleEdit(row)"> 编辑 </el-button>
+                <el-button type="warning" size="small" @click="handleRealNameReview(row)"> 审核认证 </el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :total="total"
+          :page-sizes="[10, 20, 50, 100]"
+          layout="total, sizes, prev, pager, next, jumper"
+          style="padding: 16px 0; justify-content: center; flex-shrink: 0"
+          :pager-count="7"
+          @size-change="loadList"
+          @current-change="loadList"
+        />
       </div>
 
-      <el-pagination
-        v-model:current-page="currentPage"
-        v-model:page-size="pageSize"
-        :total="total"
-        :page-sizes="[10, 20, 50, 100]"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="loadList"
-        @current-change="loadList"
-        style="padding: 16px 0; justify-content: center; flex-shrink: 0"
-        :pager-count="7"
-      />
+      <!-- 商铺 Tab：全新业务页面 -->
+      <div v-if="activeTab === 'shop'" style="max-height: calc(100vh - 250px); overflow-y: auto">
+        <ShopRegistryTab ref="shopTabRef" />
+      </div>
     </el-card>
 
     <!-- 添加/编辑对话框 -->
-    <el-dialog
-      v-model="editDialog"
-      :title="editForm.id ? '编辑业主信息' : '添加业主信息'"
-      width="700px"
-    >
-      <el-form
-        :model="editForm"
-        label-width="120px"
-        :rules="formRules"
-        ref="formRef"
-      >
+    <el-dialog v-model="editDialog" :title="editForm.id ? '编辑业主信息' : '添加业主信息'" width="700px">
+      <el-form ref="formRef" :model="editForm" label-width="120px" :rules="formRules">
         <el-form-item label="户主姓名" prop="ownerName1">
           <el-input v-model="editForm.ownerName1" placeholder="请输入户主姓名" />
         </el-form-item>
@@ -302,23 +232,9 @@
         <div
           v-for="(property, index) in editForm.properties"
           :key="index"
-          style="
-            border: 1px solid #eee;
-            padding: 16px;
-            margin-bottom: 12px;
-            border-radius: 4px;
-            position: relative;
-          "
+          style="border: 1px solid #eee; padding: 16px; margin-bottom: 12px; border-radius: 4px; position: relative"
         >
-          <div
-            style="
-              position: absolute;
-              top: 8px;
-              right: 8px;
-              display: flex;
-              gap: 8px;
-            "
-          >
+          <div style="position: absolute; top: 8px; right: 8px; display: flex; gap: 8px">
             <el-button
               v-if="editForm.properties.length > 1"
               type="danger"
@@ -329,23 +245,15 @@
               删除此房产
             </el-button>
           </div>
-          <div style="font-weight: bold; margin-bottom: 12px">
-            房产 {{ index + 1 }}
-          </div>
+          <div style="font-weight: bold; margin-bottom: 12px">房产 {{ index + 1 }}</div>
           <el-row :gutter="12">
             <el-col :span="8">
               <el-form-item
                 :label="'楼栋号'"
                 :prop="`properties.${index}.building`"
-                :rules="[
-                  { required: true, message: '请输入楼栋号', trigger: 'blur' },
-                ]"
+                :rules="[{ required: true, message: '请输入楼栋号', trigger: 'blur' }]"
               >
-                <el-input
-                  v-model="property.building"
-                  placeholder="例如：1"
-                  style="width: 100%"
-                />
+                <el-input v-model="property.building" placeholder="例如：1" style="width: 100%" />
               </el-form-item>
             </el-col>
           </el-row>
@@ -354,24 +262,16 @@
               <el-form-item
                 :label="'单元号'"
                 :prop="`properties.${index}.unit`"
-                :rules="[
-                  { required: true, message: '请输入单元号', trigger: 'blur' },
-                ]"
+                :rules="[{ required: true, message: '请输入单元号', trigger: 'blur' }]"
               >
-                <el-input
-                  v-model="property.unit"
-                  placeholder="例如：1"
-                  style="width: 100%"
-                />
+                <el-input v-model="property.unit" placeholder="例如：1" style="width: 100%" />
               </el-form-item>
             </el-col>
             <el-col :span="8">
               <el-form-item
                 :label="'房号'"
                 :prop="`properties.${index}.room`"
-                :rules="[
-                  { required: true, message: '请输入房号', trigger: 'blur' },
-                ]"
+                :rules="[{ required: true, message: '请输入房号', trigger: 'blur' }]"
               >
                 <el-input
                   v-model="property.room"
@@ -385,39 +285,21 @@
               <el-form-item
                 :label="'专有面积'"
                 :prop="`properties.${index}.area`"
-                :rules="[
-                  { required: true, message: '请输入面积', trigger: 'blur' },
-                ]"
+                :rules="[{ required: true, message: '请输入面积', trigger: 'blur' }]"
               >
-                <el-input
-                  v-model="property.area"
-                  placeholder="例如：100"
-                  style="width: 100%"
-                />
+                <el-input v-model="property.area" placeholder="例如：100" style="width: 100%" />
               </el-form-item>
             </el-col>
           </el-row>
           <el-row :gutter="12">
             <el-col :span="24">
-              <el-form-item
-                :label="'备注'"
-                :prop="`properties.${index}.remark`"
-              >
-                <el-input
-                  v-model="property.remark"
-                  placeholder="例如：商户（如无则留空）"
-                  style="width: 100%"
-                />
+              <el-form-item :label="'备注'" :prop="`properties.${index}.remark`">
+                <el-input v-model="property.remark" placeholder="例如：商户（如无则留空）" style="width: 100%" />
               </el-form-item>
             </el-col>
           </el-row>
         </div>
-        <el-button
-          type="primary"
-          plain
-          @click="addProperty"
-          style="width: 100%; margin-bottom: 16px"
-        >
+        <el-button type="primary" plain style="width: 100%; margin-bottom: 16px" @click="addProperty">
           + 添加房产
         </el-button>
 
@@ -445,37 +327,23 @@
           <template #extra>
             <el-descriptions :column="3" border>
               <el-descriptions-item label="新增">
-                <span style="color: #67c23a; font-weight: bold">{{
-                  importResult.addCount
-                }}</span>
+                <span style="color: #67c23a; font-weight: bold">{{ importResult.addCount }}</span>
               </el-descriptions-item>
               <el-descriptions-item label="跳过">
-                <span style="color: #e6a23c; font-weight: bold">{{
-                  importResult.skipCount
-                }}</span>
+                <span style="color: #e6a23c; font-weight: bold">{{ importResult.skipCount }}</span>
               </el-descriptions-item>
               <el-descriptions-item label="失败">
-                <span style="color: #f56c6c; font-weight: bold">{{
-                  importResult.failCount
-                }}</span>
+                <span style="color: #f56c6c; font-weight: bold">{{ importResult.failCount }}</span>
               </el-descriptions-item>
             </el-descriptions>
-            <div
-              v-if="importResult.skipped && importResult.skipped.length > 0"
-              class="skip-list"
-            >
-              <el-divider content-position="left"
-                >跳过记录（已存在）</el-divider
-              >
+            <div v-if="importResult.skipped && importResult.skipped.length > 0" class="skip-list">
+              <el-divider content-position="left">跳过记录（已存在）</el-divider>
               <el-table :data="importResult.skipped" max-height="200">
                 <el-table-column prop="row" label="行号" width="80" />
                 <el-table-column prop="info" label="说明" />
               </el-table>
             </div>
-            <div
-              v-if="importResult.errors && importResult.errors.length > 0"
-              class="error-list"
-            >
+            <div v-if="importResult.errors && importResult.errors.length > 0" class="error-list">
               <el-divider content-position="left">错误详情</el-divider>
               <el-table :data="importResult.errors" max-height="200">
                 <el-table-column prop="row" label="行号" width="80" />
@@ -501,9 +369,7 @@
             {{ realNameForm.submitTime }}
           </el-descriptions-item>
           <el-descriptions-item label="房屋信息">
-            {{ realNameForm.building }}栋{{ realNameForm.unit }}单元{{
-              realNameForm.room
-            }}室
+            {{ realNameForm.building }}栋{{ realNameForm.unit }}单元{{ realNameForm.room }}室
           </el-descriptions-item>
           <el-descriptions-item label="证件类型">
             {{ realNameForm.certTypeName }}
@@ -554,28 +420,15 @@
             </el-radio-group>
           </el-form-item>
 
-          <el-form-item
-            label="拒绝原因"
-            v-if="realNameForm.reviewStatus === 'rejected'"
-          >
-            <el-input
-              v-model="realNameForm.rejectReason"
-              type="textarea"
-              :rows="3"
-              placeholder="请输入拒绝原因"
-            />
+          <el-form-item v-if="realNameForm.reviewStatus === 'rejected'" label="拒绝原因">
+            <el-input v-model="realNameForm.rejectReason" type="textarea" :rows="3" placeholder="请输入拒绝原因" />
           </el-form-item>
         </el-form>
       </div>
 
       <template #footer>
         <el-button @click="realNameDialog = false">取消</el-button>
-        <el-button
-          type="primary"
-          @click="submitRealNameReview"
-          :loading="reviewing"
-          >提交审核</el-button
-        >
+        <el-button type="primary" :loading="reviewing" @click="submitRealNameReview">提交审核</el-button>
       </template>
     </el-dialog>
   </div>
@@ -588,6 +441,13 @@ import { Loading } from "@element-plus/icons-vue";
 import * as XLSX from "xlsx";
 import request from "@/utils/axios";
 import { formatRoom } from "@/utils/formatRoom";
+import ShopRegistryTab from "./shop/ShopRegistryTab.vue";
+
+// 页内子 Tab：户主（原有）/ 商铺（新业务）
+const activeTab = ref<"house" | "shop">("house");
+
+// 商铺 Tab 组件引用（头部按钮调用组件内暴露的方法）
+const shopTabRef = ref();
 
 const registryList = ref<any[]>([]);
 const currentPage = ref(1);
@@ -603,9 +463,7 @@ const isBatchSelecting = ref(false); // 正在批量选择中的标志
 
 // 检查是否有多套房产的数据
 const hasMultipleProperties = computed(() => {
-  return registryList.value.some(
-    (item) => item.properties && item.properties.length > 0,
-  );
+  return registryList.value.some((item) => item.properties && item.properties.length > 0);
 });
 
 const searchForm = reactive({
@@ -747,20 +605,11 @@ function resetSearch() {
 function downloadTemplate() {
   // 创建Excel模板
   const template = [
-    ["【提示：以下示例说明和示例数据不会被导入，无需删除】"],
+    ["【提示：以下示例说明和示例数据不会被导入，不要删除1-8行内容】"],
     ["示例说明："],
-    [
-      "1. 一个户主多套房：第一行填完整信息，后续房产只填楼栋号、单元号、房号、专有面积，户主姓名留空",
-    ],
+    ["1. 一个户主多套房：第一行填完整信息，后续房产只填楼栋号、单元号、房号、专有面积，户主姓名留空"],
     [""],
-    [
-      "户主姓名 *",
-      "楼栋号 *",
-      "单元号 *",
-      "房号 *",
-      "专有面积 *",
-      "备注（如无，留空）",
-    ],
+    ["户主姓名 *", "楼栋号 *", "单元号 *", "房号 *", "专有面积 *", "备注（如无，留空）"],
     ["张三", "1", "1", "101", "100", "商户"],
     ["", "1", "2", "201", "120", ""],
     ["王五", "3", "1", "102", "95", ""],
@@ -1115,18 +964,14 @@ async function handleSelect50Data() {
       // 设置当前页所有行为选中状态（仅用于UI显示）
       registryList.value.forEach((row) => {
         // 只选中在 selectedOwners 中的行
-        const isSelected = selectedOwners.some(
-          (owner) => owner._id === row._id,
-        );
+        const isSelected = selectedOwners.some((owner) => owner._id === row._id);
         tableRef.value?.toggleRowSelection(row, isSelected);
       });
 
       // 解除批量选择标志
       isBatchSelecting.value = false;
       selectingAll.value = false;
-      ElMessage.success(
-        `已选择 ${selectedOwners.length} 个业主（共 ${allIds.length} 条房产记录）`,
-      );
+      ElMessage.success(`已选择 ${selectedOwners.length} 个业主（共 ${allIds.length} 条房产记录）`);
     } catch (err: any) {
       selectingAll.value = false;
       ElMessage.error("获取数据失败: " + (err.message || ""));
@@ -1151,19 +996,13 @@ function handleSelectionChange(selection: any[]) {
     const currentPageSelectedIds = selection.map((item) => item._id);
 
     // 找出当前页被取消选择的行ID
-    const deselectedIds = currentPageIds.filter(
-      (id) => !currentPageSelectedIds.includes(id),
-    );
+    const deselectedIds = currentPageIds.filter((id) => !currentPageSelectedIds.includes(id));
 
     // 从全局选择中移除被取消的ID
-    selectedIds.value = selectedIds.value.filter(
-      (id) => !deselectedIds.includes(id),
-    );
+    selectedIds.value = selectedIds.value.filter((id) => !deselectedIds.includes(id));
 
     // 从全局选择中移除被取消的行
-    selectedRows.value = selectedRows.value.filter(
-      (row) => !deselectedIds.includes(row._id),
-    );
+    selectedRows.value = selectedRows.value.filter((row) => !deselectedIds.includes(row._id));
 
     // 如果没有选中任何数据了，退出批量选择模式
     if (selectedIds.value.length === 0) {
@@ -1226,13 +1065,9 @@ async function handleBatchDelete() {
     const failCount = results.length - successCount;
 
     if (failCount === 0) {
-      ElMessage.success(
-        `成功删除 ${selectedIds.value.length} 个户主的所有房产记录`,
-      );
+      ElMessage.success(`成功删除 ${selectedIds.value.length} 个户主的所有房产记录`);
     } else {
-      ElMessage.warning(
-        `删除完成：成功 ${successCount} 条，失败 ${failCount} 条`,
-      );
+      ElMessage.warning(`删除完成：成功 ${successCount} 条，失败 ${failCount} 条`);
     }
 
     selectedIds.value = [];
@@ -1248,10 +1083,7 @@ async function handleBatchDelete() {
 
 async function handleDelete(row: any) {
   try {
-    const propertyCount =
-      row.properties && row.properties.length > 0
-        ? row.properties.length + 1
-        : 1;
+    const propertyCount = row.properties && row.properties.length > 0 ? row.properties.length + 1 : 1;
     const confirmMsg =
       propertyCount > 1
         ? `确定要删除业主 ${row.ownerName1} 的所有 ${propertyCount} 套房产吗？此操作不可恢复！`
